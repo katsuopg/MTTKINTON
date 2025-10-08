@@ -1,0 +1,41 @@
+{
+  "name": "temp-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "update-waiting-po": "tsx scripts/update-waiting-po-status.ts",
+    "check-statuses": "tsx scripts/check-quotation-statuses.ts"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.58.0",
+    "@tanstack/react-query": "^5.90.2",
+    "lucide-react": "^0.544.0",
+    "next": "^15.5.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hook-form": "^7.63.0",
+    "recharts": "^3.2.1",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.1",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "dotenv": "^17.2.3",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.33",
+    "playwright": "^1.55.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5"
+  }
+}

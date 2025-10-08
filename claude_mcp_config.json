@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "/Users/taro/.npm-global/bin/mcp-server-supabase",
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_6b07f9e11aa52fa880cb2c64a9c81dddef265bc4"
+      }
+    }
+  }
+}

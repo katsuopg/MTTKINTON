@@ -1,0 +1,82 @@
+import createIntlMiddleware from 'next-intl/middleware';
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+
+// next-intlの設定
+const defaultLocale = 'ja';
+const locales = ['ja', 'th'];
+
+// next-intlミドルウェアの作成
+const intlMiddleware = createIntlMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'always'
+});
+
+// 公開パス（認証不要）の定義
+const publicPaths = ['/auth/login'];
+
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  
+  // 言語設定がない場合、デフォルト言語にリダイレクト
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL(`/${defaultLocale}/auth/login`, request.url));
+  }
+
+  // next-intlミドルウェアの適用
+  const intlResponse = await intlMiddleware(request);
+
+  // Supabaseクライアントの作成
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          // 既存のレスポンスヘッダーを保持
+          const currentHeaders = new Headers(intlResponse.headers);
+          const response = new NextResponse(intlResponse.body, {
+            headers: currentHeaders,
+            status: intlResponse.status,
+          });
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          return response;
+        },
+        remove(name: string, options: CookieOptions) {
+          // 既存のレスポンスヘッダーを保持
+          const currentHeaders = new Headers(intlResponse.headers);
+          const response = new NextResponse(intlResponse.body, {
+            headers: currentHeaders,
+            status: intlResponse.status,
+          });
+          response.cookies.delete(name);
+          return response;
+        },
+      },
+    }
+  );
+
+  // 認証チェック
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 非認証ユーザーは /auth/login にリダイレクト
+  if (!user && !publicPaths.some(path => pathname.includes(path))) {
+    const redirectUrl = new URL(`/${defaultLocale}/auth/login`, request.url);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return intlResponse;
+}
+
+// ミドルウェアを適用するパスの設定
+export const config = {
+  matcher: ['/((?!api|_next|.*\\..*).*)']
+};

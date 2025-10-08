@@ -1,0 +1,38 @@
+{
+  "common": {
+    "appName": "kintone統合システム",
+    "japanese": "日本語",
+    "thai": "タイ語",
+    "logout": "ログアウト"
+  },
+  "auth": {
+    "login": "ログイン",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "loginTitle": "ログイン",
+    "loginNote": "アカウントにログインしてください",
+    "emailPlaceholder": "メールアドレスを入力",
+    "passwordPlaceholder": "パスワードを入力",
+    "loggingIn": "ログイン中...",
+    "logout": "ログアウト",
+    "error": {
+      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+      "generic": "ログイン中にエラーが発生しました"
+    }
+  },
+  "navigation": {
+    "dashboard": "ダッシュボード",
+    "projects": "プロジェクト",
+    "projectManagement": "プロジェクト管理",
+    "recentProjects": "最近のプロジェクト"
+  },
+  "kintone": {
+    "workNo": "作業番号",
+    "cases": "案件",
+    "project": "プロジェクト"
+  },
+  "messages": {
+    "alerts": "アラート",
+    "noData": "データがありません"
+  }
+}

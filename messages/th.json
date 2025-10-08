@@ -1,0 +1,38 @@
+{
+  "common": {
+    "appName": "ระบบผสานรวม kintone",
+    "japanese": "ญี่ปุ่น",
+    "thai": "ไทย",
+    "logout": "ออกจากระบบ"
+  },
+  "auth": {
+    "login": "เข้าสู่ระบบ",
+    "email": "อีเมล",
+    "password": "รหัสผ่าน",
+    "loginTitle": "เข้าสู่ระบบ",
+    "loginNote": "กรุณาเข้าสู่ระบบบัญชีของคุณ",
+    "emailPlaceholder": "ป้อนอีเมล",
+    "passwordPlaceholder": "ป้อนรหัสผ่าน",
+    "loggingIn": "กำลังเข้าสู่ระบบ...",
+    "logout": "ออกจากระบบ",
+    "error": {
+      "invalidCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+      "generic": "เกิดข้อผิดพลาดขณะเข้าสู่ระบบ"
+    }
+  },
+  "navigation": {
+    "dashboard": "แดชบอร์ด",
+    "projects": "โครงการ",
+    "projectManagement": "จัดการโครงการ",
+    "recentProjects": "โครงการล่าสุด"
+  },
+  "kintone": {
+    "workNo": "หมายเลขงาน",
+    "cases": "กรณี",
+    "project": "โครงการ"
+  },
+  "messages": {
+    "alerts": "การแจ้งเตือน",
+    "noData": "ไม่มีข้อมูล"
+  }
+}

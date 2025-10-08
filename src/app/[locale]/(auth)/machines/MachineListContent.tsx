@@ -1,0 +1,297 @@
+'use client';
+
+import { useState, useEffect, useCallback, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { MachineRecord } from '@/types/kintone';
+import { type Language } from '@/lib/kintone/field-mappings';
+import SearchFilter from '@/components/ui/SearchFilter';
+import { tableStyles } from '@/components/ui/TableStyles';
+import TransitionLink from '@/components/ui/TransitionLink';
+
+interface MachineListContentProps {
+  locale: string;
+  language: Language;
+  initialRecords: MachineRecord[];
+  initialSearch: string;
+  initialCategory: string;
+  initialVendor: string;
+  qtCounts: Record<string, number>;
+  wnCounts: Record<string, number>;
+}
+
+export default function MachineListContent({
+  locale,
+  language,
+  initialRecords,
+  initialSearch,
+  initialCategory,
+  initialVendor,
+  qtCounts,
+  wnCounts,
+}: MachineListContentProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [navigatingId, setNavigatingId] = useState<string | null>(null);
+  
+  const [records, setRecords] = useState<MachineRecord[]>(initialRecords);
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
+  const [selectedVendor, setSelectedVendor] = useState(initialVendor);
+  const [filteredRecords, setFilteredRecords] = useState<MachineRecord[]>([]);
+
+  // URL更新のデバウンス処理
+  const updateURL = useCallback((search: string, category: string, vendor: string) => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (category && category !== 'all') params.set('category', category);
+    if (vendor && vendor !== 'all') params.set('vendor', vendor);
+    
+    const query = params.toString();
+    const newURL = `/${locale}/machines${query ? `?${query}` : ''}`;
+    router.replace(newURL, { scroll: false });
+  }, [locale, router]);
+
+  // 検索処理
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    updateURL(value, selectedCategory, selectedVendor);
+  }, [selectedCategory, selectedVendor, updateURL]);
+
+  // カテゴリ変更処理
+  const handleCategoryChange = useCallback((category: string) => {
+    setSelectedCategory(category);
+    updateURL(searchQuery, category, selectedVendor);
+  }, [searchQuery, selectedVendor, updateURL]);
+
+  // ベンダー変更処理
+  const handleVendorChange = useCallback((vendor: string) => {
+    setSelectedVendor(vendor);
+    updateURL(searchQuery, selectedCategory, vendor);
+  }, [searchQuery, selectedCategory, updateURL]);
+
+  // カテゴリ一覧を取得
+  const categories = Array.from(new Set(records.map(r => r.MachineCategory?.value).filter(Boolean)));
+  const vendors = Array.from(new Set(records.map(r => r.Vender?.value).filter(Boolean)));
+
+  // クライアントサイドフィルタリング
+  useEffect(() => {
+    let filtered = records;
+    
+    if (searchQuery) {
+      filtered = filtered.filter(record => {
+        const csName = record.CsName?.value?.toLowerCase() || '';
+        const csId = record.CsId_db?.value?.toLowerCase() || '';
+        const model = record.Moldel?.value?.toLowerCase() || '';
+        const serial = record.SrialNo?.value?.toLowerCase() || '';
+        const mcItem = record.McItem?.value?.toLowerCase() || '';
+        const query = searchQuery.toLowerCase();
+        return csName.includes(query) || csId.includes(query) || 
+               model.includes(query) || serial.includes(query) || mcItem.includes(query);
+      });
+    }
+
+    if (selectedCategory && selectedCategory !== 'all') {
+      filtered = filtered.filter(record => record.MachineCategory?.value === selectedCategory);
+    }
+
+    if (selectedVendor && selectedVendor !== 'all') {
+      filtered = filtered.filter(record => record.Vender?.value === selectedVendor);
+    }
+
+    setFilteredRecords(filtered);
+  }, [records, searchQuery, selectedCategory, selectedVendor]);
+
+  // 日付フォーマット関数
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    if (language === 'ja') {
+      return dateString;
+    } else {
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
+  };
+
+  const searchPlaceholder = language === 'ja' 
+    ? '顧客名、CS ID、モデル、シリアル番号で検索' 
+    : language === 'th' 
+    ? 'ค้นหาด้วยชื่อลูกค้า, CS ID, รุ่น, หมายเลขซีเรียล' 
+    : 'Search by customer, CS ID, model, serial no.';
+
+  const countLabel = language === 'ja'
+    ? '台の機械'
+    : language === 'th'
+    ? ' เครื่อง'
+    : ' machines';
+
+  return (
+    <div className={tableStyles.contentWrapper}>
+      {/* 検索フィルター */}
+      <div className="mb-4 space-y-4">
+        <SearchFilter
+          searchValue={searchQuery}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder={searchPlaceholder}
+          totalCount={filteredRecords.length}
+          countLabel={countLabel}
+        />
+        
+        {/* カテゴリとベンダーフィルター */}
+        <div className="flex gap-4">
+          <div>
+            <select
+              value={selectedCategory}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >
+              <option value="all">
+                {language === 'ja' ? '全カテゴリ' : language === 'th' ? 'ทุกหมวดหมู่' : 'All Categories'}
+              </option>
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <select
+              value={selectedVendor}
+              onChange={(e) => handleVendorChange(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            >
+              <option value="all">
+                {language === 'ja' ? '全メーカー' : language === 'th' ? 'ทุกผู้ผลิต' : 'All Vendors'}
+              </option>
+              {vendors.map((vendor) => (
+                <option key={vendor} value={vendor}>
+                  {vendor}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* テーブル表示 */}
+      <div className="overflow-x-auto bg-white shadow rounded-lg">
+        {filteredRecords.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">
+              {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
+            </p>
+          </div>
+        ) : (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {language === 'ja' ? '顧客' : language === 'th' ? 'ลูกค้า' : 'Customer'}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {language === 'ja' ? 'カテゴリ' : language === 'th' ? 'หมวดหมู่' : 'Category'}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {language === 'ja' ? 'タイプ' : language === 'th' ? 'ประเภท' : 'Type'}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {language === 'ja' ? 'メーカー' : language === 'th' ? 'ผู้ผลิต' : 'Vendor'}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {language === 'ja' ? 'モデル' : language === 'th' ? 'รุ่น' : 'Model'}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {language === 'ja' ? 'シリアル番号' : language === 'th' ? 'หมายเลขซีเรียล' : 'Serial No.'}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {language === 'ja' ? 'アイテム' : language === 'th' ? 'รายการ' : 'Item'}
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  QT
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  WN
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredRecords.map((record) => (
+                <tr key={record.$id.value} className={`hover:bg-gray-50 cursor-pointer ${navigatingId === record.$id.value ? 'opacity-50' : ''}`} 
+                    onClick={() => {
+                      setNavigatingId(record.$id.value);
+                      startTransition(() => {
+                        router.push(`/${locale}/machines/${record.$id.value}`);
+                      });
+                    }}>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    <div>
+                      <div className="font-medium">{record.CsId_db?.value || '-'}</div>
+                      <div className="text-xs text-gray-500">{record.CsName?.value || '-'}</div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {record.MachineCategory?.value || '-'}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {record.Drop_down_0?.value || '-'}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {record.Vender?.value || '-'}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900"
+                      onClick={(e) => e.stopPropagation()}>
+                    <TransitionLink
+                      href={`/${locale}/machines/${record.$id.value}`}
+                      className="text-indigo-600 hover:text-indigo-900 font-medium"
+                    >
+                      {record.Moldel?.value || '-'}
+                    </TransitionLink>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {record.SrialNo?.value || '-'}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    {record.McItem?.value || '-'}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {qtCounts[record.$id.value] > 0 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {qtCounts[record.$id.value]}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                    {wnCounts[record.$id.value] > 0 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
+                        {wnCounts[record.$id.value]}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      
+      {/* ローディングオーバーレイ */}
+      {(isPending || navigatingId) && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-xl p-6 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-600"></div>
+            <p className="text-sm font-medium text-gray-700">
+              {language === 'ja' ? '読み込み中...' : language === 'th' ? 'กำลังโหลด...' : 'Loading...'}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
