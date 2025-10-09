@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getInvoiceRecords } from '@/lib/kintone/invoice';
+import { getInvoicesFromSupabase } from '@/lib/supabase/invoices';
+import { convertSupabaseInvoicesToKintone } from '@/lib/supabase/transformers';
 
 export async function GET(
   request: NextRequest,
@@ -9,8 +10,9 @@ export async function GET(
     const { period } = await context.params;
     console.log('API: Fetching invoice records for period:', period);
     
-    // 会計期間のデータを取得
-    const records = await getInvoiceRecords(period, 500);
+    // Supabaseから会計期間のデータを取得
+    const invoices = await getInvoicesFromSupabase(period, 500);
+    const records = convertSupabaseInvoicesToKintone(invoices);
     
     return NextResponse.json({
       records,

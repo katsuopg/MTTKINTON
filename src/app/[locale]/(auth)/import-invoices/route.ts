@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../../../lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { getInvoiceRecords } from '@/lib/kintone/invoice';
 
 // 全請求書データをSupabaseに取り込むAPIルート

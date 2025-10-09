@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function ImportDataPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -9,6 +9,19 @@ export default function ImportDataPage({ params }: { params: Promise<{ locale: s
   const [customerResult, setCustomerResult] = useState<any>(null);
   const [invoiceResult, setInvoiceResult] = useState<any>(null);
   const router = useRouter();
+  const [resolvedLocale, setResolvedLocale] = useState('ja');
+
+  useEffect(() => {
+    let active = true;
+    params.then((value) => {
+      if (active && value?.locale) {
+        setResolvedLocale(value.locale);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [params]);
 
   const importCustomers = async () => {
     setIsImportingCustomers(true);
@@ -131,14 +144,14 @@ export default function ImportDataPage({ params }: { params: Promise<{ locale: s
 
       <div className="mt-8 space-x-4">
         <button
-          onClick={() => router.push('/ja/test-supabase')}
+          onClick={() => router.push(`/${resolvedLocale}/test-supabase`)}
           className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
         >
           Supabaseデータを確認
         </button>
         
         <button
-          onClick={() => router.push('/ja/customers-supabase')}
+          onClick={() => router.push(`/${resolvedLocale}/customers`)}
           className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
         >
           Supabase顧客一覧へ

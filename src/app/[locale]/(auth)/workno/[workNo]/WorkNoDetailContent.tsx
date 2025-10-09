@@ -534,18 +534,18 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
         <div className="bg-white shadow-sm rounded-lg mb-8">
           {/* タブナビゲーション */}
           <div className="border-b border-gray-200">
-            <ul className="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500">
+            <ul className="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-600">
               <li className="me-2">
                 <button
                   onClick={() => setActiveTab('cost-sheet')}
-                  className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group ${
+                  className={`inline-flex h-12 items-center justify-center px-4 border-b-2 rounded-t-lg group text-sm ${
                     activeTab === 'cost-sheet'
                       ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'border-transparent hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <DocumentIcon 
-                    className={`mr-3 h-5 w-5 ${activeTab === 'cost-sheet' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`mr-2 h-4 w-4 ${activeTab === 'cost-sheet' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
                   Cost Sheet
                 </button>
@@ -553,14 +553,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               <li className="me-2">
                 <button
                   onClick={() => setActiveTab('po-list')}
-                  className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group ${
+                  className={`inline-flex h-12 items-center justify-center px-4 border-b-2 rounded-t-lg group text-sm ${
                     activeTab === 'po-list'
                       ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'border-transparent hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <ListIcon 
-                    className={`mr-3 h-5 w-5 ${activeTab === 'po-list' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`mr-2 h-4 w-4 ${activeTab === 'po-list' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
                   PO LIST
                   {hasPOTabWarning && (
@@ -571,14 +571,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               <li className="me-2">
                 <button
                   onClick={() => setActiveTab('inv-list')}
-                  className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group ${
+                  className={`inline-flex h-12 items-center justify-center px-4 border-b-2 rounded-t-lg group text-sm ${
                     activeTab === 'inv-list'
                       ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'border-transparent hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <ClipboardIcon 
-                    className={`mr-3 h-5 w-5 ${activeTab === 'inv-list' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`mr-2 h-4 w-4 ${activeTab === 'inv-list' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
                   INV LIST
                 </button>
@@ -586,14 +586,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               <li className="me-2">
                 <button
                   onClick={() => setActiveTab('man-huar-list')}
-                  className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group ${
+                  className={`inline-flex h-12 items-center justify-center px-4 border-b-2 rounded-t-lg group text-sm ${
                     activeTab === 'man-huar-list'
                       ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'border-transparent hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <UserIcon 
-                    className={`mr-3 h-5 w-5 ${activeTab === 'man-huar-list' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`mr-2 h-4 w-4 ${activeTab === 'man-huar-list' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
                   Man-Huar List
                 </button>
@@ -601,14 +601,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               <li className="me-2">
                 <button
                   onClick={() => setActiveTab('man-huar-record')}
-                  className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group ${
+                  className={`inline-flex h-12 items-center justify-center px-4 border-b-2 rounded-t-lg group text-sm ${
                     activeTab === 'man-huar-record'
                       ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'border-transparent hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <CogIcon 
-                    className={`mr-3 h-5 w-5 ${activeTab === 'man-huar-record' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`mr-2 h-4 w-4 ${activeTab === 'man-huar-record' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
                   Man-Huar Record
                 </button>
@@ -616,14 +616,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               <li className="me-2">
                 <button
                   onClick={() => setActiveTab('report')}
-                  className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group ${
+                  className={`inline-flex h-12 items-center justify-center px-4 border-b-2 rounded-t-lg group text-sm ${
                     activeTab === 'report'
                       ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'border-transparent hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <ChartBarIcon 
-                    className={`mr-3 h-5 w-5 ${activeTab === 'report' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`mr-2 h-4 w-4 ${activeTab === 'report' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
                   Report
                 </button>
@@ -631,14 +631,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               <li className="me-2">
                 <button
                   onClick={() => setActiveTab('parson-in-charge')}
-                  className={`inline-flex items-center justify-center p-4 border-b-2 rounded-t-lg group ${
+                  className={`inline-flex h-12 items-center justify-center px-4 border-b-2 rounded-t-lg group text-sm ${
                     activeTab === 'parson-in-charge'
                       ? 'text-blue-600 border-blue-600 bg-blue-50'
-                      : 'border-transparent hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                   }`}
                 >
                   <UserIcon 
-                    className={`mr-3 h-5 w-5 ${activeTab === 'parson-in-charge' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`mr-2 h-4 w-4 ${activeTab === 'parson-in-charge' ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
                   Parson in charge
                 </button>
@@ -723,7 +723,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                       };
 
                       return (
-                        <tr key={po.$id.value} className={`hover:bg-gray-50 ${
+                        <tr key={po.$id.value} className={`hover:bg-gray-50 h-12 ${
                           isOverdue ? 'bg-red-50' : isArrived ? 'bg-green-50' : isOrdered ? 'bg-blue-50' : ''
                         }`}>
                           <td className="px-1 py-2 text-xs">
@@ -877,7 +877,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                           const isWorking = statusValue.includes('Working') || statusValue === 'Working';
 
                           return (
-                            <tr key={cost.$id.value} className={`hover:bg-gray-50 ${
+                            <tr key={cost.$id.value} className={`hover:bg-gray-50 h-12 ${
                               isArrived ? 'bg-green-50' : isWorking ? 'bg-blue-50' : ''
                             }`}>
                               <td className="px-1 py-2 text-xs">
@@ -1008,7 +1008,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                         };
 
                         return (
-                          <tr key={invoice.$id?.value || 'unknown'} className="hover:bg-gray-50">
+                          <tr key={invoice.$id?.value || 'unknown'} className="hover:bg-gray-50 h-12">
                             <td className="px-1 py-2 text-xs">
                               {invoice.$id?.value || '-'}
                             </td>

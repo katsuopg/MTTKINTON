@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '../../../../../lib/supabase/server';
-import { getCustomerRecords } from '@/lib/kintone/customer';
+import { createClient } from '@/lib/supabase/server';
+import { getAllCustomerRecords } from '@/lib/kintone/customer';
 
 // 全顧客データをSupabaseに取り込むAPIルート
 export async function POST() {
@@ -14,7 +14,7 @@ export async function POST() {
 
   try {
     // Kintoneから全顧客データを取得
-    const allCustomers = await getCustomerRecords();
+    const allCustomers = await getAllCustomerRecords();
     console.log(`Kintoneから${allCustomers.length}件の顧客データを取得しました`);
 
     // 10件ずつのバッチに分割して処理
@@ -51,7 +51,7 @@ export async function POST() {
           const { error } = await supabase
             .from('customers')
             .upsert(data, {
-              onConflict: 'kintone_record_id'
+              onConflict: 'customer_id'
             });
 
           if (error) {

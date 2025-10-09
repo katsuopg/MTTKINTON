@@ -1,24 +1,25 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { getAllInvoiceRecords } from '@/lib/kintone/invoice';
+import dotenv from 'dotenv';
+import path from 'path';
 
-function parseNumber(value?: string | null): number | null {
-  if (!value) {
-    return null;
-  }
+// 環境変数の読み込み
+dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 
-  const num = Number(value);
-  return Number.isFinite(num) ? num : null;
-}
+import { createClient } from '@supabase/supabase-js';
+import { getAllInvoiceRecords } from '../src/lib/kintone/invoice';
 
-function normalizeCustomerId(rawId: string | null | undefined, knownCustomerIds: Set<string>) {
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const knownCustomerIds = new Set<string>();
+
+function normalizeCustomerId(rawId: string | null | undefined): { id: string | null; matched: boolean } {
   if (!rawId) {
-    return { id: null as string | null, matched: false };
+    return { id: null, matched: false };
   }
 
   const trimmed = rawId.trim();
   if (!trimmed) {
-    return { id: null as string | null, matched: false };
+    return { id: null, matched: false };
   }
 
   const compact = trimmed.replace(/\s+/g, '');
@@ -39,63 +40,70 @@ function normalizeCustomerId(rawId: string | null | undefined, knownCustomerIds:
   return { id: hyphenated, matched: false };
 }
 
-// 全請求書データをSupabaseに取り込むAPIルート
-export async function POST() {
-  const supabase = await createClient();
+function assertEnv(name: string, value: string | undefined): asserts value {
+  if (!value) {
+    throw new Error(`${name} is not set`);
+  }
+}
 
-  // ユーザー認証チェック
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+function parseNumber(value?: string | null): number | null {
+  if (!value) {
+    return null;
   }
 
-  try {
-    const knownCustomerIds = new Set<string>();
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
 
-    // 既存顧客をキャッシュ
-    const { data: existingCustomers, error: customerLoadError } = await supabase
-      .from('customers')
-      .select('customer_id,kintone_record_id,company_name');
+async function importAllInvoicesToSupabase() {
+  console.log('=== Supabase請求書データ取り込み開始 ===\n');
 
-    if (customerLoadError) {
-      throw new Error(`顧客一覧の取得に失敗しました: ${customerLoadError.message}`);
-    }
+  assertEnv('NEXT_PUBLIC_SUPABASE_URL', SUPABASE_URL);
+  assertEnv('SUPABASE_SERVICE_ROLE_KEY', SERVICE_ROLE_KEY);
 
-    const companyToCustomerId = new Map<string, string>();
+  const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-    (existingCustomers || [])
-      .forEach((row) => {
-        const id = row.customer_id;
-        if (!id) return;
-        const isPlaceholder = row.kintone_record_id?.startsWith('missing-');
-        if (!isPlaceholder) {
-          knownCustomerIds.add(id);
-          if (row.company_name) {
-            companyToCustomerId.set(row.company_name, id);
-          }
+  // 既存の顧客IDをキャッシュ
+  const { data: existingCustomers, error: customerLoadError } = await supabase
+    .from('customers')
+    .select('customer_id,kintone_record_id,company_name');
+
+  if (customerLoadError) {
+    throw new Error(`顧客一覧の取得に失敗しました: ${customerLoadError.message}`);
+  }
+
+  const companyToCustomerId = new Map<string, string>();
+
+  (existingCustomers || [])
+    .forEach((row) => {
+      const id = row.customer_id;
+      if (!id) return;
+      const isPlaceholder = row.kintone_record_id?.startsWith('missing-');
+      if (!isPlaceholder) {
+        knownCustomerIds.add(id);
+        if (row.company_name) {
+          companyToCustomerId.set(row.company_name, id);
         }
-      });
+      }
+    });
 
-    // Kintoneから全請求書データを取得
+  try {
     const allInvoices = await getAllInvoiceRecords();
-    console.log(`Kintoneから${allInvoices.length}件の請求書データを取得しました`);
+    console.log(`Kintoneから${allInvoices.length}件の請求書データを取得しました\n`);
 
-    // 10件ずつのバッチに分割して処理
     const batchSize = 10;
     let totalImported = 0;
     let totalErrors = 0;
-    const errors: any[] = [];
-    
+
     for (let i = 0; i < allInvoices.length; i += batchSize) {
       const batch = allInvoices.slice(i, i + batchSize);
       console.log(`バッチ ${Math.floor(i / batchSize) + 1}/${Math.ceil(allInvoices.length / batchSize)} (${batch.length}件) を処理中...`);
-      
-      // バッチ内の各請求書を処理
+
       for (const invoice of batch) {
         try {
           const customerName = invoice.CS_name?.value || null;
           const rawCustomerId = invoice.文字列__1行__3?.value || null;
-          let { id: resolvedCustomerId, matched } = normalizeCustomerId(rawCustomerId, knownCustomerIds);
+          let { id: resolvedCustomerId, matched } = normalizeCustomerId(rawCustomerId);
 
           if (!matched && customerName && companyToCustomerId.has(customerName)) {
             resolvedCustomerId = companyToCustomerId.get(customerName)!;
@@ -148,50 +156,38 @@ export async function POST() {
             updated_by: invoice.更新者?.value?.name || null,
           };
 
-          // Supabaseにupsert（存在する場合は更新、存在しない場合は挿入）
           const { error } = await supabase
             .from('invoices')
-            .upsert(data, {
-              onConflict: 'kintone_record_id'
-            });
+            .upsert(data, { onConflict: 'kintone_record_id' });
 
           if (error) {
-            console.error(`エラー: 請求書 ${data.work_no} の取り込みに失敗:`, error.message);
-            errors.push({ work_no: data.work_no, error: error.message });
+            console.error(`エラー: 請求書 ${data.invoice_no || data.work_no} の取り込みに失敗:`, error.message);
             totalErrors++;
           } else {
             totalImported++;
           }
-        } catch (err) {
-          console.error(`エラー: 請求書の処理中にエラーが発生:`, err);
-          errors.push({ invoice: invoice.$id.value, error: String(err) });
+        } catch (error) {
+          console.error('エラー: 請求書の処理中にエラーが発生:', error);
           totalErrors++;
         }
       }
     }
 
-    // 取り込み後の件数確認
+    console.log('\n=== 取り込み結果 ===');
+    console.log(`成功: ${totalImported}件`);
+    console.log(`エラー: ${totalErrors}件`);
+    console.log(`合計: ${allInvoices.length}件`);
+
     const { count, error: countError } = await supabase
       .from('invoices')
       .select('*', { count: 'exact', head: true });
 
-    const result = {
-      success: true,
-      totalRecords: allInvoices.length,
-      imported: totalImported,
-      errors: totalErrors,
-      errorDetails: errors.slice(0, 10), // 最初の10件のエラーのみ返す
-      supabaseCount: count
-    };
-
-    console.log(`完了: 成功 ${totalImported}件、エラー ${totalErrors}件`);
-    return NextResponse.json(result);
-
+    if (!countError && count !== null) {
+      console.log(`Supabaseの請求書テーブルには現在 ${count} 件のデータがあります`);
+    }
   } catch (error) {
-    console.error('取り込みエラー:', error);
-    return NextResponse.json({ 
-      error: '取り込み中にエラーが発生しました', 
-      details: String(error) 
-    }, { status: 500 });
+    console.error('取り込み全体でエラーが発生しました:', error);
   }
 }
+
+importAllInvoicesToSupabase();

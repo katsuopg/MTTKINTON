@@ -1,9 +1,10 @@
-import { createClient } from '../../../../../lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
 import InvoiceManagementClient from './InvoiceManagementClient';
-import { getInvoiceRecords } from '@/lib/kintone/invoice';
+import { getInvoicesFromSupabase } from '@/lib/supabase/invoices';
+import { convertSupabaseInvoicesToKintone } from '@/lib/supabase/transformers';
 import { InvoiceRecord } from '@/types/kintone';
 
 interface InvoiceManagementPageProps {
@@ -31,21 +32,10 @@ export default async function InvoiceManagementPage({ params, searchParams }: In
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   
   const searchQuery = searchParamsResolved.search || '';
-  
-  // デフォルトは第14期のデータを取得
-  let invoiceRecords: InvoiceRecord[] = [];
-  
-  try {
-    console.log('=== Invoice Management Page: Fetching invoice records ===');
-    invoiceRecords = await getInvoiceRecords('14', 500); // デフォルトで第14期を取得
-    console.log('Fetched invoice records count:', invoiceRecords.length);
-    if (invoiceRecords.length > 0) {
-      console.log('First invoice record:', invoiceRecords[0]);
-    }
-  } catch (error) {
-    console.error('Error fetching invoice records:', error);
-    // エラーの場合は空配列のまま
-  }
+  const period = searchParamsResolved.period || '14';
+
+  const invoices = await getInvoicesFromSupabase(period, 500);
+  const invoiceRecords: InvoiceRecord[] = convertSupabaseInvoicesToKintone(invoices);
   
   const pageTitle = language === 'ja' ? '請求書管理' : language === 'th' ? 'จัดการใบแจ้งหนี้' : 'Invoice Management';
   

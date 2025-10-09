@@ -25,3 +25,16 @@ export async function getWorkNoRecordsByCustomer(customerId: string, fiscalPerio
     return [];
   }
 }
+
+export async function getWorkNoRecordByCode(workNo: string): Promise<WorkNoRecord | null> {
+  const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
+  const query = `WorkNo = "${workNo}" limit 1`;
+
+  try {
+    const records = await client.getRecords<WorkNoRecord>(query);
+    return records[0] ?? null;
+  } catch (error) {
+    console.error('Error fetching work no record:', error);
+    return null;
+  }
+}

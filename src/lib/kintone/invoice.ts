@@ -3,6 +3,7 @@ import type { InvoiceRecord } from '@/types/kintone';
 import { KINTONE_APPS } from '@/types/kintone';
 
 const APP_ID = KINTONE_APPS.INVOICE_MANAGEMENT.appId;
+const DEFAULT_BATCH_SIZE = 500;
 
 /**
  * 複数の顧客の売上サマリーを取得
@@ -164,6 +165,43 @@ export async function getInvoiceRecordsByCustomer(
     return records;
   } catch (error) {
     console.error('Error fetching invoice records:', error);
+    return [];
+  }
+}
+
+export async function getAllInvoiceRecords(): Promise<InvoiceRecord[]> {
+  const API_TOKEN = process.env.KINTONE_API_TOKEN_INVOICE || '';
+  const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
+
+  const allRecords: InvoiceRecord[] = [];
+  let offset = 0;
+
+  while (true) {
+    const query = `limit ${DEFAULT_BATCH_SIZE} offset ${offset}`;
+    const records = await client.getRecords<InvoiceRecord>(query);
+    allRecords.push(...records);
+
+    if (records.length < DEFAULT_BATCH_SIZE) {
+      break;
+    }
+
+    offset += records.length;
+  }
+
+  return allRecords;
+}
+
+export async function getInvoiceRecordsByWorkNo(workNo: string): Promise<InvoiceRecord[]> {
+  const API_TOKEN = process.env.KINTONE_API_TOKEN_INVOICE || '';
+  const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
+
+  const query = `文字列__1行_ = "${workNo}" order by 日付 desc limit 500`;
+
+  try {
+    const records = await client.getRecords<InvoiceRecord>(query);
+    return records;
+  } catch (error) {
+    console.error('Error fetching invoice records by work no:', error);
     return [];
   }
 }

@@ -1,4 +1,4 @@
-import { createClient } from '../../../../../lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { KintoneClient } from '@/lib/kintone/client';
 import DashboardLayout from '@/components/layout/DashboardLayout';

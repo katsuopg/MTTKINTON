@@ -4,7 +4,7 @@ import path from 'path';
 // 環境変数の読み込み
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 
-import { getCustomerRecords } from '../src/lib/kintone/customer';
+import { getAllCustomerRecords } from '../src/lib/kintone/customer';
 
 // 全顧客データを取得してバッチ処理用のSQL生成
 async function generateCustomerMigrationSQL() {
@@ -12,7 +12,7 @@ async function generateCustomerMigrationSQL() {
   
   try {
     // Kintoneから全顧客データを取得（500件まで）
-    const allCustomers = await getCustomerRecords();
+    const allCustomers = await getAllCustomerRecords();
     console.log(`Kintoneから${allCustomers.length}件の顧客データを取得しました\n`);
 
     // 10件ずつのバッチに分割

@@ -143,3 +143,36 @@ export async function getQuotationRecordsByCustomer(customerId: string, fiscalPe
     return [];
   }
 }
+
+export async function getAllQuotationRecords(): Promise<QuotationRecord[]> {
+  const client = new KintoneClient(APP_ID.toString(), getApiToken());
+  const limit = 500;
+  let offset = 0;
+  const allRecords: QuotationRecord[] = [];
+
+  try {
+    // ページネーションで全件取得
+    // API制限で最大500件ずつなので、0件になるまで取得を続ける
+    // order by を付けない方が負荷が低いため、必要であれば呼び出し側でソートする
+    while (true) {
+      const query = `limit ${limit} offset ${offset}`;
+      const records = await client.getRecords<QuotationRecord>(query);
+
+      if (!records || records.length === 0) {
+        break;
+      }
+
+      allRecords.push(...records);
+      offset += records.length;
+
+      if (records.length < limit) {
+        break;
+      }
+    }
+
+    return allRecords;
+  } catch (error) {
+    console.error('Error fetching all quotation records:', error);
+    return [];
+  }
+}

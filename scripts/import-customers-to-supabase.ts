@@ -4,7 +4,7 @@ import path from 'path';
 // 環境変数の読み込み
 dotenv.config({ path: path.join(process.cwd(), '.env.local') });
 
-import { getCustomerRecords } from '../src/lib/kintone/customer';
+import { getAllCustomerRecords } from '../src/lib/kintone/customer';
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase クライアントの作成
@@ -19,7 +19,7 @@ async function importAllCustomersToSupabase() {
   
   try {
     // Kintoneから全顧客データを取得（500件まで）
-    const allCustomers = await getCustomerRecords();
+    const allCustomers = await getAllCustomerRecords();
     console.log(`Kintoneから${allCustomers.length}件の顧客データを取得しました\n`);
 
     // 10件ずつのバッチに分割して処理
@@ -55,7 +55,7 @@ async function importAllCustomersToSupabase() {
           const { error } = await supabase
             .from('customers')
             .upsert(data, {
-              onConflict: 'kintone_record_id'
+              onConflict: 'customer_id'
             });
 
           if (error) {

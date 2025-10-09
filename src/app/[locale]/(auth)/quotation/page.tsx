@@ -1,4 +1,4 @@
-import { fetchAllQuotations } from '@/lib/kintone/api';
+import { getAllQuotationRecords } from '@/lib/kintone/quotation';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import QuotationListContent from './QuotationListContent';
@@ -20,8 +20,7 @@ export default async function QuotationListPage({ params }: QuotationListPagePro
   }
 
   // 見積もり一覧を取得
-  const quotations = await fetchAllQuotations();
-  console.log('Fetched quotations:', quotations.length);
+  const quotations = await getAllQuotationRecords();
 
   return (
     <QuotationListContent

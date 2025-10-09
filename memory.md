@@ -1,5 +1,25 @@
 # MTT KINTON - 作業履歴
 
+## 最新作業（2025-10-09）
+
+### 見積編集フォーム - 行操作と顧客/担当者ルックアップ
+- **実装**: 見積明細テーブルの各行に `+ / -` ボタンを配置し、末尾ボタンを廃止。計算欄（Expense Cost / Gross Profit / Other Cost）は一旦非表示化。顧客は顧客管理APPからのリストをサーバー側で取得してフォームに渡し、担当者は `/api/customer-staff/[customerId]` で都度取得するようにした。選択に応じて住所や担当者名を自動セット。
+- **補足**: フォーム送信時に `customerId` をCS IDフィールドへ保存するようAPIを拡張。担当者選択時は `contactPerson` を文字列で保持（IDは現状未使用だが保持）。
+- **課題**: 顧客を切り替えた際の住所の編集保存有無を要確認。担当者APIは顧客数に応じてレスポンスが多段になるため、必要ならキャッシュ検討。`computedSubTotal` / `computedGrandTotal` の保存処理は未着手（下記メモ継続）。
+
+### ダッシュボード - メインメニュー折りたたみ機能
+- **実装**: `components/layout/DashboardLayout.tsx` にサイドバー折りたたみ用の state とトグルボタンを追加。ロゴ幅とナビゲーションの表示を折りたたみ状態で自動調整し、アイコンのみ表示でも操作できるようにした。
+- **補足**: メニューを畳んだ際はテキストを `sr-only` にしてスクリーンリーダーで読めるよう配慮。アニメーションは Tailwind の `transition` で調整。
+
+### 見積編集フォーム進捗と課題
+- **進捗**: `QuotationEditForm` と `PUT /api/quotation/[id]` を実装し、明細の `category` / `type` に対応。サブトータル・グランドトータルはフロントで計算済み。
+- **課題**: 計算結果（`computedSubTotal` / `computedGrandTotal`）を保存時にリクエストへ反映して Kintone の該当フィールドに書き戻す処理が未実装。UI／API のエンドツーエンド動作確認も未実施。
+
+### 見積一覧エラー修正
+- **内容**: `fetchAllQuotations` が未定義扱いになる実行時エラーを解消。依存関数を `src/lib/kintone/quotation.ts` に集約し、`getAllQuotationRecords` 経由で一覧データを取得するよう `src/app/[locale]/(auth)/quotation/page.tsx` を修正。
+- **背景**: `@/lib/kintone/api` が複数ディレクトリに存在し解決順で意図しないモジュールを取るケースがあった。新関数導入で参照先を明示化。
+- **課題**: ルート直下の `lib` ディレクトリ重複は残っているため、将来的に整理が必要。
+
 ## 最新作業（2025-10-08）
 
 ### Kintone→Supabaseデータ移行の実装
@@ -15,8 +35,8 @@
      - MCPツール（`mcp__supabase__execute_sql`）で直接データ挿入
      - UPSERT（INSERT ... ON CONFLICT）で重複を自動処理
   3. Supabase版ページの作成
-     - `/customers-supabase`：Supabaseから顧客データを表示
-     - `/invoices-supabase`：Supabaseから請求書データを表示
+    - `/customers`：Supabaseから同期された顧客データを表示
+    - `/invoice-management`：Supabaseから同期された請求書データを表示
      - 既存のUIコンポーネントを再利用
 - **技術的詳細**:
   - プロジェクトID: krynntnobtzirwmwiyrt

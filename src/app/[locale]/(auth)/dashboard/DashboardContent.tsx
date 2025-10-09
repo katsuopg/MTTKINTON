@@ -47,14 +47,32 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
     return num.toLocaleString() + 'B';
   };
   
+  // 売上予定日でソート（早い順、未設定は末尾）
+  const sortedWorkNos = useMemo(() => {
+    return [...recentWorkNos].sort((a, b) => {
+      const aTime = a.Salesdate?.value ? new Date(a.Salesdate.value).getTime() : Number.NaN;
+      const bTime = b.Salesdate?.value ? new Date(b.Salesdate.value).getTime() : Number.NaN;
+      const aDate = Number.isFinite(aTime) ? aTime : Number.POSITIVE_INFINITY;
+      const bDate = Number.isFinite(bTime) ? bTime : Number.POSITIVE_INFINITY;
+
+      if (aDate === bDate) {
+        const aWorkNo = a.WorkNo?.value || '';
+        const bWorkNo = b.WorkNo?.value || '';
+        return aWorkNo.localeCompare(bWorkNo);
+      }
+
+      return aDate - bDate;
+    });
+  }, [recentWorkNos]);
+
   // ページネーション計算
   const paginatedWorkNos = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return recentWorkNos.slice(startIndex, endIndex);
-  }, [recentWorkNos, currentPage]);
+    return sortedWorkNos.slice(startIndex, endIndex);
+  }, [sortedWorkNos, currentPage]);
   
-  const totalPages = Math.ceil(recentWorkNos.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedWorkNos.length / itemsPerPage);
   
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {

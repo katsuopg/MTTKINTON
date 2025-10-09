@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import { getFieldLabel, type Language } from '@/lib/kintone/field-mappings';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { logout } from '@/lib/auth/actions';
@@ -137,13 +138,30 @@ function CogIcon({ className }: { className?: string }) {
   );
 }
 
+function ArrowPathIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 4.5v5h5M19.5 19.5v-5h-5M5.636 18.364A9 9 0 1118.364 5.636 9 9 0 015.636 18.364z" />
+    </svg>
+  );
+}
+
+function SidebarToggleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
+
 export default function DashboardLayout({ children, locale = 'ja', userEmail, title, currentPath }: DashboardLayoutProps) {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   // localeが渡されていない場合はpathnameから取得
   const actualLocale = locale || pathname.split('/')[1] || 'ja';
   const language = (actualLocale === 'ja' || actualLocale === 'en' || actualLocale === 'th' ? actualLocale : 'ja') as Language;
-  
-  const navigation = [
+
+  const navigation = useMemo(() => [
     { name: 'TOP', href: `/${actualLocale}/dashboard`, icon: HomeIcon },
     { name: getFieldLabel('WorkNo', language), href: `/${actualLocale}/workno`, icon: DocumentIcon },
     { name: language === 'ja' ? 'プロジェクト管理' : language === 'th' ? 'จัดการโครงการ' : 'Project Management', href: `/${actualLocale}/project-management`, icon: ClipboardIcon },
@@ -159,7 +177,10 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, ti
     { name: language === 'ja' ? 'コスト管理' : language === 'th' ? 'การจัดการต้นทุน' : 'Cost Management', href: `/${actualLocale}/cost-management`, icon: ChartBarIcon },
     { name: language === 'ja' ? '請求書管理' : language === 'th' ? 'จัดการใบแจ้งหนี้' : 'Invoice Management', href: `/${actualLocale}/invoice-management`, icon: CurrencyDollarIcon },
     { name: language === 'ja' ? '機械管理' : language === 'th' ? 'การจัดการเครื่องจักร' : 'Machine Management', href: `/${actualLocale}/machines`, icon: CogIcon },
-  ];
+    { name: language === 'ja' ? 'データ同期' : language === 'th' ? 'ซิงค์ข้อมูล' : 'Data Sync', href: `/${actualLocale}/import-data`, icon: ArrowPathIcon },
+  ], [actualLocale, language]);
+
+  const sidebarWidthClass = isSidebarCollapsed ? 'w-16' : 'w-64';
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -169,11 +190,19 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, ti
           {/* 左側: ロゴとタイトル */}
           <div className="flex items-center">
             {/* ロゴ部分（サイドバー幅と同じ） */}
-            <div className="w-64 px-6 py-4 flex items-center space-x-2">
+            <div className={`${sidebarWidthClass} ${isSidebarCollapsed ? 'px-4' : 'px-6'} py-4 flex items-center space-x-2 transition-all duration-200`}>
               <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-bold">K</span>
               </div>
-              <h1 className="text-lg font-semibold text-gray-900">MTT KINTON</h1>
+              <h1 className={`text-lg font-semibold text-gray-900 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>MTT KINTON</h1>
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+                className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                aria-label={isSidebarCollapsed ? 'メニューを展開' : 'メニューを折りたたむ'}
+              >
+                <SidebarToggleIcon className={`h-4 w-4 transition-transform duration-200 ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+              </button>
             </div>
             {/* 区切り線とページタイトル */}
             <div className="flex items-center">
@@ -199,7 +228,7 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, ti
 
       <div className="flex flex-1">
         {/* サイドバー */}
-        <div className="w-64 bg-white shadow-md">
+        <div className={`${sidebarWidthClass} bg-white shadow-md transition-all duration-200`}>
           <div className="h-full flex flex-col">
           
           {/* ナビゲーション */}
@@ -211,16 +240,16 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, ti
                   key={item.name}
                   href={item.href}
                   className={`
-                    group flex items-center px-3 py-2 text-sm font-medium rounded-md
+                    group flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2 text-sm font-medium rounded-md transition-all duration-150
                     ${isActive 
                       ? 'bg-indigo-100 text-indigo-700' 
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}
                   `}
                 >
                   <item.icon 
-                    className={`mr-3 h-5 w-5 ${isActive ? 'text-indigo-700' : 'text-gray-400 group-hover:text-gray-500'}`} 
+                    className={`${isSidebarCollapsed ? 'mr-0' : 'mr-3'} h-5 w-5 ${isActive ? 'text-indigo-700' : 'text-gray-400 group-hover:text-gray-500'}`} 
                   />
-                  {item.name}
+                  <span className={`${isSidebarCollapsed ? 'sr-only' : 'block'}`}>{item.name}</span>
                 </TransitionLink>
               );
             })}

@@ -3,31 +3,39 @@
 import { useState, useMemo } from 'react';
 import { CustomerRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useRouter } from 'next/navigation';
 import { Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
 import TransitionLink from '@/components/ui/TransitionLink';
 import dynamic from 'next/dynamic';
+import type { CustomerSalesMetrics } from '@/lib/supabase/invoices';
 
 const MiniSalesChart = dynamic(() => import('@/components/charts/MiniSalesChart'), {
   ssr: false,
-  loading: () => <div className="h-8 w-32 bg-gray-50 rounded animate-pulse"></div>
+  loading: () => <div className="h-10 w-32 bg-gray-50 rounded animate-pulse"></div>
 });
 
 interface CustomerListContentProps {
   customers: CustomerRecord[];
   locale: string;
   userEmail: string;
-  salesSummary?: Record<string, { period: string; sales: number }[]>;
+  salesSummary?: Record<string, CustomerSalesMetrics>;
 }
 
 export function CustomerListContent({ customers, locale, userEmail, salesSummary = {} }: CustomerListContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<'csId' | 'companyName' | 'rank'>('csId');
+  const [sortField, setSortField] = useState<'csId' | 'companyName' | 'rank' | 'sales' | 'lastInvoice'>('csId');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const pageTitle = language === 'ja' ? '顧客管理' : language === 'th' ? 'จัดการลูกค้า' : 'Customer Management';
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
 
   // フィルタリングとソート
   const filteredAndSortedCustomers = useMemo(() => {
@@ -48,38 +56,51 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
 
     // ソート
     const sorted = [...filtered].sort((a, b) => {
-      let aValue: string;
-      let bValue: string;
+      const aId = a.文字列__1行_.value;
+      const bId = b.文字列__1行_.value;
+      const aMetrics = salesSummary[aId];
+      const bMetrics = salesSummary[bId];
 
       switch (sortField) {
+        case 'sales': {
+          const aSales = aMetrics?.totalSales ?? 0;
+          const bSales = bMetrics?.totalSales ?? 0;
+          return sortDirection === 'asc' ? aSales - bSales : bSales - aSales;
+        }
+        case 'lastInvoice': {
+          const aDate = aMetrics?.lastInvoiceDate ? new Date(aMetrics.lastInvoiceDate).getTime() : 0;
+          const bDate = bMetrics?.lastInvoiceDate ? new Date(bMetrics.lastInvoiceDate).getTime() : 0;
+          return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+        }
+        case 'companyName': {
+          const aValue = a.会社名.value;
+          const bValue = b.会社名.value;
+          return sortDirection === 'asc'
+            ? aValue.localeCompare(bValue, locale)
+            : bValue.localeCompare(aValue, locale);
+        }
+        case 'rank': {
+          const aValue = a.顧客ランク?.value || 'Z';
+          const bValue = b.顧客ランク?.value || 'Z';
+          return sortDirection === 'asc'
+            ? aValue.localeCompare(bValue, locale)
+            : bValue.localeCompare(aValue, locale);
+        }
         case 'csId':
-          aValue = a.文字列__1行_.value;
-          bValue = b.文字列__1行_.value;
-          break;
-        case 'companyName':
-          aValue = a.会社名.value;
-          bValue = b.会社名.value;
-          break;
-        case 'rank':
-          aValue = a.顧客ランク?.value || 'Z';
-          bValue = b.顧客ランク?.value || 'Z';
-          break;
-        default:
-          aValue = '';
-          bValue = '';
-      }
-
-      if (sortDirection === 'asc') {
-        return aValue.localeCompare(bValue, locale);
-      } else {
-        return bValue.localeCompare(aValue, locale);
+        default: {
+          const aValue = a.文字列__1行_.value;
+          const bValue = b.文字列__1行_.value;
+          return sortDirection === 'asc'
+            ? aValue.localeCompare(bValue, locale)
+            : bValue.localeCompare(aValue, locale);
+        }
       }
     });
 
     return sorted;
-  }, [customers, searchTerm, sortField, sortDirection, locale]);
+  }, [customers, searchTerm, sortField, sortDirection, locale, salesSummary]);
 
-  const handleSort = (field: 'csId' | 'companyName' | 'rank') => {
+  const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -99,9 +120,9 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={
-                language === 'ja' ? 'CS ID、会社名、国、電話番号で検索...' : 
-                language === 'th' ? 'ค้นหาด้วย CS ID, ชื่อบริษัท, ประเทศ, เบอร์โทร...' : 
-                'Search by CS ID, Company Name, Country, Phone...'
+                language === 'ja' ? 'CS ID、会社名、国で検索...' : 
+                language === 'th' ? 'ค้นหาด้วย CS ID, ชื่อบริษัท, ประเทศ...' : 
+                'Search by CS ID, Company Name, Country...'
               }
               className={tableStyles.searchInput}
             />
@@ -133,7 +154,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
               <thead className="bg-gray-50">
                 <tr>
                   <th 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-24"
+                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-24"
                     onClick={() => handleSort('csId')}
                   >
                     <div className="flex items-center">
@@ -146,7 +167,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                     </div>
                   </th>
                   <th 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-64"
+                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-64"
                     onClick={() => handleSort('companyName')}
                   >
                     <div className="flex items-center">
@@ -158,11 +179,21 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                       )}
                     </div>
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32 hidden md:table-cell">
-                    {language === 'ja' ? '売上高' : language === 'th' ? 'ยอดขาย' : 'Sales'}
+                  <th 
+                    className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32 hidden md:table-cell cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('sales')}
+                  >
+                    <div className="flex items-center justify-center">
+                      {language === 'ja' ? '売上高' : language === 'th' ? 'ยอดขาย' : 'Sales'}
+                      {sortField === 'sales' && (
+                        <span className="ml-1">
+                          {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
                   </th>
                   <th 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-20"
+                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-20"
                     onClick={() => handleSort('rank')}
                   >
                     <div className="flex items-center">
@@ -174,10 +205,20 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                       )}
                     </div>
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    TEL
+                  <th 
+                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('lastInvoice')}
+                  >
+                    <div className="flex items-center">
+                      {language === 'ja' ? '最終取引日' : language === 'th' ? 'วันทำการล่าสุด' : 'Last Transaction'}
+                      {sortField === 'lastInvoice' && (
+                        <span className="ml-1">
+                          {sortDirection === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -201,7 +242,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                       <div className="flex justify-center">
-                        <MiniSalesChart salesData={salesSummary[customer.会社名.value]} />
+                        <MiniSalesChart salesData={salesSummary[customer.文字列__1行_.value]?.summary} />
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
@@ -215,7 +256,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                       </span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {customer.TEL?.value || '-'}
+                      {formatDate(salesSummary[customer.文字列__1行_.value]?.lastInvoiceDate)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
                       <TransitionLink

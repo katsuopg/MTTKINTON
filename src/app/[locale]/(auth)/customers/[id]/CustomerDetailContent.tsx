@@ -118,9 +118,15 @@ export function CustomerDetailContent({
   };
 
   // 数値フォーマット
-  const formatNumber = (value: string) => {
+  const formatNumber = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+
+    const stringValue = typeof value === 'number' ? value.toString() : value;
+
     // 数値のみを抽出（THBなどの通貨記号を除去）
-    const numericValue = value.replace(/[^\d.-]/g, '');
+    const numericValue = stringValue.replace(/[^\d.-]/g, '');
     const number = parseFloat(numericValue);
     if (isNaN(number)) return '-';
     return number.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + 'B';

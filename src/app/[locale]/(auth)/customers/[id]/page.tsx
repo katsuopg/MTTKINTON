@@ -5,9 +5,10 @@ import { CustomerDetailContent } from './CustomerDetailContent';
 import { getWorkNoRecordsByCustomer } from '@/lib/kintone/workno';
 import { getQuotationRecordsByCustomer } from '@/lib/kintone/quotation';
 import { getOrderRecordsByCustomer } from '@/lib/kintone/order';
-import { getMachineRecordsByCustomer } from '@/lib/kintone/machine';
 import { getCustomerStaffByCustomer } from '@/lib/kintone/customer-staff';
-import { getInvoiceRecordsByCustomer } from '@/lib/kintone/invoice';
+import { getInvoicesByCustomerFromSupabase } from '@/lib/supabase/invoices';
+import { getMachinesByCustomerFromSupabase } from '@/lib/supabase/machines';
+import { convertSupabaseInvoicesToKintone, convertSupabaseMachinesToKintone } from '@/lib/supabase/transformers';
 import type { Language } from '@/lib/kintone/field-mappings';
 
 export const metadata: Metadata = {
@@ -32,18 +33,27 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
     
     // 関連データを取得（初期表示は第14期のみ）
     const currentPeriod = '14';
-    const [workNoRecords, quotationRecords, orderRecords, machineRecords, customerStaffRecords, invoiceRecords, allInvoiceRecords, allWorkNoRecords, allQuotationRecords] = await Promise.all([
-      getWorkNoRecordsByCustomer(customerRecord.文字列__1行_.value, currentPeriod),
-      getQuotationRecordsByCustomer(customerRecord.文字列__1行_.value, currentPeriod),
-      getOrderRecordsByCustomer(customerRecord.文字列__1行_.value, currentPeriod),
-      getMachineRecordsByCustomer(customerRecord.文字列__1行_.value),
-      getCustomerStaffByCustomer(customerRecord.文字列__1行_.value),
-      getInvoiceRecordsByCustomer(customerRecord.会社名.value, currentPeriod),
-      getInvoiceRecordsByCustomer(customerRecord.会社名.value), // グラフ用に全期間のデータを取得
-      getWorkNoRecordsByCustomer(customerRecord.文字列__1行_.value), // グラフ用に全期間の工事データを取得
-      getQuotationRecordsByCustomer(customerRecord.文字列__1行_.value), // グラフ用に全期間の見積データを取得
+    const customerId = customerRecord.文字列__1行_.value;
+    const customerName = customerRecord.会社名.value;
+    const [workNoRecords, quotationRecords, orderRecords, machinesSupabase, customerStaffRecords, allWorkNoRecords, allQuotationRecords] = await Promise.all([
+      getWorkNoRecordsByCustomer(customerId, currentPeriod),
+      getQuotationRecordsByCustomer(customerId, currentPeriod),
+      getOrderRecordsByCustomer(customerId, currentPeriod),
+      getMachinesByCustomerFromSupabase(customerId),
+      getCustomerStaffByCustomer(customerId),
+      getWorkNoRecordsByCustomer(customerId), // グラフ用に全期間の工事データを取得
+      getQuotationRecordsByCustomer(customerId), // グラフ用に全期間の見積データを取得
     ]);
-    
+
+    const [invoiceRecordsSupabase, allInvoiceRecordsSupabase] = await Promise.all([
+      getInvoicesByCustomerFromSupabase({ customerId, customerName }, currentPeriod),
+      getInvoicesByCustomerFromSupabase({ customerId, customerName }),
+    ]);
+
+    const invoiceRecords = convertSupabaseInvoicesToKintone(invoiceRecordsSupabase);
+    const allInvoiceRecords = convertSupabaseInvoicesToKintone(allInvoiceRecordsSupabase);
+    const machineRecords = convertSupabaseMachinesToKintone(machinesSupabase);
+
 
     return (
       <CustomerDetailContent

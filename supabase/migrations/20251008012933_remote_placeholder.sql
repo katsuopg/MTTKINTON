@@ -1,0 +1,1 @@
+-- Placeholder for remote migration applied directly in Supabase dashboard (version 20251008012933)

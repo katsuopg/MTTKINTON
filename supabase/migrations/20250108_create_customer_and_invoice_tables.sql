@@ -44,34 +44,40 @@ CREATE TABLE IF NOT EXISTS invoices (
 );
 
 -- インデックスの作成
-CREATE INDEX idx_customers_customer_id ON customers(customer_id);
-CREATE INDEX idx_customers_company_name ON customers(company_name);
-CREATE INDEX idx_customers_rank ON customers(customer_rank);
-CREATE INDEX idx_invoices_work_no ON invoices(work_no);
-CREATE INDEX idx_invoices_invoice_no ON invoices(invoice_no);
-CREATE INDEX idx_invoices_customer_id ON invoices(customer_id);
-CREATE INDEX idx_invoices_customer_name ON invoices(customer_name);
-CREATE INDEX idx_invoices_invoice_date ON invoices(invoice_date);
+CREATE INDEX IF NOT EXISTS idx_customers_customer_id ON customers(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customers_company_name ON customers(company_name);
+CREATE INDEX IF NOT EXISTS idx_customers_rank ON customers(customer_rank);
+CREATE INDEX IF NOT EXISTS idx_invoices_work_no ON invoices(work_no);
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_no ON invoices(invoice_no);
+CREATE INDEX IF NOT EXISTS idx_invoices_customer_id ON invoices(customer_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_customer_name ON invoices(customer_name);
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices(invoice_date);
 
 -- Row Level Security (RLS) を有効化
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 
 -- RLSポリシーの作成（認証済みユーザーのみアクセス可能）
+DROP POLICY IF EXISTS "Allow authenticated users to read customers" ON customers;
 CREATE POLICY "Allow authenticated users to read customers" ON customers
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Allow authenticated users to insert customers" ON customers;
 CREATE POLICY "Allow authenticated users to insert customers" ON customers
   FOR INSERT TO authenticated WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow authenticated users to update customers" ON customers;
 CREATE POLICY "Allow authenticated users to update customers" ON customers
   FOR UPDATE TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Allow authenticated users to read invoices" ON invoices;
 CREATE POLICY "Allow authenticated users to read invoices" ON invoices
   FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Allow authenticated users to insert invoices" ON invoices;
 CREATE POLICY "Allow authenticated users to insert invoices" ON invoices
   FOR INSERT TO authenticated WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Allow authenticated users to update invoices" ON invoices;
 CREATE POLICY "Allow authenticated users to update invoices" ON invoices
   FOR UPDATE TO authenticated USING (true);

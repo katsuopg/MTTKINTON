@@ -3,6 +3,7 @@ import { CustomerRecord, KintoneRecordsResponse } from '@/types/kintone';
 import { KINTONE_APPS } from '@/types/kintone';
 
 const APP_ID = KINTONE_APPS.CUSTOMER_LIST.appId;
+const DEFAULT_BATCH_SIZE = 500;
 
 export async function getCustomerById(id: string): Promise<CustomerRecord> {
   // 関数内で環境変数を読み込む
@@ -33,5 +34,30 @@ export async function getCustomerRecords(query: string = ''): Promise<CustomerRe
   // 関数内で環境変数を読み込む
   const API_TOKEN = process.env.KINTONE_API_TOKEN_CUSTOMER || '';
   const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
-  return client.getRecords<CustomerRecord>(query);
+
+  const trimmedQuery = query.trim();
+  if (trimmedQuery) {
+    return client.getRecords<CustomerRecord>(trimmedQuery);
+  }
+
+  const allRecords: CustomerRecord[] = [];
+  let offset = 0;
+
+  while (true) {
+    const pagedQuery = `limit ${DEFAULT_BATCH_SIZE} offset ${offset}`;
+    const records = await client.getRecords<CustomerRecord>(pagedQuery);
+    allRecords.push(...records);
+
+    if (records.length < DEFAULT_BATCH_SIZE) {
+      break;
+    }
+
+    offset += records.length;
+  }
+
+  return allRecords;
+}
+
+export async function getAllCustomerRecords(): Promise<CustomerRecord[]> {
+  return getCustomerRecords();
 }

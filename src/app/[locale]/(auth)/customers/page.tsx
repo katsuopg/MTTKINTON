@@ -1,8 +1,9 @@
 import { CustomerListContent } from './CustomerListContent';
-import { createClient } from '../../../../../lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { fetchAllCustomers } from '@/lib/kintone/api';
-import { getSalesSummaryByCustomers } from '@/lib/kintone/invoice';
+import { getCustomersFromSupabase } from '@/lib/supabase/customers';
+import { getSalesSummaryByCustomersFromSupabase } from '@/lib/supabase/invoices';
+import { convertSupabaseCustomersToKintone } from '@/lib/supabase/transformers';
 
 interface CustomerListPageProps {
   params: Promise<{
@@ -19,18 +20,19 @@ export default async function CustomerListPage({ params }: CustomerListPageProps
     redirect(`/${locale}/auth/login`);
   }
 
-  // 顧客一覧を取得
-  const customers = await fetchAllCustomers();
+  // Supabaseから顧客一覧を取得
+  const customers = await getCustomersFromSupabase();
 
-  // 顧客名のリストを作成
-  const customerNames = customers.map(c => c.会社名.value);
-  
+  // Kintone形式に変換
+  const kintoneCustomers = convertSupabaseCustomersToKintone(customers);
+
   // 売上サマリーを取得
-  const salesSummary = await getSalesSummaryByCustomers(customerNames);
+  const customerIds = customers.map((customer) => customer.customer_id);
+  const salesSummary = await getSalesSummaryByCustomersFromSupabase(customerIds);
 
   return (
     <CustomerListContent 
-      customers={customers} 
+      customers={kintoneCustomers} 
       locale={locale} 
       userEmail={user.email || ''} 
       salesSummary={salesSummary}
