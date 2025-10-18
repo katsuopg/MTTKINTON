@@ -17,7 +17,7 @@ export function StaffDetailFromListContent({ staff, locale, userEmail }: StaffDe
 
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
-      <div className="max-w-7xl mx-auto">
+      <div className="py-4 px-4">
         {/* パンくずリスト */}
         <nav className="flex mb-4" aria-label="Breadcrumb">
           <ol className="inline-flex items-center space-x-1 text-sm text-gray-500">

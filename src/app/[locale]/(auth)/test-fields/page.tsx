@@ -31,7 +31,7 @@ export default async function TestFieldsPage({ params }: TestFieldsPageProps) {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="py-4 px-4">
       <h1 className="text-2xl font-bold mb-6">見積もり管理 - フィールド情報</h1>
       
       {errorMessage && (

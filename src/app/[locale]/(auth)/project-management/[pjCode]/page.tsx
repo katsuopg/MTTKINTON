@@ -73,12 +73,11 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
   const pageTitle = language === 'ja' ? 'プロジェクト詳細' : language === 'th' ? 'รายละเอียดโครงการ' : 'Project Details';
 
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
-      <ProjectDetailContent 
-        record={record} 
-        customer={customer} 
-        locale={locale}
-      />
-    </DashboardLayout>
+    <ProjectDetailContent 
+      record={record} 
+      customer={customer} 
+      locale={locale}
+      userEmail={user.email}
+    />
   );
 }

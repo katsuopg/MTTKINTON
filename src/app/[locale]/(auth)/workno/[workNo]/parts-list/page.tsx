@@ -133,7 +133,7 @@ export default function PartsListPage({ params: { locale, workNo } }: PartsListP
   const totalAmount = parts.reduce((sum, part) => sum + part.totalAmount, 0);
 
   return (
-    <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="py-4 px-4">
       <div className="mb-6">
         <button
           onClick={() => router.back()}

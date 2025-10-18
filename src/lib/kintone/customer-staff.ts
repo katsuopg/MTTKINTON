@@ -5,6 +5,30 @@ import { KINTONE_APPS } from '@/types/kintone';
 const APP_ID = KINTONE_APPS.CUSTOMER_STAFF.appId;
 const API_TOKEN = process.env.KINTONE_API_TOKEN_CUSTOMER_STAFF || '';
 
+export async function getAllCustomerStaff(): Promise<CustomerStaffRecord[]> {
+  const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
+
+  const limit = 500;
+  let offset = 0;
+  const allRecords: CustomerStaffRecord[] = [];
+
+  while (true) {
+    const records = await client.getRecords<CustomerStaffRecord>(`order by レコード番号 desc limit ${limit} offset ${offset}`);
+    if (!records.length) {
+      break;
+    }
+
+    allRecords.push(...records);
+    offset += records.length;
+
+    if (records.length < limit) {
+      break;
+    }
+  }
+
+  return allRecords;
+}
+
 export async function getCustomerStaffByCustomer(customerId: string): Promise<CustomerStaffRecord[]> {
   const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
   

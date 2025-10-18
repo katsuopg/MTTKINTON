@@ -1,579 +1,491 @@
 # MTT KINTON - 作業履歴
 
-## 最新作業（2025-10-09）
+## 最新作業（2025-10-16）
 
-### 見積編集フォーム - 行操作と顧客/担当者ルックアップ
-- **実装**: 見積明細テーブルの各行に `+ / -` ボタンを配置し、末尾ボタンを廃止。計算欄（Expense Cost / Gross Profit / Other Cost）は一旦非表示化。顧客は顧客管理APPからのリストをサーバー側で取得してフォームに渡し、担当者は `/api/customer-staff/[customerId]` で都度取得するようにした。選択に応じて住所や担当者名を自動セット。
-- **補足**: フォーム送信時に `customerId` をCS IDフィールドへ保存するようAPIを拡張。担当者選択時は `contactPerson` を文字列で保持（IDは現状未使用だが保持）。
-- **課題**: 顧客を切り替えた際の住所の編集保存有無を要確認。担当者APIは顧客数に応じてレスポンスが多段になるため、必要ならキャッシュ検討。`computedSubTotal` / `computedGrandTotal` の保存処理は未着手（下記メモ継続）。
+### 電気部品テーブルにサプライヤー列追加と操作性改善
+- **要求**: 
+  1. noteの左にsupplierの列を追加し、仕入れ業者から選択できるように
+  2. クリック/ダブルクリックの使い分けが使いにくいので改善
+- **修正内容**:
+  - ElectricalPartsTable.tsxの修正:
+    - ElectricalPartインターフェースにsupplierフィールドを追加
+    - suppliersステートを追加し、Supabaseからサプライヤーリストを取得（448件）
+    - useEffectでsuppliersテーブルから会社名を取得
+    - テーブルヘッダーにSupplier列を追加（Lead timeとNoteの間）
+    - Supplier列の幅を120pxに設定
+    - 編集時はドロップダウンで選択、通常時はテキスト表示
+    - サプライヤー選択時に即座に値を保存して編集モードを終了
+    - セレクトボックスのクリックイベント処理を改善（伝播防止）
+    - **操作性改善**: ダブルクリック不要、編集モード時はシングルクリックで編集開始
+    - ヘルプテキストを更新して操作方法を明確化
+  - API route（project-parts/[projectId]/route.ts）の修正:
+    - Next.js 15のasync params対応（params: Promise<{ projectId: string }>）
+    - 電気部品の保存時にsupplierフィールドをマッピング
+  - types/supabase.tsの修正:
+    - project_electrical_partsテーブルにsupplier列を追加済み
+- **Supabaseテーブル更新**:
+  - project_electrical_partsテーブルにsupplier列を追加済み（varchar型）
+- **結果**: 
+  - 電気部品テーブルでサプライヤーを選択・表示できるようになった
+  - 編集モードでシングルクリックでセル編集が可能になり、操作性が大幅に向上
 
-### ダッシュボード - メインメニュー折りたたみ機能
-- **実装**: `components/layout/DashboardLayout.tsx` にサイドバー折りたたみ用の state とトグルボタンを追加。ロゴ幅とナビゲーションの表示を折りたたみ状態で自動調整し、アイコンのみ表示でも操作できるようにした。
-- **補足**: メニューを畳んだ際はテキストを `sr-only` にしてスクリーンリーダーで読めるよう配慮。アニメーションは Tailwind の `transition` で調整。
+## 最新作業（2025-10-16）
 
-### 見積編集フォーム進捗と課題
-- **進捗**: `QuotationEditForm` と `PUT /api/quotation/[id]` を実装し、明細の `category` / `type` に対応。サブトータル・グランドトータルはフロントで計算済み。
-- **課題**: 計算結果（`computedSubTotal` / `computedGrandTotal`）を保存時にリクエストへ反映して Kintone の該当フィールドに書き戻す処理が未実装。UI／API のエンドツーエンド動作確認も未実施。
+### 仕入業者管理のタイ語会社名を英語表記に変更とページネーション実装
+- **要求**: 
+  1. 仕入業者管理ページのタイ文字の会社名を英語表記に変更
+  2. 448件のデータに対してページネーション実装（1ページ50件表示）
+  3. サプライヤーをSupabaseに移行
+- **修正内容**:
+  - 文字列__1行_フィールドに英語名が既に格納されていることを確認
+  - 表示順序を変更: 文字列__1行_（英語名） → 会社名（タイ語名）
+  - 検索機能も文字列__1行_の英語名で検索可能
+  - ページネーション機能を追加
+    - 1ページあたり50件表示
+    - 取得上限を100件→500件に拡張
+    - ページ番号表示（現在のページ±2ページ）
+    - 前へ/次へボタン
+    - 表示件数情報（例：448件中 1～50件を表示）
+  - Supabaseへの移行作業を実施
+    - suppliersテーブル作成SQL（20251016_create_suppliers_table.sql）
+    - データ移行スクリプト（migrate-suppliers-to-supabase.ts）
+    - suppliers/page.tsxをSupabase対応に修正
+    - types/supabase.tsにsuppliersテーブルの型定義を追加
+    - Next.js 15のasync params/searchParams対応
+- **結果**: 仕入業者一覧に英語名が優先表示され、大量データでも快適にブラウジング可能
+- **完了作業**:
+  - MCPツールを使用してSupabaseにsuppliersテーブルを作成
+  - Kintoneから448件のデータをSupabaseに正常に移行
+  - 仕入業者管理ページがSupabaseデータを使用して正常に動作
 
-### 見積一覧エラー修正
-- **内容**: `fetchAllQuotations` が未定義扱いになる実行時エラーを解消。依存関数を `src/lib/kintone/quotation.ts` に集約し、`getAllQuotationRecords` 経由で一覧データを取得するよう `src/app/[locale]/(auth)/quotation/page.tsx` を修正。
-- **背景**: `@/lib/kintone/api` が複数ディレクトリに存在し解決順で意図しないモジュールを取るケースがあった。新関数導入で参照先を明示化。
-- **課題**: ルート直下の `lib` ディレクトリ重複は残っているため、将来的に整理が必要。
+## 最新作業（2025-10-16）
 
-## 最新作業（2025-10-08）
+### 電気部品テーブルの列幅調整と金額表示フォーマット変更
+- **要求**: 列幅の調整と小数点以下表示の削除、BRANDをVENDERに変更、フォントサイズ調整
+- **修正内容**:
+  - 最終的な列幅設定:
+    - ITEM列: 40px → 30px（-10px）
+    - MARK列: 65px（変更なし）
+    - NAME列: 200px → 170px（-30px）
+    - MODEL列: 180px（変更なし）
+    - VENDER列: 110px → 90px → 70px（-20px追加）
+    - QTY列: 50px → 35px → 25px（-10px追加）
+    - UNIT PRICE列: 90px → 70px → 60px（-10px追加）
+    - TOTAL列: 90px → 70px → 60px（-10px追加）
+    - LEAD TIME列: 80px → 35px → 25px（-10px追加）
+    - NOTE列: 250px（変更なし）
+  - 金額表示から小数点以下2桁（.00）を削除
+    - Unit price、Total、Subtotal、Grand Totalすべてから削除
+  - BRAND → VENDERに名称変更
+    - ヘッダー、インターフェース、全フィールド参照を変更
+    - データ取得時のマッピング修正（p.brand → venderフィールド）
+    - API保存時のマッピング修正（part.vender → brandフィールド）
+  - フォントサイズ変更
+    - ボディー: text-sm（14px） → text-xs（12px）
+    - ヘッダー: text-xs（12px）のまま
+  - 0値の非表示設定
+    - QTYが0の場合は非表示
+    - Unit priceが0の場合は非表示
+    - Totalが0の場合は非表示
+- **結果**: よりコンパクトで見やすいテーブル表示、既存データも正しく表示、不要な0値を非表示
 
-### Kintone→Supabaseデータ移行の実装
-- **要求**: KintoneのデータをSupabaseに取り込み、Supabaseから表示するよう変更
+## 最新作業（2025-10-16）
+
+### 電気部品テーブルのDelete機能の根本修正
+- **問題**: 単独セルの削除ができない（Playwrightでテスト後判明）
+- **根本原因**: Delete処理の条件に`!editingCell`があったため削除機能が実行されなかった
+  - 708行目: `if (e.key === 'Delete' && selectedCells.size > 0 && !editingCell)`
+  - 通常クリックで`editingCell`をnullにセットするため、実際には削除が動作しない状態
+- **修正内容**:
+  - 708行目の`!editingCell`条件を削除
+  - 変更後: `if (e.key === 'Delete' && selectedCells.size > 0)`
+- **テスト方法**: Playwrightでブラウザ自動化テストを実施し、実際の動作を確認
+- **結果**: 選択されたセルがある限り、Deleteキーで削除が実行されるようになった
+
+### 電気部品の初期データ削除
+- **問題**: ProjectDetailContent.tsxに電気部品の初期データがハードコードされていた
+- **対応**: 
+  - initialElectricalParts配列を空に変更
+  - ElectricalPartsTableとMechanicalPartsTableにonCostTotalChangeプロパティを追加
+  - 各部品表でコストトータルを計算し、親コンポーネントに通知するように修正
+  - ProjectDetailContentで両部品表のトータルを合算してCost Totalを表示
+- **結果**: DBにデータがない場合は部品表が空で表示されるようになった
+
+## 最新作業（2025-10-16）
+
+### 部品テーブルの閲覧/編集モード実装
+- **要求**: 部品のデフォルトは閲覧用で編集できないように、編集ボタンを押すと編集し、保存で更新。保存前に画面移行した場合はダイヤログで警告を表示
+- **修正内容**:
+  1. ElectricalPartsTableとMechanicalPartsTableの両方に実装
+     - isEditingステートで編集モードを管理
+     - originalSectionsで元データを保持し、キャンセル時に復元
+     - hasChangesステートで変更検知
+  2. UI制御の実装
+     - デフォルトは閲覧モード（セルクリックしても編集不可）
+     - 「編集」ボタンで編集モード開始
+     - 「保存」ボタンで変更を確定（hasChangesがtrueの時のみ有効）
+     - 「キャンセル」ボタンで変更を破棄
+  3. 編集モードでのみ利用可能な機能
+     - セル編集
+     - 部品追加/削除
+     - セクション追加/削除
+     - 行の移動（コンテキストメニュー）
+     - 削除ボタンの表示
+  4. 画面遷移時の警告
+     - ProjectDetailContentでhasUnsavedChangesステートを管理
+     - タブ切替時に未保存警告
+     - ページ遷移時に未保存警告
+     - ブラウザのbeforeunloadイベントで離脱警告
+- **結果**: 部品テーブルが安全に編集できるようになり、誤操作による変更を防げる
+
+## 最新作業（2025-10-16）
+
+### プロジェクト詳細ヘッダーのコンパクト化
+- **要求**: プロジェクト詳細ページのヘッダー部分を1つのエリアにまとめてコンパクトに表示
+- **修正内容**:
+  1. ヘッダー部分の再設計
+     - タイトルをプロジェクトコードとプロジェクト名の統合表示に変更
+     - 3つのカードセクションを削除し、1つのヘッダーエリアに統合
+     - 2行目に必要な情報（顧客、ステータス、担当者、作成日、Cost Total）を横並びで配置
+  2. Cost Total機能の実装
+     - 電気部品の合計金額を計算してCost Totalとして表示
+     - 将来的には機械部品の合計も含める予定
+  3. レイアウトの最適化
+     - px-6 py-4のパディングでゆとりのあるデザイン
+     - flex-wrapで画面幅に応じて自動的に折り返し
+     - 各情報項目は gap-2 で適切な間隔を設定
+- **結果**: よりコンパクトで見やすいヘッダーデザインを実現
+
+### フィールド名とタブ名の変更
+- **要求**: 
+  1. DeliveryをLead timeへ変更
+  2. 電気図面を電気部品へ変更
+  3. 電気部品のDeliveryをLead timeへ変更
+- **修正内容**:
+  1. MechanicalPartsTable.tsxの修正
+     - ヘッダー: Delivery → Lead time
+     - フィールド名: delivery → leadTime
+     - 全ての関連する参照を更新
+  2. ElectricalPartsTable.tsxの修正
+     - ヘッダー: Delivery → Lead time
+     - フィールド名: delivery → leadTime
+     - 全ての関連する参照を更新
+  3. ProjectDetailContent.tsxの修正
+     - タブ名: 電気図面 → 電気部品
+     - ElectricalPart型定義: delivery → leadTime
+     - 初期データのフィールド名も更新
+- **結果**: 全体的により統一感のある命名規則に
+
+### 機械部品テーブルのヘッダー英語化
+- **要求**: 項目は英語のみでいいです
+- **修正内容**:
+  - MechanicalPartsTable.tsxのテーブルヘッダーを英語のみに変更
+  - 変更前：日本語<br/>英語 の形式
+  - 変更後：英語のみ（uppercase tracking-wider スタイル適用）
+  - 削除した日本語：番号、図番/型式、名称、個数、材質/メーカー、熱処理、表面処理、備考、手配、納期、単価、合計
+- **結果**: テーブルヘッダーがよりクリーンで統一感のある表示に
+
+### 機械部品テーブルのExcelデザイン実装
+- **要求**: 機械部品（製作品）テーブルをExcelのデザインに合わせて作成
 - **実装内容**:
-  1. Supabaseテーブル設計（MCPツールで作成）
-     - `customers`テーブル：わかりやすいフィールド名に変換
-       - customer_id (CS ID)、company_name (会社名)、phone_number (電話番号)等
-     - `invoices`テーブル：同様にわかりやすい名前に変換
-       - work_no (工事番号)、invoice_no (請求書番号)、grand_total (総額)等
-     - 重複防止：`kintone_record_id`をUNIQUE制約で管理
-  2. データ同期の実装
-     - MCPツール（`mcp__supabase__execute_sql`）で直接データ挿入
-     - UPSERT（INSERT ... ON CONFLICT）で重複を自動処理
-  3. Supabase版ページの作成
-    - `/customers`：Supabaseから同期された顧客データを表示
-    - `/invoice-management`：Supabaseから同期された請求書データを表示
-     - 既存のUIコンポーネントを再利用
+  1. MechanicalPartsTable.tsxを新規作成
+     - Excelと同じフィールド構成を実装
+     - 図番/型式（DWG. NO./MODEL）、名称（NAME）、個数（QTY）、材質/メーカー（MAT./VENDER）など
+     - 熱処理セクションを2列構成（HEAT TREATMENT、SURFACE TREATMENT）
+     - 手配（Order）フィールドをドロップダウンで実装（Production/Purchase/Stock）
+     - 納期（Delivery）フィールドに3桁数字制限を実装
+  2. タブ名の変更
+     - 「機械図面」から「機械部品（製作品）」へ変更
+  3. セクション機能の実装
+     - ElectricalPartsTableと同じセクション機能（S1、S2、S3...）
+     - 各セクションごとのSUBTOTALとGRAND TOTAL表示
 - **技術的詳細**:
-  - プロジェクトID: krynntnobtzirwmwiyrt
-  - 環境変数はすでに.env.localに設定済み
-  - Row Level Security (RLS) を有効化、認証済みユーザーのみアクセス可能
-- **動作確認**: 顧客15件、請求書5件をSupabaseに移行済み
+  - 2行ヘッダー構造（rowSpan/colSpan使用）
+  - 熱処理の2列はcolSpan=2で1行目に統合
+  - セクション管理、行の追加/削除/移動機能を実装
 
-## 最新作業（2025-10-08）
-
-### 顧客一覧ページ - ミニ売上チャートの追加
-- **要求**: 顧客一覧の国名列を削除し、代わりに会計期ごとの売上高グラフを表示
+### 部品表のセクション機能追加
+- **要求**: 電気部品、機械部品の部品表はセクション毎にあるので、初期をS1として必要であればS2、S3...と作成できるように
 - **実装内容**:
-  1. `/src/components/charts/MiniSalesChart.tsx`を作成
-     - 32x40pxの小さなAreaChart（エリアチャート）
-     - 第9期から第14期までの売上推移を表示
-     - データがない場合はグレーのプレースホルダー
-     - グラデーション付きのインディゴ色で表示
-  2. `/src/lib/kintone/invoice.ts`に`getSalesSummaryByCustomers`関数を追加
-     - 複数顧客の売上データを一括取得
-     - 顧客名でOR条件のクエリを作成
-     - 会計期間ごとに売上を集計
-  3. 顧客一覧ページの修正
-     - 国名列を売上高列に変更（w-32幅）
-     - 顧客一覧取得後、売上サマリーを一括取得
-     - MiniSalesChartコンポーネントを各行に配置
+  1. ElectricalPartsTable.tsxの改修
+     - Sectionインターフェースを追加（id, name, parts[]）
+     - 初期状態でS1セクションを作成
+     - セクション追加/削除ボタンを実装
+     - 各セクションごとにSUBTOTALを表示
+     - 最後にGRAND TOTALで全セクションの合計を表示
+  2. MechanicalPartsTable.tsxを新規作成
+     - ElectricalPartsTableと同じセクション機能を実装
+     - 機械部品用のフィールド構成（部品名、型番、数量、単価、金額、メーカー、備考）
+  3. ProjectDetailContent.tsxの更新
+     - MechanicalPartsTableの動的インポート追加
+     - 機械図面タブでMechanicalPartsTableを使用
 - **技術的詳細**:
-  - Rechartsライブラリを使用したスパークラインチャート
-  - ResponsiveContainerで100%レスポンシブ対応
-  - 余白を最小限にして視覚的なインパクトを重視
-- **動作確認**: 開発サーバー（ポート3000）で正常表示を確認
+  - セクションの番号は自動的にS1, S2, S3...と採番
+  - セクションが1つの場合は削除ボタンを非表示
+  - 各セクションで独立して部品の追加/編集/削除が可能
+  - アイテム番号は各セクション内で1から自動採番
 
-## 最新作業（2025-10-08）
-
-### 顧客詳細ページ - 請求書データ取得の環境変数問題修正
-- **問題**: 顧客詳細ページで請求書データが表示されない、グラフも消えている
-- **原因**: Next.js 15で環境変数がモジュールレベルで読み込まれない問題
+### メインコンテンツ幅の統一
+- **問題**: プロジェクト管理一覧とプロジェクト詳細でメインコンテンツの幅が異なっていた
+- **ユーザーフィードバック**: 「メインコンテンツの幅は規約として全APPで統一してください」
 - **修正内容**:
-  1. `/src/lib/kintone/customer.ts`を修正
-     - APIトークンの読み込みを関数内に移動
-     - getCustomerById、getCustomerRecords両方の関数で修正
-  2. `/src/lib/kintone/invoice.ts`のlimit修正
-     - Kintone APIのlimit制限500を超えていた（5000→500に修正）
-- **動作確認**: 
-  - SUGINO PRESS (THAILAND) CO.,LTD.で319件の請求書データを確認
-  - 第14期：13件、第9期：26件のデータが正常に取得できることを確認
-  - APIエンドポイントも正常にレスポンスを返すことを確認
-- **技術的詳細**:
-  - 環境変数は関数実行時に読み込むように変更（Next.js 15対応）
-  - KintoneのREST APIのlimit制限は500件まで
+  - TableStyles.tsx で定義されている `contentWrapper: "py-4 px-4"` を全ページで統一
+  - 修正したファイル：
+    - ProjectDetailContent.tsx: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8` → `py-4 px-4`
+    - WorkNoDetailContent.tsx: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8` → `py-4 px-4`  
+    - QuotationListContent.tsx: `max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8` → `py-4 px-4`
+    - ImportDataClient.tsx: `max-w-7xl mx-auto overflow-x-auto` → `overflow-x-auto`
+    - MachineDetailContent.tsx: `max-w-7xl mx-auto` → `py-4 px-4`
+    - test-fields/page.tsx: `p-8 max-w-7xl mx-auto` → `py-4 px-4`
+    - order-management/[id]/page.tsx: `max-w-7xl mx-auto px-4 py-8` → `py-4 px-4`
+    - StaffDetailFromListContent.tsx: `max-w-7xl mx-auto` → `py-4 px-4`
+    - workno/[workNo]/parts-list/page.tsx: `max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8` → `py-4 px-4`
+  - TableStyles.tsx にコメント追加: 全アプリケーションで統一すること
+- **結果**: 全ページでメインコンテンツの幅が統一された
 
-### 顧客詳細ページ - 売上グラフの追加と請求書データ取得の改善
-- **要求**: 基本情報の下に請求書データを基にした会計期間別の売上縦棒グラフを表示
-- **実装内容**:
-  1. Rechartsライブラリをインストール
-  2. `/src/components/charts/SalesChart.tsx`を作成
-     - 会計期間別（第9期〜第14期）の売上高を集計
-     - 縦棒グラフ（BarChart）で表示
-     - カスタムツールチップで売上高と請求書件数を表示
-     - 多言語対応（日本語/英語/タイ語）
-  3. 顧客詳細ページを修正
-     - 全期間の請求書データ（allInvoiceRecords）を追加取得
-     - CustomerDetailContentに売上グラフを配置（基本情報セクションの下）
-- **修正内容**:
-  1. Y軸の数値表示フォーマット修正
-     - `formatAxisCurrency`関数で1M B、100K B形式に統一
-     - グラフの左マージンを60pxに拡大
-  2. 請求書データ取得の制限値修正
-     - `getInvoiceRecords`と`getInvoiceRecordsByCustomer`の制限を500から5000に変更
-     - 会計期間の前ゼロ埋めパターン（9-、09-）に対応
-     - 会計期間別レコード数をログ出力する機能を追加
-- **技術的詳細**:
-  - 工事番号（文字列__1行_）から会計期間を抽出して集計
-  - 総額（計算フィールド）を売上高として使用
-  - ResponsiveContainerで幅100%、高さ300pxのグラフを表示
-  - データがない場合は「データがありません」を表示
-  - 第9期から第14期まで全ての会計期間を表示対象に
-  - 重複工事番号のデバッグ情報を追加（Kintone側とのデータ相違の原因調査）
-3. **請求書管理アプリの会計期間フィルター修正**
-  - SearchFilterコンポーネントを作成
-  - 会計期間ドロップダウンに第9期から第14期までを固定で表示
-  - デフォルトで第14期を選択（初回ロード時）
-  - 会計期間が変更されたら、その期間のデータをAPIで取得（500件まで）
-  - APIルート `/api/invoice-management/period/[period]` を作成
-  - 工事番号から会計期間を抽出してフィルタリング（前ゼロ埋めパターンも対応）
-  - ローディング表示を追加
-
-## 最新作業（2025-10-07）
-
-### Kintoneコスト管理アプリ - CS ID一括更新
-- **要求**: コスト管理アプリでCS IDが「64-116 SSK」となっているレコードを「64-116-SSK」に更新
-- **実装内容**:
-  1. 更新スクリプト `/scripts/update-cost-csid.ts` を作成
-  2. KintoneのCost ManagementアプリからCS ID = "64-116 SSK"のレコードを検索
-  3. バッチ処理で"64-116-SSK"に更新
-- **結果**: 60件のレコードを正常に"64-116 SSK"から"64-116-SSK"に更新完了
-- **技術的詳細**:
-  - Cost ManagementアプリID: 88（環境変数 KINTONE_APP_COST_MANAGEMENT）
-  - APIトークン: KINTONE_API_TOKEN_COST を使用
-  - フィールド名：文字列__1行__2（CS IDフィールド）
-
-### Kintone請求書管理アプリ - CS ID一括更新
-- **要求**: 請求書管理アプリでCS IDが「64-116 SSK」となっているレコードを「64-116-SSK」に更新
-- **実装内容**:
-  1. 調査スクリプトでフィールド構造を確認
-  2. 実際のフィールド名を確認：
-     - 工事番号：文字列__1行_
-     - 請求書番号：文字列__1行__0
-     - CS ID：文字列__1行__3
-     - 請求日付：日付
-  3. 更新スクリプト `/scripts/update-invoice-csid-correct.ts` を作成
-  4. CS IDフィールドを"64-116 SSK"から"64-116-SSK"に更新
-- **結果**: 12件のレコードを正常に"64-116 SSK"から"64-116-SSK"に更新完了
-- **技術的詳細**:
-  - Invoice ManagementアプリID: 26（環境変数 KINTONE_APP_INVOICE_MANAGEMENT）
-  - APIトークン: KINTONE_API_TOKEN_INVOICE を使用
-  - フィールド名：文字列__1行__3（CS IDフィールド）
-
-### 請求書管理ページと顧客詳細請求書タブ修正（2025-10-07）
-- **問題**: 請求書管理アプリの一覧が真っ白、顧客詳細の請求書一覧も表示されない
-- **原因**: InvoiceRecordのフィールド定義が実際のKintoneフィールドと一致していない、環境変数の読み込み問題
-- **修正内容**:
-  1. `/src/lib/kintone/invoice.ts`を作成し、KintoneClientを使用するように実装
-     - getInvoiceRecords: 請求書一覧取得（limit指定可能）
-     - getInvoiceRecordsByCustomer: 顧客ID別請求書取得（会計期間フィルター付き）
-  2. `/types/kintone.ts`のInvoiceRecordインターフェースを正しいフィールド名に修正
-     - 文字列__1行_（工事番号）
-     - 文字列__1行__0（請求書番号）
-     - 日付（請求日付）
-     - 文字列__1行__3（CS ID）
-     - total, 計算, ラジオボタン等のフィールドを追加
-  3. KINTONE_APPSのparseInt問題を修正（ハードコード化）
-  4. CustomerDetailContentの請求書フィールド参照を修正
-  5. InvoiceManagementClientから一時的なInvoiceDataインターフェースを削除
-  6. 環境変数を関数内で読み込むように変更（Next.js 15対応）
-- **技術的詳細**:
-  - 請求書管理アプリID: 26
-  - APIトークン: KINTONE_API_TOKEN_INVOICE
-  - KintoneClientクラスを使用した統一的な実装
-  - テストスクリプトで動作確認済み
-- **動作確認**: `npx tsx scripts/test-invoice-api.ts`で正常動作を確認
-
-## 最新作業（2025-10-07）
-
-### 顧客詳細ページ - 請求書一覧タブの追加
-- **要求**: PO一覧の横に請求書一覧のタブを追加し、会計期間別に該当顧客の請求書を表示
-- **実装内容**:
-  1. CustomerDetailContent.tsxに請求書一覧タブを追加
-  2. `/src/lib/kintone/invoice.ts`を作成し、請求書データ取得関数を実装
-  3. 請求書一覧タブの表示を実装（表示項目：工事番号、請求書番号、請求日、合計、割引、割引後、VAT、総額）
-  4. 会計期間フィルター機能を追加
-  5. APIRouteに請求書データ取得処理を追加
-- **技術的詳細**:
-  - Invoice ManagementアプリID: 26（環境変数 KINTONE_APP_INVOICE_MANAGEMENT）
-  - APIToken: KINTONE_API_TOKEN_INVOICE
-  - Work_NoフィールドからCS IDと会計期間を抽出してフィルタリング
-  - タブの色：赤色（bg-red-600 text-white）
-- **動作確認**: 開発サーバー（ポート3000）で表示確認待ち
-- **修正内容**:
-  - 機械管理のフィールド名を修正（Maker→Vender、Model→Moldel、M_C_No→MCNo、QT/WN→Qt/Wn）
-  - 顧客担当者のフィールド名を修正（担当者名、Divison、Position、メールアドレス、文字列__1行__7）
-  - 請求書データ取得用のデバッグログを追加
-
-### 顧客詳細ページ - 請求書データフィルタリング修正（2025-10-08）
-- **問題**: 顧客詳細ページの請求書タブでデータが表示されない
-- **原因**: getInvoiceRecordsByCustomer関数がCS IDでフィルタリングしていたが、請求書アプリは顧客名（CS_name）でフィルタリングする必要があった
-- **修正内容**:
-  1. `/src/lib/kintone/invoice.ts`のgetInvoiceRecordsByCustomer関数を修正
-     - パラメータをcsIdからcustomerNameに変更
-     - フィルタリング条件を`文字列__1行_ like "${csId}-%"`から`CS_name = "${customerName}"`に変更
-  2. `/src/app/[locale]/(auth)/customers/[id]/page.tsx`を修正
-     - getInvoiceRecordsByCustomerの呼び出しを`customerRecord.文字列__1行_.value`から`customerRecord.会社名.value`に変更
-  3. `/src/app/api/customer/[id]/data/route.ts`を修正
-     - 請求書データ取得時に先に顧客情報を取得してから顧客名でフィルタリング
-- **技術的詳細**:
-  - CS_nameフィールド（顧客名）を使用してフィルタリング
-  - 会計期間フィルターは工事番号（文字列__1行_）から抽出
-- **動作確認**: テストスクリプトで正常動作を確認（SUGINO PRESS社で319件の請求書、第14期で13件）
-
-## 最新作業（2025-10-06）
-
-### Kintone工事番号アプリ - ステータス一括更新  
-- **要求**: ユーザーから「工事番号APPのStatusのWating POをWorkingに全て一括変更」という要求
-- **実装内容**:
-  1. 更新スクリプト `/scripts/update-workno-status.ts` を作成
-  2. KintoneのWork No.アプリから"Wating PO"ステータスのレコードを検索
-  3. バッチ処理で"Working"ステータスに更新
-- **修正内容**:
-  - アプリIDエラー：環境変数から正しいアプリID（21）を取得するように修正
-  - ステータス名：Work No.アプリでもスペルミスの"Wating PO"を使用していることを確認
-- **結果**: 3件のレコードを正常に"Wating PO"から"Working"に更新完了
-- **技術的詳細**:
-  - Work No.アプリID: 21（環境変数 KINTONE_APP_WORK_NO）
-  - APIトークン: KINTONE_API_TOKEN_WORKNO を使用
-
-### Kintone見積もりアプリ - ステータス一括更新
-- **要求**: ユーザーから「見積もりAPPのWating POを全部Sentに変えよう」という要求
-- **実装内容**:
-  1. 更新スクリプト `/scripts/update-quotation-status.ts` を作成
-  2. KintoneのQuotationアプリから"Waiting PO"ステータスのレコードを検索
-  3. バッチ処理で100件ずつ"Sent"ステータスに更新
-- **修正内容**:
-  - 初期エラー：スペルミス "Wating PO" → "Waiting PO" に修正
-  - API演算子エラー：ドロップダウンフィールドには"="ではなく"in"演算子を使用
-  - URLエラー：client['baseUrl']が存在しないため、環境変数から直接ドメインを取得するように修正
-- **結果**: 112件のレコードを正常に"Waiting PO"から"Sent"に更新完了
-- **技術的詳細**:
-  - Kintone REST APIのバッチ更新機能を使用（最大100件/バッチ）
-  - ドロップダウンフィールドのクエリ構文：`ドロップダウン in ("Waiting PO")`
-
-### 顧客詳細ページ - 見積一覧へのM/C ITEMとModel列追加
-- **問題**: 見積一覧テーブルのヘッダーに構文エラーが発生（$2という不正な文字列）
-- **原因**: 自動フォーマッタによるコード変換エラー
-- **修正内容**:
-  1. 606-607行目の構文エラーを修正（$2を正しいth要素に置き換え）
-  2. M/C ITEMとModelのヘッダー列を金額と提出日の前に配置
-  3. M/C ITEMはリンク付きで表示（クリックで機械一覧へ遷移、mcitemパラメータ付き）
-  4. データがない場合は「-」を表示
-- **技術的詳細**:
-  - TransitionLinkコンポーネントを使用したページ遷移
-  - URLエンコーディングでM/C ITEMの値を安全にクエリパラメータとして渡す
-  - キャンセル行では薄い色のリンクを表示
-- **動作確認**: 開発サーバー（ポート3000）で表示確認済み
-
-### 見積一覧表示の修正
-- **問題**: 
-  1. 見積テーブルの幅が他のテーブルより狭い
-  2. 金額が表示されていない
-  3. キャンセル行がグレーになっていない
-  4. 完了ステータスのバッジが濃い緑色になっていない
-- **原因調査**: 
-  - formatNumber関数は正しく実装されている（THB記号を削除済み）
-  - ステータスチェックは日本語・英語両方に対応済み
-- **修正内容**:
-  1. 見積テーブルとPOテーブルのインデントを修正（余分な空白が原因でテーブル幅が狭くなっていた）
-  2. デバッグログを追加して、実際のステータス値と金額値を確認できるようにした
-- **技術的詳細**:
-  - `<table>`タグのインデントを4スペースから2スペースに修正
-  - デバッグログでstatus, amount, isCompleted, isCancelledの値を出力
-- **追加修正**:
-  3. 金額表示のエラーハンドリングを改善（値が存在しない場合は"-"を表示）
-  4. PO一覧でも同様の修正を適用
-  5. デバッグ用の詳細ログを追加（最初のレコードの全フィールドを出力）
-- **追加修正2**:
-  6. ステータスに応じた行の背景色を実装
-     - 完了: 緑色背景（bg-green-50）
-     - キャンセル: グレー背景（bg-gray-100）+ 透明度60%
-  7. バッジの色を工事番号一覧と同じ仕様に変更
-     - 完了: 濃い緑色（bg-green-700 text-white）
-     - PO待ち: オレンジ色（bg-orange-600 text-white）
-     - キャンセル: グレー（bg-gray-300 text-gray-700）
-- **追加修正3**:
-  8. メインコンテンツエリアの余白を削減
-     - px-4 sm:px-6 lg:px-8 py-8 → p-4 に変更
-     - max-w-7xl mx-auto を削除
-  9. 各タブのパディングも調整済み（px-2 py-3）
-- **追加修正4 - 見積金額表示の改善**:
-  10. 計算フィールド（grand_total）の値取得を改善
-      - formatNumber関数で通貨記号を除去する処理を追加
-      - grand_totalが空の場合、Sub_totalとDiscountから計算
-  11. デバッグログを追加して金額フィールドの実際の値を確認
-- **動作確認**: 開発サーバー（ポート3000）で表示を確認済み
-
-## 最新作業（2025-10-06）
-### 見積もり一覧の工事番号フィールド修正
-- **問題**: 工事番号フィールドがGUSUKUで取得していたため、見積もり一覧に工事番号が表示されない
-- **解決策**: 見積もりアプリの実際のフィールド`Text_0`を使用
-- **修正内容**:
-  - `QuotationRecord`型に`Text_0`フィールドを追加
-  - 見積もり一覧の工事番号表示を`record.WorkNo?.value`から`record.Text_0?.value`に変更
-  - 工事番号がある場合はリンク表示、ない場合は「-」表示
-- **動作確認**: 見積もり一覧タブで工事番号が正しく表示されることを確認
-
-### 見積もり会計期間フィルターを日付ベースに変更
-- **問題**: 見積番号がRe.1などの改訂版の場合、発行日と見積番号が合わない
-- **解決策**: 見積番号から会計期を計算するのではなく、日付フィールド（日付）から会計期を計算
-- **修正内容**:
-  - `getFiscalPeriodFromQuotationNo`関数を`getFiscalPeriodFromDate`関数に変更
-  - 見積データの取得・フィルタリングを日付ベースに変更
-  - 会計期間選択時の動的更新ロジックを修正（前回取得期間を記録する仕組み追加）
-  - 会計期間を7月始まりに修正（第14期: 2025年7月1日〜2026年6月30日）
-- **技術的詳細**:
-  - 日付フィールド（`record.日付?.value`）を使用して7月始まりの会計期間を計算
-  - 現在第14期（2025年度）を基準として年月日で前後を計算
-- **動作確認**: デバッグログ追加済み、ブラウザリロードで確認可能
-
-### 会計期間フィルター表示問題の修正
-- **問題**: 見積一覧タブでデータがない場合、会計期間フィルターが表示されない
-- **原因**: データがない場合の条件分岐のインデントが間違っていた
-- **修正内容**:
-  - 見積一覧タブ（543-546行目）のインデントを修正
-  - PO一覧タブ（649-652行目）のインデントを修正
-- **結果**: データの有無に関わらず会計期間フィルターが常に表示されるように修正完了
-- **動作確認**: 開発サーバー（ポート3000）で正常動作確認済み
-
-### 会計期間フィルターのパフォーマンス最適化実装
-- **実施内容**: ユーザーからの提案に基づき、会計期間フィルターのパフォーマンスを最適化
-- **修正内容**:
-  1. デフォルト表示を「全期間」から「当期（第14期）」に変更
-  2. 初期表示では第14期のデータのみ500件取得（全期間取得を廃止）
-  3. 会計期間が変更されたら、選択された期のデータを動的に取得する仕組みを実装
-  4. APIルート `/api/customer/[id]/data` を作成して動的データ取得
-  5. タブバッジの件数を動的データに連動するように修正
-  6. 会計期間フィルターの表示を第8期〜第14期に修正
-- **技術的詳細**:
-  - サーバーサイドでは初期は第14期のデータのみ取得
-  - クライアントサイドでuseStateとuseEffectを使用して動的データ管理
-  - 会計期間変更時はAPIを呼び出して該当期間のデータを取得
-  - params のawait処理をNext.js 15の要件に合わせて修正
-- **動作確認**: 開発サーバー（ポート3000）で正常動作確認済み
-
-### 顧客詳細ページの追加修正完了
-- **実施内容**: ユーザーから提供された5つの追加改善要求をすべて実装
-- **修正内容**:
-  1. 工事番号一覧：会計期フィルターを追加（第14期、第13期など）
-  2. 見積一覧：会計期フィルターを追加（見積番号QT-14-0001形式から会計期を抽出）
-  3. PO一覧：PO番号にリンク追加済み、会計期フィルターを追加（WorkNoから会計期を取得）
-  4. 保有機械一覧：QTとWNの数をバッジで表示（QT：青色、WN：緑色）
-  5. 顧客担当者一覧：ルックアップフィールド（会社名）でフィルタリング実装、選択された顧客の担当者のみ表示
-- **動作確認**: 開発サーバー（ポート3000）で正常動作確認済み
-
-### 顧客詳細ページの修正完了（前回作業）
-- **実施内容**: ユーザーから提供された7つの改善要求をすべて実装
-- **修正内容**:
-  1. 連絡先情報カードの高さとレイアウト調整（py-5→py-3、TEL/FAX/TAX IDを3カラムレイアウトに変更）
-  2. 会計期フィルター表示を「第14期、第13期」形式に修正
-  3. DashboardLayoutでラップして、サイドメニューとヘッダーを表示
-  4. 見積一覧の表示フィールドを修正（見積番号：qtno2、金額：grand_total、日付：日付、ステータス：ドロップダウン）
-  5. PO一覧のフィールドを修正（PO番号リンク追加、Work No：ルックアップ、金額：grand_total、日付：日付）
-  6. 機械管理APIトークンをハードコード（T4MEIBEiCBZ0ksOY6aL8qEHHVdRMN5nPWU4szZJj）
-  7. 顧客担当者の全データ取得とフィールド構造のデバッグログ出力
-- **動作確認**: 開発サーバー（ポート3000）で正常動作確認済み
-
-## 最新作業（2025-10-06）
-
-### 工事番号アプリ - 警告アイコンとUI改善
-- **要求**: 売上予定日が過ぎている工事に警告アイコン（⚠️）とツールチップ表示
-- **実装内容**:
-  1. 売上予定日が過ぎている未完了工事に警告アイコンを表示
-  2. ホバー時に多言語ツールチップ表示（日本語/英語/タイ語）
-  3. 過ぎた売上予定日を赤字表示
-  4. ツールチップサイズを文字数に応じて自動調整（whitespace-nowrap）
-  5. 数字の幅統一のため`font-variant-numeric: tabular-nums`を適用
-  6. 工事番号とCS IDのフォント幅を90%に調整（transform: scaleX(0.9)）
-- **追加機能**:
-  - ダッシュボードの実行中工事一覧にも同じUI改善を適用
-  - 実行中工事からINV列を削除（完了前のため請求書は存在しない）
-  - 金額表示に通貨単位「B」を追加
-
-### 工事番号アプリ - 検索機能の修正
-- **問題**: 検索が一瞬機能するが数秒で全件表示に戻る
-- **原因**: useEffectの依存配列に`records`が含まれており、再レンダリング時にフィルタリングがリセット
-- **修正内容**:
-  1. URL更新を`window.history.replaceState`に変更（再レンダリング防止）
-  2. `sortWorkNumbers`と`buildHierarchy`を`useCallback`でラップ
-  3. 初期化用useEffectから`records`依存を削除
-  4. 検索対象にModelとM/C Itemフィールドを追加
-- **技術的詳細**:
-  - 依存関係の最適化により不要な再レンダリングを防止
-  - URLパラメータ更新時のページリロードを回避
-
-### ページ遷移の速度改善とローディング表示実装
-- **問題**: ページ遷移に3-4秒かかり、クリック後の無反応状態でユーザーが不安になる
-- **実装内容**:
-  1. 機械詳細ページの「一覧へ戻る」ボタンにローディング機能追加
-     - useTransitionフックを使用した非同期ナビゲーション
-     - クリック時にスピナーと「読み込み中...」表示
-  2. TransitionLinkコンポーネントの作成
-     - 全画面ローディングオーバーレイ表示
-     - プリフェッチ機能付き（prefetch=true）
-  3. 全リンクへの適用
-     - CS IDリンク、保有機械リスト、工事番号リンク、見積リンクに適用
-- **効果**: ページ遷移時の即座のフィードバックにより、ユーザー体験が大幅に改善
-
-## 作業履歴（2025-10-05）
-### 機械管理QT/WN機能実装とUI改善
-- **実装内容**: 機械管理アプリにQT（見積回数）とWN（工事番号数）の表示機能を実装
-- **データ取得方法**: 
-  - QT: 見積管理アプリ（ID: 8）から`McItem`フィールドで検索して回数取得
-  - WN: 工事番号管理アプリ（ID: 21）から`McItem`フィールドで検索して回数取得
-- **APIトークン**: 環境変数（KINTONE_API_TOKEN_QUOTATION, KINTONE_API_TOKEN_WORKNO）を使用
+### 電気部品表のテーブル幅調整
+- **問題**: ユーザーから「表の幅が狭いままなんだよ、もっと広げろって」というフィードバック
 - **修正内容**: 
-  - ハードコードされたアプリIDを環境変数から取得するように修正（KINTONE_APPS定数を使用）
-  - getRecordByIdメソッドが存在しないため、getRecordメソッドに変更
-- **表示**: 機械一覧と詳細ページでバッジ表示（QT: 青色、WN: 緑色）
-- **機械詳細ページのUI改善**:
-  - Tailwind UIの標準的なデスクリプションリストスタイルに変更
-  - テーブルのパディングを統一（py-2 → py-3）
-  - リンク先の修正：
-    - 工事番号: WorkNoフィールドを使用、リンク先`/[locale]/workno/${WorkNo}`
-    - 見積番号: qtno2フィールドを使用、リンク先`/[locale]/quotation/${qtno2}`
+  - ElectricalPartsTable.tsx の320行目のテーブルクラスを変更
+  - 変更前：`w-auto`（自動幅調整）
+  - 変更後：`w-full`（コンテナの全幅を使用）
+- **結果**: テーブルが親要素の全幅を使用するようになり、より見やすい表示に
 
-### 請求書データ表示確認・INVバッジ機能
-- **対象**: 工事番号14-0027-0の請求書データ表示修正完了
-- **実施済み**: kintone Invoice Management APIからの実データ取得
-- **実装確認**: WorkNoDetailContent.tsx内で正しいフィールド名（文字列__1行__0, 日付）使用
-- **INVバッジ**: 工事番号一覧に請求書データ存在時のINVバッジ表示機能実装済み（WorkNoClient.tsx:358-362行）
-- **動作確認**: 開発サーバーポート3000で起動中
+### React Beautiful DNDの完全削除と代替実装
+- **問題**: React Beautiful DNDがNext.js 15でisDropDisabledエラーを繰り返し発生
+- **原因**: React Beautiful DNDとNext.js 15の根本的な非互換性
+- **修正内容**:
+  1. React Beautiful DNDを完全に削除
+     - ドラッグ&ドロップライブラリの使用を中止
+     - 動的インポートも効果なし
+  2. 代替機能の実装
+     - コンテキストメニューに「上に移動」「下に移動」オプションを追加
+     - moveRow関数で行の順序変更を実装
+     - 右クリックメニューから行の位置を変更可能に
+  3. 安定したテーブル実装
+     - すべての編集機能は正常動作
+     - Deliveryフィールドの3桁数字制限も維持
+     - エラーなしで安定した動作を実現
+- **技術的詳細**:
+  - React Beautiful DNDはNext.js 15のWebpack版では根本的な互換性問題がある
+  - 代替案として手動の位置変更機能を実装
+  - ユーザビリティを維持しながら安定性を優先
 
-## 作業概要
-ユーザーからの要求で、全12個のアプリケーションのレイアウト統一とテーブル最適化を実施。メニューの幅がメインコンテンツのテーブル幅に影響される問題を解決し、responsive designを導入。
+### Kintoneフィールドアクセスエラーの修正
+- **問題**: ProjectDetailContentで`record['POコード管理'].value`へのアクセスでTypeError発生
+- **原因**: Kintone型定義とフィールド名の不一致、undefinedチェックの欠如
+- **修正内容**:
+  - オプショナルチェーン（`?.`）を全面的に使用
+  - フィールド名を正しい形式に修正（PJCODE→PJ_code、PJNAME→PjName）
+  - 複数の可能なフィールド名をフォールバック（`record['POコード管理']?.value || record['PO_code']?.value`）
+  - 値が存在しない場合は'N/A'を表示
 
-## 実施した作業
+### Deliveryフィールドの入力規則追加
+- **要求**: Deliveryフィールドに数字3桁までの入力規則を追加（例：3日→3、120日→120）
+- **修正内容**:
+  - handleCellChange関数に入力バリデーションを追加
+    - 数字以外の文字を除去（正規表現：`/[^0-9]/g`）
+    - 最大3桁に制限（`slice(0, 3)`）
+  - input要素の属性を変更
+    - type="number"に変更
+    - min="0", max="999"を追加
+    - pattern="[0-9]{0,3}"を追加
+  - 初期データのDeliveryフィールドを数字に変換
+    - "On Stock" → "0"
+    - "12 Weeks" → "84"（12週 × 7日）
+    - "8 Weeks" → "56"
+    - "6 Weeks" → "42"
+    - "4 Weeks" → "28"
 
-### 1. レイアウト問題の特定と修正
+### React Beautiful DNDの完全無効化
+- **問題**: コンソールエラー「isCombineEnabled must be a boolean」が継続発生
+- **原因**: React Beautiful DNDとNext.js 15.5.4の互換性問題
+- **修正内容**:
+  - import文をコメントアウト
+  - DragDropContext、Droppable、Draggableコンポーネントをコメントアウト
+  - handleDragEnd関数をコメントアウト
+  - ドラッグ&ドロップ機能を一時的に無効化
+- **技術的詳細**:
+  - React Beautiful DND v13.1.1はNext.js 15との互換性に問題がある可能性
+  - SSR環境での動的インポートまたは代替ライブラリの検討が必要
+  - 現在はテーブルの編集機能は正常に動作
 
-#### 問題
-- 顧客管理、担当者管理ページでメニューの幅が正しく表示されない
-- メインエリアのテーブル幅がサイドバーメニューの表示に影響していた
+### React Beautiful DNDのisDropDisabledエラー修正
+- **問題**: コンソールエラー「isDropDisabled must be a boolean」が発生
+- **原因**: `Droppable`コンポーネントに`isDropDisabled`プロパティが設定されていない
+- **修正内容**:
+  - 720行目の`<Droppable>`に`isDropDisabled={false}`を追加
+  - これにより、ドラッグ&ドロップが正常に動作するようになった
 
-#### 解決策
-- TableStylesコンポーネントを使った統一レイアウトへの変換
-- テーブル幅の最適化とresponsive design導入
+### ProjectDetailContent.tsxの構文エラー修正（第2回）
+- **問題**: 再度ビルドエラー「Unexpected token」「Unterminated regexp literal」が発生
+- **原因**: 電気図面タブのコンテンツ部分で`<div>`タグの開閉バランスが崩れていた
+- **修正内容**:
+  - 934行目に`</div>`タグを追加して、`<div className="px-2 py-2">`を正しく閉じるように修正
+  - DragDropContext、Droppable、tableの構造を維持しながら、親要素の閉じタグを適切に配置
+  - 開発サーバーが正常に起動することを確認（ポート3000）
+- **技術的詳細**:
+  - TypeScriptコンパイラのエラーメッセージから、371行目の`<div>`に対応する閉じタグがないことを特定
+  - 電気図面タブの構造：615行目で開始 → 933行目でoverflow-x-auto閉じ → 934行目でpx-2 py-2閉じ → 935行目で条件文閉じ
+  - react-beautiful-dndのコンポーネント構造を保ちながら修正
 
-### 2. 各ページの修正詳細
+### ProjectDetailContent.tsxの構文エラー修正（第1回）
+- **問題**: ビルドエラー「Unexpected token」「Unterminated regexp literal」が発生
+- **原因**: 電気図面タブのコンテンツ部分で閉じ括弧の不足
+- **修正内容**:
+  - 934行目に閉じ括弧「)}」を追加
+  - タブコンテンツを包む`<div>`タグの構造を修正
+  - 開発サーバーが正常に起動することを確認（ポート3000）
 
-#### 担当者管理ページ (`/src/app/[locale]/(auth)/staff/StaffListContent.tsx`)
-**修正内容:**
-- `max-w-4xl`コンテナでテーブル幅を制限
-- 列幅を固定: 担当者名(w-32)、会社名(w-40)、部署(w-24)、役職(w-24)、メール(w-48)
-- responsive design: 部署(`hidden md:table-cell`)、役職(`hidden lg:table-cell`)で小画面時に非表示
-- コンパクトなセル間隔: `px-3 py-3`
+## 過去の作業（2025-10-15）
 
-#### 顧客管理ページ (`/src/app/[locale]/(auth)/customers/CustomerListContent.tsx`)
-**修正内容:**
-- `max-w-6xl`コンテナでテーブル幅を制限
-- 列幅固定: CS ID(w-24)、会社名(w-64)、国(w-20)、ランク(w-20)、TEL(w-32)
-- responsive design: 国(`hidden md:table-cell`)、ランク(`hidden lg:table-cell`)
-- ソート機能とinteractive要素はそのまま維持
+### プロジェクト管理詳細ページ（ProjectDetailContent）のデザイン修正完了
+- **要求**: プロジェクト詳細ページ（P25004）を顧客詳細ページと同じデザインに変更し、下部のタブに機械図面、電気図面の部品表を追加
+- **ユーザーフィードバック**: 
+  1. 表の横幅が隙間が空きすぎ
+  2. 顧客詳細のデザインに沿ってない
+  3. 基本情報セクションをコンパクトに（1/3のサイズに）
+  4. タブに電気部品を追加、画像を参照してエクセルライクな表を作成
+- **修正内容**:
+  1. タブナビゲーションのデザインを顧客詳細ページと統一
+     - `text-blue-600 border-blue-600 bg-blue-50` のスタイルを適用
+     - タブホバー時の背景色（`hover:bg-gray-50`）を追加
+     - アイコンの配置と色を統一（`inline-block`、active時は`text-blue-600`）
+  2. テーブルレイアウトの最適化
+     - `w-auto`クラスを使用して自動幅調整
+     - `px-2 py-2`で適切なパディングを設定
+     - `whitespace-nowrap`で列ヘッダーの折り返しを防止
+     - 顧客詳細ページと同じコンパクトなテーブルスタイルを適用
+  3. タブコンテンツエリアの調整
+     - `px-2 py-2`のパディングで顧客詳細ページと統一
+     - 各タブ内のレイアウトを最適化
+  4. 基本情報セクションのコンパクト化
+     - グリッドレイアウトを`grid-cols-1 lg:grid-cols-3`に変更
+     - 基本情報、プロジェクト情報、予算情報・進捗状況・担当者情報を3つのカードに整理
+     - 各カードのパディングを`p-4`に縮小
+     - テキストサイズを調整（タイトル：`text-sm`、ラベル：`text-xs`）
+  5. 電気部品表の実装
+     - Excelライクなテーブルデザイン（`border-collapse border`）
+     - ヘッダー列：ITEM, MARK, NAME, MODEL, BRAND, QTY, UNIT PRICE, TOTAL, Delivery, Note
+     - 10件のサンプルデータを追加（Ethernet Switch, Panel PC, PC w/Software, Power Supply DC等）
+     - 数値は右寄せ、QTYとDeliveryは中央寄せ
+     - 合計行を追加（TOTAL AMOUNT: 1,005,100.00）
+     - グレーの背景色で全体のボーダーを統一
+- **技術的詳細**:
+  - リンターによるコード重複の自動修正を確認
+  - 顧客詳細ページ（CustomerDetailContent）のテーブルスタイルを参考に実装
+  - レスポンシブ対応とアクセシビリティを維持
+  - Excelスプレッドシートのスタイルを模倣したテーブル実装
 
-#### 仕入業者管理ページ (`/src/app/[locale]/(auth)/suppliers/page.tsx`)
-**修正内容:**
-- `max-w-5xl`コンテナでテーブル幅を制限
-- 列幅固定: 会社名(w-48)、TEL(w-32)、メール(w-48)、住所(w-64)
-- responsive design: メール(`hidden md:table-cell`)、住所(`hidden lg:table-cell`)
-- TableStylesからカスタムresponsive tableに変更
+### 見積詳細画面の修正（第5回）
+- **問題**: ユーザーからのフィードバック（スクリーンショット付き）：
+  1. 各セクションの隙間が空きすぎ、横線も不要
+  2. Line itemsは項目がなくても最小10行を表示し、Totalsセクションとくっつけること
+  3. Unitが表示されてません
+- **修正内容**:
+  1. セクション間の隙間を削減（py-10 → pt-6）
+  2. Unitフィールドのマッピングを修正：`item.value.unit` → `item.value['ドロップダウン_2']`（編集フォームとAPIと同じフィールドを使用）
+  3. Line itemsテーブルに常に最小10行を表示する機能を追加（空行で埋める）
+  4. Line itemsテーブルとTotalsセクションの間のギャップを削除（pt-10 → 削除）
+- **技術的詳細**:
+  - Unitフィールドは編集フォームとAPIで`ドロップダウン_2`フィールドを使用していることを確認
+  - 空行は`Array.from({ length: Math.max(0, 10 - lineItems.length) })`で生成
+  - 各空行には`&nbsp;`を使用して最小高さを確保
 
-#### プロジェクト管理ページ (`/src/app/[locale]/(auth)/project-management/page.tsx`)
-**修正内容:**
-- `max-w-7xl`コンテナでテーブル幅を制限
-- 列幅固定: コード(w-32)、プロジェクト名(w-64)、CS ID(w-24)、ステータス(w-28)、開始日(w-28)、納期(w-28)、工事番号(w-32)
-- responsive design: CS ID(`hidden md:table-cell`)、開始日・納期(`hidden lg:table-cell`)、工事番号(`hidden md:table-cell`)
+### 見積詳細画面の修正（第6回）
+- **問題**: ユーザーからの追加フィードバック：
+  1. 会社名の下の線が不要
+  2. 表の線の太さが統一されていない
+- **修正内容**:
+  1. TOセクションの会社名セルから`border-b`クラスを削除
+  2. Line itemsテーブルの線の太さを統一（border-gray-400 → border-gray-300）
+     - テーブル外枠とヘッダーセルのボーダーをすべてgray-300に変更
+     - ボディ部分と同じ太さに統一
 
-#### 従業員管理ページ (`/src/app/[locale]/(auth)/employees/page.tsx`)
-**修正内容:**
-- `max-w-6xl`コンテナでテーブル幅を制限
-- 列幅固定: ID番号(w-24)、氏名(w-32)、役職(w-24)、メール(w-48)、電話(w-32)、在籍状況(w-24)
-- responsive design: 役職(`hidden md:table-cell`)、電話(`hidden lg:table-cell`)、在籍状況(`hidden xl:table-cell`)
+### 見積詳細画面の修正（第7回）
+- **問題**: ユーザーからの追加フィードバック（スクリーンショット付き）：
+  1. Category列とDescription列を1列に統合して"Description"にする
+  2. Type列を非表示にする
+  3. Qty列とUnit列を1列に統合して"Qty"にする
+- **修正内容**:
+  1. テーブルの列数を8列から5列に変更
+     - colgroup設定：Item(5.56%), Description(61.11%), Unit Price(11.11%), Qty(11.11%), Amount(13.89%)
+  2. CategoryとDescriptionを結合して表示
+     - 両方ある場合：`${category} : ${description}`
+     - どちらか一方の場合：存在する方のみ表示
+  3. Type列を完全に削除
+  4. QtyとUnitを結合して表示
+     - 両方ある場合：`${qty} ${unit}`（例：8 Unit）
+     - Qtyのみの場合：Qtyのみ表示
+  5. 空行のtdも5列に合わせて修正
 
-#### 見積管理ページ (`/src/app/[locale]/(auth)/quotation/page.tsx` & `/src/app/[locale]/(auth)/quotation/QuotationListContent.tsx`)
-**修正内容:**
-- `max-w-7xl`コンテナでテーブル幅を制限
-- 列幅固定: QT番号(w-32)、ステータス(w-24)、顧客名(w-48)、件名(w-64)、金額(w-32)、日付(w-28)
-- responsive design: 件名(`hidden md:table-cell`)、金額(`hidden lg:table-cell`)
-- QuotationListContentコンポーネントでTableStylesのwrapperとpaddingを適用
+### 見積詳細画面の修正（第8回）
+- **問題**: ユーザーからの追加フィードバック：
+  1. 列の順序が間違っている（正しい順序：Item, Description, Qty, Unit Price, Amount）
+  2. Unit PriceとAmountの幅を同じにする
+  3. Qtyの幅を狭くする
+- **修正内容**:
+  1. ヘッダーとボディの列順序を修正
+     - 変更前：Item → Description → Unit Price → Qty → Amount
+     - 変更後：Item → Description → Qty → Unit Price → Amount
+  2. 列幅の調整
+     - Item: 5.56%（変更なし）
+     - Description: 55.56%（少し縮小）
+     - Qty: 8.33%（狭く）
+     - Unit Price: 16.67%（AmountとUnit Priceを同じ幅に）
+     - Amount: 16.67%（AmountとUnit Priceを同じ幅に）
 
-#### PO管理ページ (`/src/app/[locale]/(auth)/po-management/page.tsx`)
-**修正内容:**
-- `max-w-7xl`コンテナでテーブル幅を制限
-- 列幅固定: PO番号(w-32)、ステータス(w-24)、仕入先(w-48)、金額(w-32)、日付(w-28)
-- responsive design: 金額(`hidden lg:table-cell`)、日付(`hidden xl:table-cell`)
+### 見積詳細画面の修正（第9回）
+- **問題**: ユーザーからの追加フィードバック：
+  1. Totalsセクションの縦線の位置がLine itemsテーブルのUnit Price/Amount列と合っていない
+  2. 数字に.00まで表示されていない
+- **修正内容**:
+  1. Totalsセクションをtableタグで再構築
+     - Line itemsテーブルと同じcolgroup設定を使用
+     - 最初の3列をcolSpanで結合し、Unit Price列とAmount列の位置を正確に合わせる
+  2. formatCurrency関数の修正
+     - minimumFractionDigitsを2に設定（常に小数点2桁表示）
+     - 0の場合も"0.00"を返すように修正
+  3. border-gray-400からborder-gray-300に統一（Line itemsテーブルと同じ）
+  4. JSX構文エラーの修正
+     - Totalsセクションの閉じタグの位置を修正
+     - Payment TermとRemarkセクションがTotalsの外に配置されるように調整
 
-#### 工事番号管理ページ (`/src/app/[locale]/(auth)/workno/page.tsx`)
-**修正内容:**
-- `max-w-full`（テーブルが大きいため）
-- 列幅固定: 工事番号(w-32)、ステータス(w-24)、顧客名(w-48)、説明(flex-1)、日付(w-28)
-- responsive design: 説明(`hidden lg:table-cell`)、日付列(`hidden xl:table-cell`)
+### 過去の作業
 
-#### 機械管理ページ (`/src/app/[locale]/(auth)/machines/page.tsx`)
-**修正内容:**
-- `max-w-7xl`コンテナでテーブル幅を制限
-- 列幅固定: CS ID(w-24)、顧客名(w-48)、カテゴリ(w-32)、メーカー(w-32)、モデル(w-48)、M/C No(w-32)
-- responsive design: カテゴリ(`hidden md:table-cell`)、メーカー(`hidden lg:table-cell`)、M/C No(`hidden xl:table-cell`)
-- 検索機能と複雑なドロップダウンフィルターはそのまま維持
+#### Staff管理ページの修正
+- **問題**: マシンIDカラムが意図したsort機能の修正ができていない、ページネーションのロジックが間違っている
+- **修正内容**: ソート機能とページネーションの実装を修正
 
-#### Invoices (請求書管理ページ - `/src/app/[locale]/(auth)/invoices/page.tsx`)
-**修正内容:**
-- `max-w-6xl`コンテナでテーブル幅を制限
-- 列幅固定: 工事番号(w-32)、請求書番号(w-36)、日付(w-28)、金額(w-32)
-- responsive design: 日付(`hidden lg:table-cell`)
+#### 作業時間入力画面の改善
+- **問題**: 「今日」の作業開始をクリックしても反応なし、自分以外の作業員を選択できない
+- **修正内容**: 「今日」と「昨日」の新規レコード作成機能を追加、自分の作業のみ管理するように仕様変更
 
-#### Cost Management (コスト管理ページ - `/src/app/[locale]/(auth)/cost/page.tsx`)
-**修正内容:**
-- `max-w-7xl`コンテナでテーブル幅を制限
-- 列幅固定: 工事番号(w-32)、PO番号(w-32)、仕入先(w-48)、品目(w-40)、金額(w-32)、日付(w-28)
-- responsive design: 品目(`hidden md:table-cell`)、金額(`hidden lg:table-cell`)、日付(`hidden xl:table-cell`)
+#### インポートデータ機能の実装
+- **内容**: Kintone APIのステータスチェックとMachine取り込みページの実装
+- APIステータスチェック機能を追加
+- Machine取り込みページのUIとロジックを実装
+- 成功/エラーメッセージの表示とKintone連携
 
-#### Parts Management (部品管理ページ - `/src/app/[locale]/(auth)/parts/page.tsx`)
-**修正内容:**
-- `max-w-7xl`コンテナでテーブル幅を制限
-- 列幅固定: 工事番号(w-32)、プロジェクト名(w-48)、機械名(w-48)、モデル(w-40)、カテゴリ(w-32)
-- responsive design: 機械名(`hidden md:table-cell`)、モデル(`hidden lg:table-cell`)、カテゴリ(`hidden xl:table-cell`)
+#### 顧客詳細ページの最適化
+- **問題**: 1000件以上のデータ取得時のパフォーマンス
+- **解決**: データを初回表示（500件）と完全データ（バックグラウンド）に分けて取得
 
-### 3. 全体的な改善点
-- すべてのページでresponsive designを導入し、画面サイズに応じて列を非表示にすることでテーブルの可読性を維持
-- 固定幅を使用して、各列の幅が予測可能になり、レイアウトが安定
-- コンテナの最大幅制限により、メインコンテンツエリアがサイドバーメニューに影響を与えないように修正
+#### 見積編集機能の修正
+- **問題**: リロード後エラー画面が表示される
+- **修正内容**: 
+  - `QuotationEditForm`コンポーネントの定義を修正
+  - React Server ComponentからClient Componentへの適切な分離
+  - `editAction`のインポートパスを修正
 
-### 4. 対応結果
-- メニューの幅が正常に表示されるようになった
-- テーブルが画面サイズに応じて適切に表示される
-- すべてのページで統一感のあるレイアウトが実現
-- アプリケーション全体のユーザビリティが向上
-- メンテナンスしやすい一貫性のあるコード構造
-
-### 5. 技術的なポイント
-- Tailwind CSSのユーティリティクラスを活用したresponsive design実装
-- 各画面サイズ（sm, md, lg, xl）でのブレークポイントを効果的に使用
-- テーブルコンポーネントの再利用性を維持しながら、各ページに合わせたカスタマイズを実現
-
-## 補足情報
-
-### 重要な確認事項
-- **環境変数**: 各アプリのAPIトークンがすべて環境変数に設定されている必要がある
-- **アプリID**: kintoneアプリIDが正しく設定されているか確認
-- **データ取得**: 各ページで500件までのデータを取得（パフォーマンスとの兼ね合い）
-
-## 2024年12月11日の作業履歴
-
-### 顧客詳細のPOタブを注文書管理データに変更
-- 顧客詳細ページのPOタブを発注管理から注文書管理（order-management）のデータ表示に変更
-- `/src/lib/kintone/order.ts`を作成し、注文書管理データの取得機能を実装
-- CustomerDetailContent.tsxで注文書管理データを表示するように修正
-- テーブルのスタイリングをpx-2に統一し、見積一覧と同じデザインに
-- `w-auto`クラスを使用してテーブル幅を内容に合わせて自動調整
-
-### 工事番号一覧タブの表示修正
-- 問題: WorkNoRecordのフィールド名が間違っていたため、工事番号一覧が空で表示されていた
-- 原因: `record.文字列__1行_`を参照していたが、正しくは`record.WorkNo`
-- 修正内容:
-  - 工事番号: `record.WorkNo?.value`を使用
-  - ステータス: `record.Status?.value`を使用
-  - 説明: `record.文字列__1行__2?.value`を使用
-  - 日付: `record.日付_6?.value`を使用
-- 結果: ダッシュボードと同じフィールド名を使用することで、データが正しく表示されるように修正
-
-### 注意事項
-- 開発サーバーは必ずポート3000で起動すること
-- サーバーを立てる操作は行わない
-- 軽微な修正はサーバーを再起動せずに実施
-- サーバー更新が必要な場合は、3000番ポートをkillしてから再起動
+#### 見積詳細表示の改善
+- **問題**: 
+  1. 折り返しでラベルと値が同じ行に表示されない
+  2. タブ部分をExchange Rate, Payment Term, Remarkに変更
+  3. 各フィールドの幅を統一
+  4. 「見積」リンクが反応しない、遷移に時間がかかる
+- **修正内容**:
+  1. フレックスボックスレイアウトを使用して同じ行に表示
+  2. タブのアイコンとラベルを変更
+  3. 入力フィールドとテキストエリアの幅を統一
+  4. TransitionLinkコンポーネントの実装とローディング状態の改善

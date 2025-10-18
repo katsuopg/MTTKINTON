@@ -53,7 +53,7 @@ export default async function POManagementPage({ params, searchParams }: POManag
     );
     
     // クエリ条件を構築
-    let queryParts = [`ルックアップ like "${selectedFiscalYear}-"`];
+    const queryParts = [`ルックアップ like "${selectedFiscalYear}-"`];
     
     // キーワード検索（PO番号、サプライヤー名、工事番号で検索）
     if (keyword) {

@@ -81,7 +81,7 @@ export default function OrderDetailPage() {
   if (error || !order) {
     return (
       <DashboardLayout locale={locale} title={pageTitle}>
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="py-4 px-4">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-600">{error || '注文書が見つかりません'}</p>
             <button

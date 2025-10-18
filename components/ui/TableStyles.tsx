@@ -1,7 +1,8 @@
 // 統一されたテーブルスタイルの定義（プロジェクト管理ページベース）
+// 重要：このcontentWrapperは全てのページで統一すること！
 export const tableStyles = {
   // ページレイアウト - 工事番号管理と同じ構造
-  contentWrapper: "py-4 px-4",
+  contentWrapper: "py-4 px-4", // 全アプリケーションで統一されたメインコンテンツ幅
   
   // テーブルコンテナ
   tableContainer: "bg-white shadow-sm rounded-lg overflow-hidden",

@@ -71,7 +71,7 @@ export default async function OrderManagementPage({ params: { locale }, searchPa
     );
     
     // クエリ条件を構築
-    let queryParts = [`文字列__1行__2 like "${selectedFiscalYear}-"`]; // 工事番号でフィルタ
+    const queryParts = [`文字列__1行__2 like "${selectedFiscalYear}-"`]; // 工事番号でフィルタ
     
     // キーワード検索
     if (keyword) {

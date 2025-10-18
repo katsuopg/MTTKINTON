@@ -16,6 +16,9 @@ interface CustomerOption {
   id: string;
   name: string;
   address: string;
+  rawAddress?: string;
+  postalCode?: string;
+  country?: string;
 }
 
 export default async function QuotationEditPage({ params }: QuotationEditPageProps) {
@@ -45,8 +48,17 @@ export default async function QuotationEditPage({ params }: QuotationEditPagePro
       .map((record) => ({
         id: record.文字列__1行_?.value ?? '',
         name: record.会社名?.value ?? '',
-        address: record.住所?.value ?? '',
+        rawAddress: record.住所?.value?.trim() || '',
+        postalCode: record.郵便番号?.value?.trim() || '',
+        country: record.文字列__1行__4?.value?.trim() || '',
       }))
+      .map((option) => {
+        const appended = [option.postalCode, option.country].filter(Boolean).join(' ');
+        return {
+          ...option,
+          address: [option.rawAddress, appended].filter(Boolean).join(' '),
+        };
+      })
       .filter((option) => option.id && option.name)
       .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
   } catch (error) {

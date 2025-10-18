@@ -80,7 +80,7 @@ export default function MachineDetailContent({
   };
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="py-4 px-4">
       {/* ヘッダー */}
       <div className="mb-6 mt-8">
         <div className="flex items-center justify-between">

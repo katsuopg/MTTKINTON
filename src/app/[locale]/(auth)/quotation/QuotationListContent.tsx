@@ -5,7 +5,7 @@ import { QuotationRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
-import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
+import { MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
 import { tableStyles } from '@/components/ui/TableStyles';
 
 interface QuotationListContentProps {
@@ -19,6 +19,8 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSalesStaff, setSelectedSalesStaff] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
   
   // 日付フォーマット関数
   const formatDate = (dateString: string | undefined) => {
@@ -141,9 +143,21 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
     return <span className={`font-medium ${colorClass}`}>{probability}</span>;
   };
 
+  // ページネーションの計算
+  const totalPages = Math.ceil(filteredQuotations.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedQuotations = filteredQuotations.slice(startIndex, endIndex);
+
+  // ページ変更時にスクロールをトップに
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  };
+
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
-      <div className={tableStyles.contentWrapper}>
+      <div className="py-4 px-4">
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>
           <div className={tableStyles.searchForm}>
@@ -203,6 +217,11 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
             {language === 'ja' ? `${filteredQuotations.length}件の見積もり` : 
              language === 'th' ? `${filteredQuotations.length} ใบเสนอราคา` : 
              `${filteredQuotations.length} quotations`}
+            {totalPages > 1 && (
+              <span className="ml-2 text-sm text-gray-600">
+                ({startIndex + 1}-{Math.min(endIndex, filteredQuotations.length)} 表示中)
+              </span>
+            )}
           </p>
         </div>
 
@@ -247,7 +266,7 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {filteredQuotations.map((quotation) => (
+                {paginatedQuotations.map((quotation) => (
                   <tr key={quotation.$id.value} className={tableStyles.tr}>
                     <td className={tableStyles.td}>
                       {formatDate(quotation.日付?.value)}
@@ -293,6 +312,96 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
             </table>
           )}
         </div>
+
+        {/* ページネーション */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+            <div className="flex flex-1 justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {language === 'ja' ? '前へ' : 'Previous'}
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {language === 'ja' ? '次へ' : 'Next'}
+              </button>
+            </div>
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  {language === 'ja' ? `${filteredQuotations.length}件中 ` : `Showing `}
+                  <span className="font-medium">{startIndex + 1}</span>
+                  {language === 'ja' ? ' から ' : ' to '}
+                  <span className="font-medium">{Math.min(endIndex, filteredQuotations.length)}</span>
+                  {language === 'ja' ? ' を表示' : ' of '}
+                  {language !== 'ja' && (
+                    <>
+                      <span className="font-medium">{filteredQuotations.length}</span> results
+                    </>
+                  )}
+                </p>
+              </div>
+              <div>
+                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                  {[...Array(totalPages)].map((_, i) => {
+                    const page = i + 1;
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                            page === currentPage
+                              ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                              : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return (
+                        <span
+                          key={page}
+                          className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0"
+                        >
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  }).filter((item, index, self) => item !== null && (index === 0 || self[index - 1] !== item))}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="sr-only">Next</span>
+                    <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

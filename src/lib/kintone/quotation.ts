@@ -61,7 +61,7 @@ export async function updateCurrentPeriodWaitingPOToSent(): Promise<void> {
   
   try {
     // 全ての見積レコードを取得
-    let query = `ドロップダウン in ("Waiting PO") order by レコード番号 desc limit 500`;
+    const query = `ドロップダウン in ("Waiting PO") order by レコード番号 desc limit 500`;
     const records = await client.getRecords<QuotationRecord>(query);
     
     // 第14期のレコードのみフィルタリング

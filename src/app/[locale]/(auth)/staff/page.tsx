@@ -1,4 +1,4 @@
-import { fetchAllCustomerStaff } from '@/lib/kintone/api';
+import { getAllCustomerStaff } from '@/lib/kintone/customer-staff';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import StaffListContent from './StaffListContent';
@@ -20,7 +20,7 @@ export default async function StaffListPage({ params }: StaffListPageProps) {
   }
 
   // 全ての顧客担当者を取得
-  const staffList = await fetchAllCustomerStaff();
+  const staffList = await getAllCustomerStaff();
 
   return (
     <StaffListContent

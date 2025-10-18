@@ -234,6 +234,11 @@ export interface QuotationRecord extends KintoneRecord {
   文字列__1行__9?: { type: "SINGLE_LINE_TEXT"; value: string }; // Model
   WorkNo?: { type: "SINGLE_LINE_TEXT"; value: string }; // Work Number (legacy)
   Text_0?: { type: "SINGLE_LINE_TEXT"; value: string }; // Work Number (actual field)
+  Text_1?: { type: "SINGLE_LINE_TEXT"; value: string }; // Remark1
+  Text_2?: { type: "SINGLE_LINE_TEXT"; value: string }; // Contact Email  
+  Text_3?: { type: "SINGLE_LINE_TEXT"; value: string }; // Customer Address
+  Text_4?: { type: "SINGLE_LINE_TEXT"; value: string }; // Remark3
+  文字列__1行__11?: { type: "SINGLE_LINE_TEXT"; value: string }; // Remark2
   [key: string]: any;
 }
 
