@@ -4,7 +4,7 @@ import { KintoneClient } from '@/lib/kintone/client';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
 import OrderFilters from './OrderFilters';
-import FileViewerModal from './FileViewerModal';
+import OrderTableClient from './OrderTableClient';
 import { tableStyles } from '@/components/ui/TableStyles';
 
 // 注文書レコードの型定義
@@ -37,16 +37,18 @@ interface OrderRecord {
 }
 
 interface OrderManagementPageProps {
-  params: {
+  params: Promise<{
     locale: string;
-  };
-  searchParams: {
+  }>;
+  searchParams: Promise<{
     fiscalYear?: string;
     keyword?: string;
-  };
+  }>;
 }
 
-export default async function OrderManagementPage({ params: { locale }, searchParams }: OrderManagementPageProps) {
+export default async function OrderManagementPage({ params, searchParams }: OrderManagementPageProps) {
+  const { locale } = await params;
+  const searchParamsData = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -58,8 +60,8 @@ export default async function OrderManagementPage({ params: { locale }, searchPa
   const pageTitle = language === 'ja' ? '注文書管理' : language === 'th' ? 'จัดการใบสั่งซื้อ' : 'Order Management';
   
   // 会計期間の取得（デフォルトは第14期）
-  const selectedFiscalYear = searchParams.fiscalYear ? parseInt(searchParams.fiscalYear) : 14;
-  const keyword = searchParams.keyword || '';
+  const selectedFiscalYear = searchParamsData.fiscalYear ? parseInt(searchParamsData.fiscalYear) : 14;
+  const keyword = searchParamsData.keyword || '';
   
   // kintoneから注文書管理アプリのレコードを取得
   let orderRecords: OrderRecord[] = [];
@@ -90,16 +92,6 @@ export default async function OrderManagementPage({ params: { locale }, searchPa
     console.error('Error fetching order data:', error);
   }
   
-  // 日付フォーマット関数
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${year}/${month}/${day}`;
-  };
-  
   return (
     <DashboardLayout locale={locale} userEmail={user.email || ''} title={pageTitle}>
       <div className={tableStyles.contentWrapper}>
@@ -107,10 +99,10 @@ export default async function OrderManagementPage({ params: { locale }, searchPa
         <div className={tableStyles.searchWrapper}>
           <div className={tableStyles.searchForm}>
             <p className="text-sm text-gray-600">
-              {language === 'ja' 
-                ? '注文書の一覧と管理' 
-                : language === 'th' 
-                ? 'รายการและการจัดการใบสั่งซื้อ' 
+              {language === 'ja'
+                ? '注文書の一覧と管理'
+                : language === 'th'
+                ? 'รายการและการจัดการใบสั่งซื้อ'
                 : 'Order list and management'}
             </p>
           </div>
@@ -119,108 +111,28 @@ export default async function OrderManagementPage({ params: { locale }, searchPa
         {/* フィルターバー */}
         <div className={tableStyles.filterBar}>
           <div className="flex items-center justify-between">
-            <OrderFilters 
-              currentYear={selectedFiscalYear} 
-              locale={locale} 
-              language={language} 
+            <OrderFilters
+              currentYear={selectedFiscalYear}
+              locale={locale}
+              language={language}
             />
-            
+
             {/* レコード件数表示 */}
             <div className="text-sm text-gray-600">
-              {language === 'ja' 
-                ? `${orderRecords.length}件の注文書` 
-                : language === 'th' 
-                ? `${orderRecords.length} ใบสั่งซื้อ` 
+              {language === 'ja'
+                ? `${orderRecords.length}件の注文書`
+                : language === 'th'
+                ? `${orderRecords.length} ใบสั่งซื้อ`
                 : `${orderRecords.length} orders`}
             </div>
           </div>
         </div>
 
-        <div className={tableStyles.tableContainer}>
-          <table className={tableStyles.table}>
-            <thead className={tableStyles.thead}>
-              <tr>
-                <th className={tableStyles.th}>
-                  {language === 'ja' ? 'PO番号' : language === 'th' ? 'เลขที่ PO' : 'PO No.'}
-                </th>
-                <th className={tableStyles.th}>
-                  {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
-                </th>
-                <th className={tableStyles.th}>
-                  {language === 'ja' ? '顧客名' : language === 'th' ? 'ชื่อลูกค้า' : 'Customer'}
-                </th>
-                <th className={tableStyles.th}>
-                  {language === 'ja' ? '件名' : language === 'th' ? 'ชื่องาน' : 'Subject'}
-                </th>
-                <th className={tableStyles.th}>
-                  M/C ITEM
-                </th>
-                <th className={tableStyles.th}>
-                  MODEL
-                </th>
-                <th className={`${tableStyles.th} text-right`}>
-                  {language === 'ja' ? '金額' : language === 'th' ? 'จำนวนเงิน' : 'Amount'}
-                </th>
-                <th className={tableStyles.th}>
-                  {language === 'ja' ? 'PO日' : language === 'th' ? 'วันที่ PO' : 'PO Date'}
-                </th>
-                <th className={tableStyles.th}>
-                  {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
-                </th>
-              </tr>
-            </thead>
-            <tbody className={tableStyles.tbody}>
-              {orderRecords.map((record) => (
-                <tr key={record.$id.value} className={tableStyles.tr}>
-                  <td className={`${tableStyles.td} font-medium`}>
-                    <a
-                      href={`/${locale}/order-management/${record.$id.value}`}
-                      className={tableStyles.tdLink}
-                    >
-                      {record.文字列__1行_?.value || '-'}
-                    </a>
-                  </td>
-                  <td className={tableStyles.td}>
-                    <a
-                      href={`/${locale}/workno/${record.文字列__1行__2?.value}`}
-                      className={tableStyles.tdLink}
-                    >
-                      {record.文字列__1行__2?.value || '-'}
-                    </a>
-                  </td>
-                  <td className={tableStyles.td}>
-                    {record.文字列__1行__4?.value || '-'}
-                  </td>
-                  <td className={tableStyles.td}>
-                    {record.文字列__1行__7?.value || '-'}
-                  </td>
-                  <td className={tableStyles.td}>
-                    {record.McItem?.value || '-'}
-                  </td>
-                  <td className={tableStyles.td}>
-                    {record.文字列__1行__9?.value || '-'}
-                  </td>
-                  <td className={`${tableStyles.td} text-right font-medium`}>
-                    {record.amount?.value ? `${Number(record.amount.value).toLocaleString()}B` : '-'}
-                  </td>
-                  <td className={tableStyles.td}>
-                    {formatDate(record.日付?.value)}
-                  </td>
-                  <td className={tableStyles.td}>
-                    {record.Drop_down?.value || '-'}
-                  </td>
-                </tr>
-              ))}
-              {orderRecords.length === 0 && (
-                <tr>
-                  <td colSpan={9} className={`${tableStyles.td} text-center`}>
-                    {language === 'ja' ? 'データがありません' : 'No data available'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <OrderTableClient
+          locale={locale}
+          language={language}
+          orderRecords={orderRecords}
+        />
       </div>
     </DashboardLayout>
   );

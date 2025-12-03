@@ -2,11 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== デザイントークン ===== */
+:root {
+  /* カラーパレット - コーポレートカラー */
+  --color-primary: #1A2359;
+  --color-primary-light: #2E3A7B;
+  --color-primary-dark: #0F1538;
+
+  /* アクセントカラー */
+  --color-accent: #4F46E5;
+  --color-accent-light: #6366F1;
+  --color-accent-dark: #4338CA;
+
+  /* ニュートラルカラー */
+  --color-bg-main: #F8FAFC;
+  --color-bg-card: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+
+  /* テキストカラー */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+
+  /* ステータスカラー */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-info: #3B82F6;
+
+  /* スペーシング */
+  --spacing-page: 24px;
+  --spacing-card: 16px;
+  --spacing-section: 20px;
+
+  /* ボーダー */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* シャドウ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
 @layer base {
   body {
     font-family: 'Inter', 'Noto Sans', 'Segoe UI', Arial, sans-serif;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+    background-color: var(--color-bg-main);
+    color: var(--color-text-primary);
   }
 }
 
@@ -14,5 +60,17 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+  }
+  
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
   }
 }

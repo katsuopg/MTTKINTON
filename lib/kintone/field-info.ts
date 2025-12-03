@@ -1,5 +1,3 @@
-import { KintoneClient } from './client';
-
 // フィールドタイプの定義
 export interface KintoneFieldInfo {
   code: string;
@@ -8,7 +6,7 @@ export interface KintoneFieldInfo {
   required: boolean;
   unique?: boolean;
   options?: string[]; // ドロップダウンの選択肢
-  defaultValue?: any;
+  defaultValue?: unknown;
   referenceTable?: {
     appId: string;
     condition: {
@@ -28,7 +26,7 @@ export interface KintoneFieldsResponse {
       required: boolean;
       unique?: boolean;
       options?: { [key: string]: { label: string; index: string } };
-      defaultValue?: any;
+      defaultValue?: unknown;
       lookup?: {
         relatedApp: {
           app: string;
@@ -50,7 +48,6 @@ export interface KintoneFieldsResponse {
  */
 export async function getAppFields(appId: number, apiToken: string): Promise<KintoneFieldInfo[]> {
   try {
-    const client = new KintoneClient(appId.toString(), apiToken);
     
     // フィールド情報を取得するAPIエンドポイント
     const response = await fetch(`https://${process.env.KINTONE_DOMAIN}/k/v1/app/form/fields.json?app=${appId}`, {

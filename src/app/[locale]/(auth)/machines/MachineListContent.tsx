@@ -6,7 +6,6 @@ import { MachineRecord } from '@/types/kintone';
 import { type Language } from '@/lib/kintone/field-mappings';
 import SearchFilter from '@/components/ui/SearchFilter';
 import { tableStyles } from '@/components/ui/TableStyles';
-import TransitionLink from '@/components/ui/TransitionLink';
 
 interface MachineListContentProps {
   locale: string;
@@ -32,7 +31,21 @@ export default function MachineListContent({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [navigatingId, setNavigatingId] = useState<string | null>(null);
-  
+
+  const handleRowClick = useCallback((recordId: string) => {
+    setNavigatingId(recordId);
+    startTransition(() => {
+      router.push(`/${locale}/machines/${recordId}`);
+    });
+  }, [router, locale, startTransition]);
+
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent, recordId: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleRowClick(recordId);
+    }
+  }, [handleRowClick]);
+
   const [records, setRecords] = useState<MachineRecord[]>(initialRecords);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -181,7 +194,7 @@ export default function MachineListContent({
       </div>
 
       {/* テーブル表示 */}
-      <div className="overflow-x-auto bg-white shadow rounded-lg">
+      <div className={tableStyles.tableContainer}>
         {filteredRecords.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500">
@@ -189,85 +202,80 @@ export default function MachineListContent({
             </p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className={tableStyles.table}>
+            <thead className={tableStyles.thead}>
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? '顧客' : language === 'th' ? 'ลูกค้า' : 'Customer'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? 'カテゴリ' : language === 'th' ? 'หมวดหมู่' : 'Category'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? 'タイプ' : language === 'th' ? 'ประเภท' : 'Type'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? 'メーカー' : language === 'th' ? 'ผู้ผลิต' : 'Vendor'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? 'モデル' : language === 'th' ? 'รุ่น' : 'Model'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? 'シリアル番号' : language === 'th' ? 'หมายเลขซีเรียล' : 'Serial No.'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? 'アイテム' : language === 'th' ? 'รายการ' : 'Item'}
                 </th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`${tableStyles.th} text-center`}>
                   QT
                 </th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`${tableStyles.th} text-center`}>
                   WN
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className={tableStyles.tbody}>
               {filteredRecords.map((record) => (
-                <tr key={record.$id.value} className={`hover:bg-gray-50 cursor-pointer ${navigatingId === record.$id.value ? 'opacity-50' : ''}`} 
-                    onClick={() => {
-                      setNavigatingId(record.$id.value);
-                      startTransition(() => {
-                        router.push(`/${locale}/machines/${record.$id.value}`);
-                      });
-                    }}>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                <tr
+                  key={record.$id.value}
+                  className={`${tableStyles.trClickable} ${navigatingId === record.$id.value ? 'opacity-50' : ''}`}
+                  onClick={() => handleRowClick(record.$id.value)}
+                  onKeyDown={(e) => handleRowKeyDown(e, record.$id.value)}
+                  role="link"
+                  tabIndex={0}
+                >
+                  <td className={tableStyles.td}>
                     <div>
-                      <div className="font-medium">{record.CsId_db?.value || '-'}</div>
+                      <div className="font-medium text-indigo-600">{record.CsId_db?.value || '-'}</div>
                       <div className="text-xs text-gray-500">{record.CsName?.value || '-'}</div>
                     </div>
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.MachineCategory?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.Drop_down_0?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.Vender?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900"
-                      onClick={(e) => e.stopPropagation()}>
-                    <TransitionLink
-                      href={`/${locale}/machines/${record.$id.value}`}
-                      className="text-indigo-600 hover:text-indigo-900 font-medium"
-                    >
-                      {record.Moldel?.value || '-'}
-                    </TransitionLink>
+                  <td className={`${tableStyles.td} font-medium`}>
+                    {record.Moldel?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.SrialNo?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.McItem?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                  <td className={`${tableStyles.td} text-center`}>
                     {qtCounts[record.$id.value] > 0 && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {qtCounts[record.$id.value]}
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                  <td className={`${tableStyles.td} text-center`}>
                     {wnCounts[record.$id.value] > 0 && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">
                         {wnCounts[record.$id.value]}

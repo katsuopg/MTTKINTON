@@ -36,10 +36,8 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale}>
-      <body className={inter.className} suppressHydrationWarning={true}>
-        {children}
-      </body>
-    </html>
+    <>
+      {children}
+    </>
   );
 }

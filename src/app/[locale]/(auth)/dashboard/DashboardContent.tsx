@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { WorkNoRecord } from '@/types/kintone';
 import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
+import { tableStyles } from '@/components/ui/TableStyles';
 
 interface DashboardContentProps {
   locale: string;
@@ -13,12 +15,24 @@ interface DashboardContentProps {
 }
 
 export default function DashboardContent({ locale, workNoCount, projectCount, recentWorkNos }: DashboardContentProps) {
+  const router = useRouter();
   // Convert locale to Language type
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
-  
+
   // ページネーションの設定
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const handleRowClick = useCallback((workNo: string) => {
+    router.push(`/${locale}/projects/${workNo}`);
+  }, [router, locale]);
+
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent, workNo: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleRowClick(workNo);
+    }
+  }, [handleRowClick]);
   
   // 日付フォーマット関数
   const formatDate = (dateString: string | undefined) => {
@@ -174,143 +188,76 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
               <p className="text-gray-500">データがありません</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200" style={{minWidth: '1200px'}}>
-              <thead className="bg-gray-50">
+            <table className={tableStyles.table} style={{minWidth: '1200px'}}>
+              <thead className={tableStyles.thead}>
                 <tr>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
-                  </th>
-                  <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    PO
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CS ID
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Model
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Grand Total
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gross Profit
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่ขายที่คาดการณ์' : 'Sales Date'}
-                  </th>
+                  <th className={tableStyles.th}>{language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}</th>
+                  <th className={tableStyles.th}>{language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}</th>
+                  <th className={`${tableStyles.th} text-center`}>PO</th>
+                  <th className={tableStyles.th}>CS ID</th>
+                  <th className={tableStyles.th}>Category</th>
+                  <th className={tableStyles.th}>Description</th>
+                  <th className={tableStyles.th}>Model</th>
+                  <th className={tableStyles.th}>Grand Total</th>
+                  <th className={tableStyles.th}>Gross Profit</th>
+                  <th className={tableStyles.th}>{language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่ขายที่คาดการณ์' : 'Sales Date'}</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={tableStyles.tbody}>
                 {paginatedWorkNos.map((record) => (
-                  <tr key={record.$id.value} className="transition-colors duration-150" style={{
-                    backgroundColor: record.Status?.value === 'Finished' ? '#f0fdf4' : 'transparent'
-                  }}>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <tr
+                    key={record.$id.value}
+                    className={tableStyles.trClickable}
+                    onClick={() => handleRowClick(record.WorkNo?.value || '')}
+                    onKeyDown={(e) => handleRowKeyDown(e, record.WorkNo?.value || '')}
+                    role="link"
+                    tabIndex={0}
+                    style={{ backgroundColor: record.Status?.value === 'Finished' ? '#f0fdf4' : undefined }}
+                  >
+                    <td className={`${tableStyles.td} font-medium text-indigo-600`}>
                       <div className="flex items-center">
-                        <a
-                          href={`/${locale}/projects/${record.WorkNo?.value}`}
-                          className="text-indigo-600 hover:text-indigo-900 font-medium"
-                          style={{transform: 'scaleX(0.9)', transformOrigin: 'left', display: 'inline-block'}}
-                        >
-                          {record.WorkNo?.value}
-                        </a>
-                        {/* 売上予定日が過ぎているかチェック */}
-                        {record.Salesdate?.value && 
+                        {record.WorkNo?.value}
+                        {record.Salesdate?.value &&
                          new Date(record.Salesdate.value) < new Date() &&
                          record.Status?.value !== 'Finished' &&
                          record.Status?.value !== 'Cancel' && (
                           <div className="relative ml-1 group inline-flex">
                             <span className="text-yellow-500 cursor-help">⚠️</span>
                             <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-md px-3 py-2 whitespace-nowrap left-full ml-1 top-1/2 transform -translate-y-1/2">
-                              {language === 'ja' 
-                                ? '売上予定日が過ぎています。担当営業に再確認をしてください。'
-                                : language === 'th'
-                                ? 'วันที่ขายที่คาดการณ์ผ่านไปแล้ว กรุณาตรวจสอบกับฝ่ายขายอีกครั้ง'
-                                : 'Sales date has passed. Please reconfirm with sales staff.'}
+                              {language === 'ja' ? '売上予定日が過ぎています' : language === 'th' ? 'วันที่ขายผ่านไปแล้ว' : 'Sales date has passed'}
                               <div className="absolute w-2 h-2 bg-gray-800 transform rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
                             </div>
                           </div>
                         )}
                       </div>
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                      <span 
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                    <td className={tableStyles.td}>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                         style={{
-                          backgroundColor: 
-                            record.Status?.value === 'Working' ? '#dbeafe' :
-                            record.Status?.value === 'Finished' ? '#10b981' :
-                            record.Status?.value === 'Wating PO' ? '#fef08a' :
-                            record.Status?.value === 'Stock' ? '#f3e8ff' :
-                            record.Status?.value === 'Pending' ? '#fed7aa' :
-                            record.Status?.value === 'Cancel' ? '#fee2e2' :
-                            record.Status?.value === 'Expenses' ? '#e0e7ff' :
-                            '#f3f4f6',
-                          color:
-                            record.Status?.value === 'Working' ? '#1e40af' :
-                            record.Status?.value === 'Finished' ? '#ffffff' :
-                            record.Status?.value === 'Wating PO' ? '#a16207' :
-                            record.Status?.value === 'Stock' ? '#7c3aed' :
-                            record.Status?.value === 'Pending' ? '#ea580c' :
-                            record.Status?.value === 'Cancel' ? '#dc2626' :
-                            record.Status?.value === 'Expenses' ? '#4338ca' :
-                            '#6b7280'
+                          backgroundColor: record.Status?.value === 'Working' ? '#dbeafe' : record.Status?.value === 'Finished' ? '#10b981' : record.Status?.value === 'Wating PO' ? '#fef08a' : record.Status?.value === 'Stock' ? '#f3e8ff' : record.Status?.value === 'Pending' ? '#fed7aa' : record.Status?.value === 'Cancel' ? '#fee2e2' : record.Status?.value === 'Expenses' ? '#e0e7ff' : '#f3f4f6',
+                          color: record.Status?.value === 'Working' ? '#1e40af' : record.Status?.value === 'Finished' ? '#ffffff' : record.Status?.value === 'Wating PO' ? '#a16207' : record.Status?.value === 'Stock' ? '#7c3aed' : record.Status?.value === 'Pending' ? '#ea580c' : record.Status?.value === 'Cancel' ? '#dc2626' : record.Status?.value === 'Expenses' ? '#4338ca' : '#6b7280'
                         }}
                       >
                         {getStatusLabel(record.Status?.value || '', language)}
                       </span>
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {record.ルックアップ?.value && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white justify-center">
-                          PO
-                        </span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white">PO</span>
                       )}
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                    <td className={tableStyles.td}>
                       {record.文字列__1行__8?.value ? (
-                        <a
-                          href={`/${locale}/customers/${record.文字列__1行__8.value}`}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          style={{transform: 'scaleX(0.9)', transformOrigin: 'left', display: 'inline-block'}}
-                        >
-                          {record.文字列__1行__8.value}
-                        </a>
+                        <span onClick={(e) => { e.stopPropagation(); router.push(`/${locale}/customers/${record.文字列__1行__8.value}`); }} className="text-indigo-600 hover:text-indigo-900 cursor-pointer">{record.文字列__1行__8.value}</span>
                       ) : '-'}
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {record.文字列__1行__1?.value || '-'}
-                    </td>
-                    <td className="px-2 py-2 text-sm text-gray-900">
-                      {record.文字列__1行__2?.value || '-'}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {record.文字列__1行__9?.value || '-'}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatNumber(record.grand_total?.value)}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatNumber(record.profit?.value)}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm">
-                      <span className={
-                        record.Salesdate?.value && 
-                        new Date(record.Salesdate.value) < new Date() &&
-                        record.Status?.value !== 'Finished' &&
-                        record.Status?.value !== 'Cancel' 
-                          ? 'text-red-600 font-medium' 
-                          : 'text-gray-900'
-                      }>
+                    <td className={tableStyles.td}>{record.文字列__1行__1?.value || '-'}</td>
+                    <td className={tableStyles.td}>{record.文字列__1行__2?.value || '-'}</td>
+                    <td className={tableStyles.td}>{record.文字列__1行__9?.value || '-'}</td>
+                    <td className={`${tableStyles.td} text-right`}>{formatNumber(record.grand_total?.value)}</td>
+                    <td className={`${tableStyles.td} text-right`}>{formatNumber(record.profit?.value)}</td>
+                    <td className={tableStyles.td}>
+                      <span className={record.Salesdate?.value && new Date(record.Salesdate.value) < new Date() && record.Status?.value !== 'Finished' && record.Status?.value !== 'Cancel' ? 'text-red-600 font-medium' : ''}>
                         {formatDate(record.Salesdate?.value)}
                       </span>
                     </td>

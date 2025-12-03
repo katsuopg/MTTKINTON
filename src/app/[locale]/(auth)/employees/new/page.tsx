@@ -5,12 +5,13 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 // import EmployeeForm from '../components/EmployeeForm';
 
 interface NewEmployeePageProps {
-  params: {
+  params: Promise<{
     locale: string;
-  };
+  }>;
 }
 
-export default async function NewEmployeePage({ params: { locale } }: NewEmployeePageProps) {
+export default async function NewEmployeePage({ params }: NewEmployeePageProps) {
+  const { locale } = await params;
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();

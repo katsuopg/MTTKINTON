@@ -1,11 +1,6 @@
-import { 
-  WorkNoRecord, 
-  ProjectRecord, 
-  PartsListRecord,
+import {
   KintoneRecordsResponse,
   KintoneRecordResponse,
-  KintoneErrorResponse,
-  KINTONE_APPS
 } from '@/types/kintone';
 
 export class KintoneClient {
@@ -77,7 +72,7 @@ export class KintoneClient {
   }
 
   // 汎用的なレコード取得メソッド
-  async getRecords<T extends Record<string, any>>(query?: string, fields?: string[]): Promise<T[]> {
+  async getRecords<T extends Record<string, unknown>>(query?: string, fields?: string[]): Promise<T[]> {
     let endpoint = `/k/v1/records.json?app=${this.appId}`;
     
     if (query) {
@@ -95,7 +90,7 @@ export class KintoneClient {
     return response.records;
   }
 
-  async getRecord<T extends Record<string, any>>(recordId: string): Promise<T> {
+  async getRecord<T extends Record<string, unknown>>(recordId: string): Promise<T> {
     const endpoint = `/k/v1/record.json?app=${this.appId}&id=${recordId}`;
     
     const response = await this.request<KintoneRecordResponse<T>>(endpoint);
@@ -103,7 +98,7 @@ export class KintoneClient {
     return response.record;
   }
 
-  async createRecord<T extends Record<string, any>>(record: Partial<T>): Promise<string> {
+  async createRecord<T extends Record<string, unknown>>(record: Partial<T>): Promise<string> {
     const endpoint = `/k/v1/record.json`;
     
     const response = await this.request<{ id: string; revision: string }>(
@@ -120,7 +115,7 @@ export class KintoneClient {
     return response.id;
   }
 
-  async updateRecord<T extends Record<string, any>>(
+  async updateRecord<T extends Record<string, unknown>>(
     recordId: string,
     record: Partial<T>
   ): Promise<void> {

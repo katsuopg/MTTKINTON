@@ -1,10 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { getFieldLabel, type Language } from '@/lib/kintone/field-mappings';
-import LanguageSwitch from '@/components/LanguageSwitch';
 import { logout } from '@/lib/auth/actions';
 import TransitionLink from '@/components/ui/TransitionLink';
 
@@ -12,8 +10,11 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
   locale?: string;
   userEmail?: string;
+  userName?: string | null;
+  userNickname?: string | null;
   title?: string;
   currentPath?: string;
+  userProfileImage?: string | null;
 }
 
 // アイコンコンポーネントを先に定義
@@ -154,113 +155,310 @@ function SidebarToggleIcon({ className }: { className?: string }) {
   );
 }
 
-export default function DashboardLayout({ children, locale = 'ja', userEmail, title, currentPath }: DashboardLayoutProps) {
+function BellIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+      />
+    </svg>
+  );
+}
+
+export default function DashboardLayout({ children, locale = 'ja', userEmail, userName, userNickname, title, userProfileImage }: DashboardLayoutProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const params = useParams();
   // localeが渡されていない場合はpathnameから取得
   const actualLocale = locale || pathname.split('/')[1] || 'ja';
   const language = (actualLocale === 'ja' || actualLocale === 'en' || actualLocale === 'th' ? actualLocale : 'ja') as Language;
 
-  const navigation = useMemo(() => [
-    { name: 'TOP', href: `/${actualLocale}/dashboard`, icon: HomeIcon },
-    { name: getFieldLabel('WorkNo', language), href: `/${actualLocale}/workno`, icon: DocumentIcon },
-    { name: language === 'ja' ? 'プロジェクト管理' : language === 'th' ? 'จัดการโครงการ' : 'Project Management', href: `/${actualLocale}/project-management`, icon: ClipboardIcon },
-    { name: language === 'ja' ? '顧客管理' : language === 'th' ? 'จัดการลูกค้า' : 'Customer List', href: `/${actualLocale}/customers`, icon: UsersIcon },
-    { name: language === 'ja' ? '担当者管理' : language === 'th' ? 'จัดการผู้ติดต่อ' : 'Staff Management', href: `/${actualLocale}/staff`, icon: UserGroupIcon },
-    { name: language === 'ja' ? '仕入業者管理' : language === 'th' ? 'จัดการซัพพลายเออร์' : 'Supplier Management', href: `/${actualLocale}/suppliers`, icon: TruckIcon },
-    { name: language === 'ja' ? '従業員管理' : language === 'th' ? 'จัดการพนักงาน' : 'Employee Management', href: `/${actualLocale}/employees`, icon: UserIcon },
-    { name: language === 'ja' ? 'パーツリスト' : language === 'th' ? 'รายการชิ้นส่วน' : 'Parts List', href: `/${actualLocale}/parts-list`, icon: ListIcon },
-    { name: language === 'ja' ? '購買依頼' : language === 'th' ? 'คำขอจัดซื้อ' : 'Purchase Request', href: `/${actualLocale}/purchase-request`, icon: ShoppingCartIcon },
-    { name: language === 'ja' ? '見積もり管理' : language === 'th' ? 'จัดการใบเสนอราคา' : 'Quotation Management', href: `/${actualLocale}/quotation`, icon: CalculatorIcon },
-    { name: language === 'ja' ? '注文書管理' : language === 'th' ? 'จัดการใบสั่งซื้อ' : 'Order Management', href: `/${actualLocale}/order-management`, icon: ClipboardDocumentIcon },
-    { name: language === 'ja' ? '発注管理' : language === 'th' ? 'การจัดการใบสั่งซื้อ' : 'PO Management', href: `/${actualLocale}/po-management`, icon: DocumentTextIcon },
-    { name: language === 'ja' ? 'コスト管理' : language === 'th' ? 'การจัดการต้นทุน' : 'Cost Management', href: `/${actualLocale}/cost-management`, icon: ChartBarIcon },
-    { name: language === 'ja' ? '請求書管理' : language === 'th' ? 'จัดการใบแจ้งหนี้' : 'Invoice Management', href: `/${actualLocale}/invoice-management`, icon: CurrencyDollarIcon },
-    { name: language === 'ja' ? '機械管理' : language === 'th' ? 'การจัดการเครื่องจักร' : 'Machine Management', href: `/${actualLocale}/machines`, icon: CogIcon },
-    { name: language === 'ja' ? 'データ同期' : language === 'th' ? 'ซิงค์ข้อมูล' : 'Data Sync', href: `/${actualLocale}/import-data`, icon: ArrowPathIcon },
+  // カテゴリ分けされたナビゲーション
+  const navigationCategories = useMemo(() => [
+    {
+      category: null, // カテゴリなし（トップレベル）
+      items: [
+        { name: 'TOP', href: `/${actualLocale}/dashboard`, icon: HomeIcon },
+        { name: getFieldLabel('WorkNo', language), href: `/${actualLocale}/workno`, icon: DocumentIcon },
+      ]
+    },
+    {
+      category: language === 'ja' ? '総務部' : language === 'th' ? 'ฝ่ายบริหารทั่วไป' : 'General Affairs',
+      items: [
+        { name: language === 'ja' ? '従業員管理' : language === 'th' ? 'จัดการพนักงาน' : 'Employee Management', href: `/${actualLocale}/employees`, icon: UserIcon },
+        { name: language === 'ja' ? '機械管理' : language === 'th' ? 'การจัดการเครื่องจักร' : 'Machine Management', href: `/${actualLocale}/machines`, icon: CogIcon },
+      ]
+    },
+    {
+      category: language === 'ja' ? '経理部' : language === 'th' ? 'ฝ่ายบัญชี' : 'Accounting',
+      items: [
+        { name: language === 'ja' ? '請求書管理' : language === 'th' ? 'จัดการใบแจ้งหนี้' : 'Invoice Management', href: `/${actualLocale}/invoice-management`, icon: CurrencyDollarIcon },
+        { name: language === 'ja' ? 'コスト管理' : language === 'th' ? 'การจัดการต้นทุน' : 'Cost Management', href: `/${actualLocale}/cost-management`, icon: ChartBarIcon },
+      ]
+    },
+    {
+      category: language === 'ja' ? '調達部' : language === 'th' ? 'ฝ่ายจัดซื้อ' : 'Procurement',
+      items: [
+        { name: language === 'ja' ? '発注管理' : language === 'th' ? 'การจัดการใบสั่งซื้อ' : 'PO Management', href: `/${actualLocale}/po-management`, icon: DocumentTextIcon },
+        { name: language === 'ja' ? '購買依頼' : language === 'th' ? 'คำขอจัดซื้อ' : 'Purchase Request', href: `/${actualLocale}/purchase-request`, icon: ShoppingCartIcon },
+        { name: language === 'ja' ? '仕入業者管理' : language === 'th' ? 'จัดการซัพพลายเออร์' : 'Supplier Management', href: `/${actualLocale}/suppliers`, icon: TruckIcon },
+      ]
+    },
+    {
+      category: language === 'ja' ? '技術部' : language === 'th' ? 'ฝ่ายเทคนิค' : 'Engineering',
+      items: [
+        { name: language === 'ja' ? 'プロジェクト管理' : language === 'th' ? 'จัดการโครงการ' : 'Project Management', href: `/${actualLocale}/project-management`, icon: ClipboardIcon },
+        { name: language === 'ja' ? 'パーツリスト' : language === 'th' ? 'รายการชิ้นส่วน' : 'Parts List', href: `/${actualLocale}/parts-list`, icon: ListIcon },
+      ]
+    },
+    {
+      category: language === 'ja' ? '営業部' : language === 'th' ? 'ฝ่ายขาย' : 'Sales',
+      items: [
+        { name: language === 'ja' ? '顧客管理' : language === 'th' ? 'จัดการลูกค้า' : 'Customer Management', href: `/${actualLocale}/customers`, icon: UsersIcon },
+        { name: language === 'ja' ? '担当者管理' : language === 'th' ? 'จัดการผู้ติดต่อ' : 'Staff Management', href: `/${actualLocale}/staff`, icon: UserGroupIcon },
+        { name: language === 'ja' ? '見積もり管理' : language === 'th' ? 'จัดการใบเสนอราคา' : 'Quotation Management', href: `/${actualLocale}/quotation`, icon: CalculatorIcon },
+        { name: language === 'ja' ? '注文書管理' : language === 'th' ? 'จัดการใบสั่งซื้อ' : 'Order Management', href: `/${actualLocale}/order-management`, icon: ClipboardDocumentIcon },
+      ]
+    },
+    {
+      category: language === 'ja' ? '管理' : language === 'th' ? 'การจัดการ' : 'Administration',
+      items: [
+        { name: language === 'ja' ? 'APP設定' : language === 'th' ? 'การตั้งค่าแอป' : 'App Settings', href: `/${actualLocale}/settings`, icon: CogIcon },
+        { name: language === 'ja' ? 'データ同期' : language === 'th' ? 'ซิงค์ข้อมูล' : 'Data Sync', href: `/${actualLocale}/import-data`, icon: ArrowPathIcon },
+      ]
+    },
   ], [actualLocale, language]);
 
   const sidebarWidthClass = isSidebarCollapsed ? 'w-16' : 'w-64';
 
+  // 表示名: ニックネーム > 名前 > メールのユーザー名
+  const displayName = userNickname || userName || userEmail?.split('@')[0] || 'User';
+
+  const userInitial = displayName
+    ? displayName[0].toUpperCase()
+    : '?';
+
+  const currentLocaleFromParams = (params as { locale?: string } | undefined)?.locale;
+  const currentLocale = currentLocaleFromParams || actualLocale;
+
+  const handleLocaleChange = (newLocale: string) => {
+    if (!newLocale || newLocale === currentLocale) return;
+    const newPath = pathname.replace(`/${currentLocale}`, `/${newLocale}`);
+    setIsUserMenuOpen(false);
+    router.push(newPath);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* ヘッダー */}
-      <header className="bg-white shadow">
+    <div className="min-h-screen bg-slate-100 flex flex-col">
+      {/* ヘッダー（画面横いっぱい・ライトなコーポレートナビ） */}
+      <header className="bg-white border-b border-slate-200 shadow-sm">
         <div className="flex justify-between items-center">
           {/* 左側: ロゴとタイトル */}
           <div className="flex items-center">
             {/* ロゴ部分（サイドバー幅と同じ） */}
-            <div className={`${sidebarWidthClass} ${isSidebarCollapsed ? 'px-4' : 'px-6'} py-4 flex items-center space-x-2 transition-all duration-200`}>
-              <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">K</span>
-              </div>
-              <h1 className={`text-lg font-semibold text-gray-900 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>MTT KINTON</h1>
+            <div className={`${sidebarWidthClass} ${isSidebarCollapsed ? 'px-2' : 'px-6'} py-4 flex items-center space-x-2 transition-all duration-200`}>
+              {/* メニュー展開時のみロゴとタイトルを表示。折りたたみ時はトグルのみ */}
+              {!isSidebarCollapsed && (
+                <>
+                  <div className="w-8 h-8 bg-[#1A2359] rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">K</span>
+                  </div>
+                  <h1 className="text-lg font-semibold text-slate-900">MTT KINTON</h1>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-                className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+                className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
                 aria-label={isSidebarCollapsed ? 'メニューを展開' : 'メニューを折りたたむ'}
               >
-                <SidebarToggleIcon className={`h-4 w-4 transition-transform duration-200 ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
+                <SidebarToggleIcon className={`h-5 w-5 transition-transform duration-200 ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
               </button>
             </div>
             {/* 区切り線とページタイトル */}
             <div className="flex items-center">
-              <div className="h-12 w-px bg-gray-300"></div>
-              <h2 className="text-lg font-medium text-gray-700 pl-6">
+              <div className="h-12 w-px bg-slate-200"></div>
+              <h2 className="text-lg font-medium text-slate-900 pl-6">
                 {title || (language === 'ja' ? 'ダッシュボード' : language === 'th' ? 'แดชบอร์ด' : 'Dashboard')}
               </h2>
             </div>
           </div>
-          {/* 右側: ユーザー情報 */}
-          <div className="flex items-center space-x-4 pr-6 py-4">
-            <LanguageSwitch />
-            <div className="text-sm text-gray-600">{userEmail}</div>
+          {/* 右側: 通知アイコン＋ユーザープロフィールメニュー */}
+          <div className="flex items-center space-x-3 pr-6 py-4">
+            {/* 通知アイコン（将来のアラート用。バッジは今後実装） */}
             <button
-              onClick={() => logout()}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              type="button"
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
+              aria-label="Notifications"
             >
-              {language === 'ja' ? 'ログアウト' : language === 'th' ? 'ออกจากระบบ' : 'Logout'}
+              <BellIcon className="h-5 w-5" />
+              {/* hasNotifications が true のとき、下記のバッジを表示予定 */}
+              {/* <span className="absolute top-1.5 right-1.5 inline-flex h-2 w-2 rounded-full bg-rose-500" /> */}
             </button>
+
+            {/* ユーザープロフィールメニュー（アイコン＋ドロップダウン） */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 bg-slate-50 hover:bg-slate-100 transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={isUserMenuOpen}
+              >
+                {userProfileImage ? (
+                  <img
+                    src={userProfileImage}
+                    alt="Profile"
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-[#1A2359] text-white flex items-center justify-center text-xs font-semibold">
+                    {userInitial}
+                  </div>
+                )}
+                <div className="hidden sm:flex flex-col items-start min-w-[120px]">
+                  <span className="text-xs font-medium text-slate-900 truncate max-w-[160px]">
+                    {displayName}
+                  </span>
+                  <span className="text-[11px] text-slate-500 truncate max-w-[160px]">
+                    {/* 部署は今後、従業員管理と連携して差し込む */}
+                    {'-'}
+                  </span>
+                </div>
+              </button>
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-lg ring-1 ring-black/5 z-30 overflow-hidden">
+                  {/* プロフィール情報 */}
+                  <div className="px-4 py-3 border-b border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-[#1A2359] text-white flex items-center justify-center text-xs font-semibold">
+                        {userInitial}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-900 truncate">
+                          {userEmail}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {/* メニュー項目 */}
+                  <div className="py-1 text-xs">
+                    <p className="px-4 pt-2 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                      {language === 'ja'
+                        ? '言語'
+                        : language === 'th'
+                        ? 'ภาษา'
+                        : 'Language'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleLocaleChange('ja')}
+                      className={`w-full text-left px-4 py-1.5 hover:bg-slate-50 ${
+                        currentLocale === 'ja' ? 'bg-slate-50 font-semibold' : ''
+                      }`}
+                    >
+                      日本語
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLocaleChange('th')}
+                      className={`w-full text-left px-4 py-1.5 hover:bg-slate-50 ${
+                        currentLocale === 'th' ? 'bg-slate-50 font-semibold' : ''
+                      }`}
+                    >
+                      ไทย
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleLocaleChange('en')}
+                      className={`w-full text-left px-4 py-1.5 hover:bg-slate-50 ${
+                        currentLocale === 'en' ? 'bg-slate-50 font-semibold' : ''
+                      }`}
+                    >
+                      English
+                    </button>
+                    <div className="mt-1 border-t border-slate-100" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        logout();
+                      }}
+                      className="w-full text-left px-4 py-2 text-[11px] text-rose-600 hover:bg-rose-50"
+                    >
+                      {language === 'ja'
+                        ? 'ログアウト'
+                        : language === 'th'
+                        ? 'ออกจากระบบ'
+                        : 'Logout'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       <div className="flex flex-1">
-        {/* サイドバー */}
-        <div className={`${sidebarWidthClass} bg-white shadow-md transition-all duration-200`}>
+        {/* サイドバー（ヘッダー直下から開始・薄い色背景） */}
+        <div className={`${sidebarWidthClass} bg-slate-50 border-r border-slate-200 transition-all duration-200`}>
           <div className="h-full flex flex-col">
           
           {/* ナビゲーション */}
-          <nav className="flex-1 px-2 py-4 space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <TransitionLink
-                  key={item.name}
-                  href={item.href}
-                  className={`
-                    group flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2 text-sm font-medium rounded-md transition-all duration-150
-                    ${isActive 
-                      ? 'bg-indigo-100 text-indigo-700' 
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'}
-                  `}
-                >
-                  <item.icon 
-                    className={`${isSidebarCollapsed ? 'mr-0' : 'mr-3'} h-5 w-5 ${isActive ? 'text-indigo-700' : 'text-gray-400 group-hover:text-gray-500'}`} 
-                  />
-                  <span className={`${isSidebarCollapsed ? 'sr-only' : 'block'}`}>{item.name}</span>
-                </TransitionLink>
-              );
-            })}
+          <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+            {navigationCategories.map((category, categoryIndex) => (
+              <div key={category.category || 'top'}>
+                {/* カテゴリ区切り線（最初のカテゴリ以外） */}
+                {categoryIndex > 0 && (
+                  <div className={`${isSidebarCollapsed ? 'mx-2' : 'mx-3'} my-3 border-t border-slate-200`} />
+                )}
+
+                {/* カテゴリ名（折りたたみ時は非表示） */}
+                {category.category && !isSidebarCollapsed && (
+                  <div className="px-3 py-2">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      {category.category}
+                    </span>
+                  </div>
+                )}
+
+                {/* ナビゲーションアイテム */}
+                {category.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <TransitionLink
+                      key={item.name}
+                      href={item.href}
+                      className={`
+                        group flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-3'} py-2 text-sm font-medium rounded-md transition-all duration-150
+                        ${isActive
+                          ? 'bg-white text-[#1A2359] shadow-sm'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'}
+                      `}
+                    >
+                      <item.icon
+                        className={`${isSidebarCollapsed ? 'mr-0' : 'mr-3'} h-5 w-5 flex-shrink-0 ${isActive ? 'text-[#1A2359]' : 'text-slate-400 group-hover:text-slate-600'}`}
+                      />
+                      <span className={`${isSidebarCollapsed ? 'sr-only' : 'block'} truncate`}>{item.name}</span>
+                    </TransitionLink>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
           </div>
         </div>
 
         {/* メインコンテンツ */}
-        <div className="flex-1 flex flex-col">
-          {/* コンテンツエリア */}
-          <main className="flex-1">
+        <div className="flex-1 flex flex-col overflow-x-hidden">
+          {/* コンテンツエリア - 全ページで統一された余白 */}
+          <main className="flex-1 min-w-0 p-6">
             {children}
           </main>
         </div>

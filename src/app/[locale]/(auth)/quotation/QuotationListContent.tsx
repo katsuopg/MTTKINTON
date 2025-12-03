@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { QuotationRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
-import Link from 'next/link';
 import { MagnifyingGlassIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
 import { tableStyles } from '@/components/ui/TableStyles';
 
@@ -15,12 +15,24 @@ interface QuotationListContentProps {
 }
 
 export default function QuotationListContent({ quotations, locale, userEmail }: QuotationListContentProps) {
+  const router = useRouter();
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSalesStaff, setSelectedSalesStaff] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
+
+  const handleRowClick = useCallback((recordId: string) => {
+    router.push(`/${locale}/quotation/${recordId}`);
+  }, [router, locale]);
+
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent, recordId: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleRowClick(recordId);
+    }
+  }, [handleRowClick]);
   
   // 日付フォーマット関数
   const formatDate = (dateString: string | undefined) => {
@@ -260,18 +272,22 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
                   <th className={tableStyles.th}>
                     {language === 'ja' ? '営業担当' : language === 'th' ? 'ผู้ขาย' : 'Sales'}
                   </th>
-                  <th className={`${tableStyles.th} relative`}>
-                    <span className="sr-only">View</span>
-                  </th>
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
                 {paginatedQuotations.map((quotation) => (
-                  <tr key={quotation.$id.value} className={tableStyles.tr}>
+                  <tr
+                    key={quotation.$id.value}
+                    className={tableStyles.trClickable}
+                    onClick={() => handleRowClick(quotation.$id.value)}
+                    onKeyDown={(e) => handleRowKeyDown(e, quotation.$id.value)}
+                    role="link"
+                    tabIndex={0}
+                  >
                     <td className={tableStyles.td}>
                       {formatDate(quotation.日付?.value)}
                     </td>
-                    <td className={tableStyles.td}>
+                    <td className={`${tableStyles.td} font-medium text-indigo-600`}>
                       {quotation.qtno2?.value || '-'}
                     </td>
                     <td className={tableStyles.td}>
@@ -294,17 +310,9 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
                       {quotation.Drop_down?.value ? getProbabilityLabel(quotation.Drop_down.value) : '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {typeof quotation.sales_staff?.value === 'string' 
-                        ? quotation.sales_staff.value 
+                      {typeof quotation.sales_staff?.value === 'string'
+                        ? quotation.sales_staff.value
                         : quotation.sales_staff?.value?.[0]?.name || '-'}
-                    </td>
-                    <td className={`${tableStyles.td} text-right`}>
-                      <Link
-                        href={`/${locale}/quotation/${quotation.$id.value}`}
-                        className={tableStyles.tdLink}
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </Link>
                     </td>
                   </tr>
                 ))}

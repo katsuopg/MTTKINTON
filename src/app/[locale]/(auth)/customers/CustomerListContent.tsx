@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { CustomerRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
-import TransitionLink from '@/components/ui/TransitionLink';
 import dynamic from 'next/dynamic';
 import type { CustomerSalesMetrics } from '@/lib/supabase/invoices';
 
@@ -22,11 +22,23 @@ interface CustomerListContentProps {
 }
 
 export function CustomerListContent({ customers, locale, userEmail, salesSummary = {} }: CustomerListContentProps) {
+  const router = useRouter();
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<'csId' | 'companyName' | 'rank' | 'sales' | 'lastInvoice'>('csId');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const pageTitle = language === 'ja' ? '顧客管理' : language === 'th' ? 'จัดการลูกค้า' : 'Customer Management';
+
+  const handleRowClick = useCallback((csId: string) => {
+    router.push(`/${locale}/customers/${csId}`);
+  }, [router, locale]);
+
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent, csId: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleRowClick(csId);
+    }
+  }, [handleRowClick]);
 
   const formatDate = (value?: string | null) => {
     if (!value) return '-';
@@ -149,143 +161,129 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
 
         {/* テーブル */}
         <div className={tableStyles.tableContainer}>
-          <div className="max-w-6xl overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th 
-                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-24"
-                    onClick={() => handleSort('csId')}
-                  >
-                    <div className="flex items-center">
-                      CS ID
-                      {sortField === 'csId' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-64"
-                    onClick={() => handleSort('companyName')}
-                  >
-                    <div className="flex items-center">
-                      {language === 'ja' ? '会社名' : language === 'th' ? 'ชื่อบริษัท' : 'Company Name'}
-                      {sortField === 'companyName' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32 hidden md:table-cell cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('sales')}
-                  >
-                    <div className="flex items-center justify-center">
-                      {language === 'ja' ? '売上高' : language === 'th' ? 'ยอดขาย' : 'Sales'}
-                      {sortField === 'sales' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-20"
-                    onClick={() => handleSort('rank')}
-                  >
-                    <div className="flex items-center">
-                      {language === 'ja' ? 'ランク' : language === 'th' ? 'ระดับ' : 'Rank'}
-                      {sortField === 'rank' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th 
-                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 cursor-pointer hover:bg-gray-100"
-                    onClick={() => handleSort('lastInvoice')}
-                  >
-                    <div className="flex items-center">
-                      {language === 'ja' ? '最終取引日' : language === 'th' ? 'วันทำการล่าสุด' : 'Last Transaction'}
-                      {sortField === 'lastInvoice' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAndSortedCustomers.map((customer) => (
-                  <tr 
-                    key={customer.$id.value} 
-                    className="hover:bg-gray-50"
-                  >
-                    <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <TransitionLink
-                        href={`/${locale}/customers/${customer.文字列__1行_.value}`}
-                        className="text-indigo-600 hover:text-indigo-900 inline-block"
-                      >
-                        {customer.文字列__1行_.value}
-                      </TransitionLink>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {customer.会社名.value}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-                      <div className="flex justify-center">
-                        <MiniSalesChart salesData={salesSummary[customer.文字列__1行_.value]?.summary} />
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        customer.顧客ランク?.value === 'A' ? 'bg-green-100 text-green-800' :
-                        customer.顧客ランク?.value === 'B' ? 'bg-yellow-100 text-yellow-800' :
-                        customer.顧客ランク?.value === 'C' ? 'bg-orange-100 text-orange-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {customer.顧客ランク?.value || '-'}
+          <table className={tableStyles.table}>
+            <thead className={tableStyles.thead}>
+              <tr>
+                <th
+                  className={`${tableStyles.th} cursor-pointer hover:bg-gray-100`}
+                  onClick={() => handleSort('csId')}
+                >
+                  <div className="flex items-center">
+                    CS ID
+                    {sortField === 'csId' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
                       </span>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(salesSummary[customer.文字列__1行_.value]?.lastInvoiceDate)}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
-                      <TransitionLink
-                        href={`/${locale}/customers/${customer.文字列__1行_.value}`}
-                        className="text-indigo-600 hover:text-indigo-900 inline-block"
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </TransitionLink>
-                    </td>
-                  </tr>
-                ))}
-                {filteredAndSortedCustomers.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-2 text-sm text-gray-500 text-center">
-                      {searchTerm ? (
-                        language === 'ja' ? '検索結果が見つかりませんでした' : 
-                        language === 'th' ? 'ไม่พบผลการค้นหา' : 
-                        'No search results found'
-                      ) : (
-                        language === 'ja' ? '顧客データがありません' : 
-                        language === 'th' ? 'ไม่มีข้อมูลลูกค้า' : 
-                        'No customer data'
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className={`${tableStyles.th} cursor-pointer hover:bg-gray-100`}
+                  onClick={() => handleSort('companyName')}
+                >
+                  <div className="flex items-center">
+                    {language === 'ja' ? '会社名' : language === 'th' ? 'ชื่อบริษัท' : 'Company Name'}
+                    {sortField === 'companyName' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className={`${tableStyles.th} hidden md:table-cell cursor-pointer hover:bg-gray-100`}
+                  onClick={() => handleSort('sales')}
+                >
+                  <div className="flex items-center justify-center">
+                    {language === 'ja' ? '売上高' : language === 'th' ? 'ยอดขาย' : 'Sales'}
+                    {sortField === 'sales' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className={`${tableStyles.th} cursor-pointer hover:bg-gray-100`}
+                  onClick={() => handleSort('rank')}
+                >
+                  <div className="flex items-center">
+                    {language === 'ja' ? 'ランク' : language === 'th' ? 'ระดับ' : 'Rank'}
+                    {sortField === 'rank' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  className={`${tableStyles.th} cursor-pointer hover:bg-gray-100`}
+                  onClick={() => handleSort('lastInvoice')}
+                >
+                  <div className="flex items-center">
+                    {language === 'ja' ? '最終取引日' : language === 'th' ? 'วันทำการล่าสุด' : 'Last Transaction'}
+                    {sortField === 'lastInvoice' && (
+                      <span className="ml-1">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody className={tableStyles.tbody}>
+              {filteredAndSortedCustomers.map((customer) => (
+                <tr
+                  key={customer.$id.value}
+                  className={tableStyles.trClickable}
+                  onClick={() => handleRowClick(customer.文字列__1行_.value)}
+                  onKeyDown={(e) => handleRowKeyDown(e, customer.文字列__1行_.value)}
+                  role="link"
+                  tabIndex={0}
+                >
+                  <td className={`${tableStyles.td} font-medium text-indigo-600`}>
+                    {customer.文字列__1行_.value}
+                  </td>
+                  <td className={tableStyles.td}>
+                    {customer.会社名.value}
+                  </td>
+                  <td className={`${tableStyles.td} hidden md:table-cell`}>
+                    <div className="flex justify-center">
+                      <MiniSalesChart salesData={salesSummary[customer.文字列__1行_.value]?.summary} />
+                    </div>
+                  </td>
+                  <td className={tableStyles.td}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      customer.顧客ランク?.value === 'A' ? 'bg-green-100 text-green-800' :
+                      customer.顧客ランク?.value === 'B' ? 'bg-yellow-100 text-yellow-800' :
+                      customer.顧客ランク?.value === 'C' ? 'bg-orange-100 text-orange-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {customer.顧客ランク?.value || '-'}
+                    </span>
+                  </td>
+                  <td className={tableStyles.td}>
+                    {formatDate(salesSummary[customer.文字列__1行_.value]?.lastInvoiceDate)}
+                  </td>
+                </tr>
+              ))}
+              {filteredAndSortedCustomers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className={`${tableStyles.td} text-center`}>
+                    {searchTerm ? (
+                      language === 'ja' ? '検索結果が見つかりませんでした' :
+                      language === 'th' ? 'ไม่พบผลการค้นหา' :
+                      'No search results found'
+                    ) : (
+                      language === 'ja' ? '顧客データがありません' :
+                      language === 'th' ? 'ไม่มีข้อมูลลูกค้า' :
+                      'No customer data'
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </DashboardLayout>

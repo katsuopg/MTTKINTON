@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -9,13 +10,16 @@ export const metadata: Metadata = {
   description: "MTT kintone integration web application",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const locale = headersList.get("x-locale") || "ja";
+
   return (
-    <html lang="ja">
+    <html lang={locale}>
       <body className={inter.className} suppressHydrationWarning>{children}</body>
     </html>
   );

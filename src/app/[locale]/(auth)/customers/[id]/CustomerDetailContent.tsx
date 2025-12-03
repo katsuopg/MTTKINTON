@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { CustomerRecord, WorkNoRecord, QuotationRecord, MachineRecord, CustomerStaffRecord, InvoiceRecord } from '@/types/kintone';
 import { OrderRecord } from '@/lib/kintone/order';
-import { type Language, getFieldLabel, getStatusLabel } from '@/lib/kintone/field-mappings';
+import { type Language, getStatusLabel } from '@/lib/kintone/field-mappings';
 import TransitionLink from '@/components/ui/TransitionLink';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SalesChart from '@/components/charts/SalesChart';

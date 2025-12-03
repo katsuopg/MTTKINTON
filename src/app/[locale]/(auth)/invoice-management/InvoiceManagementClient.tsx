@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type Language } from '@/lib/kintone/field-mappings';
 import SearchFilter from '@/components/ui/SearchFilter';
@@ -22,15 +22,22 @@ export default function InvoiceManagementClient({
 }: InvoiceManagementClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  console.log('=== InvoiceManagementClient ===');
-  console.log('Initial records count:', initialInvoiceRecords?.length || 0);
-  console.log('First record:', initialInvoiceRecords?.[0]);
-  
+
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [selectedPeriod, setSelectedPeriod] = useState(searchParams.get('period') || '14');
   const [invoiceRecords, setInvoiceRecords] = useState(initialInvoiceRecords);
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleRowClick = useCallback((workNo: string) => {
+    router.push(`/${locale}/workno/${workNo}`);
+  }, [router, locale]);
+
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent, workNo: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleRowClick(workNo);
+    }
+  }, [handleRowClick]);
 
   // 会計期間が変更されたときにデータを取得
   const fetchInvoiceRecords = useCallback(async (period: string) => {
@@ -146,7 +153,7 @@ export default function InvoiceManagementClient({
       />
 
       {/* テーブル表示 */}
-      <div className="overflow-x-auto bg-white shadow rounded-lg">
+      <div className={tableStyles.tableContainer}>
         {isLoading ? (
           <div className="text-center py-8">
             <p className="text-gray-500">
@@ -160,50 +167,55 @@ export default function InvoiceManagementClient({
             </p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className={tableStyles.table}>
+            <thead className={tableStyles.thead}>
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? '工事番号' : 'Work No.'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? '請求書番号' : 'Invoice No.'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? '請求書日付' : 'Invoice Date'}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={tableStyles.th}>
                   {language === 'ja' ? '顧客名' : 'Customer'}
                 </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`${tableStyles.th} text-right`}>
                   {language === 'ja' ? '金額' : 'Amount'}
                 </th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className={`${tableStyles.th} text-center`}>
                   {language === 'ja' ? 'ステータス' : 'Status'}
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className={tableStyles.tbody}>
               {filteredInvoices.map((record) => (
-                <tr key={record.$id.value} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-indigo-600">
-                    <a href={`/${locale}/workno/${record.文字列__1行_?.value}`} className="hover:text-indigo-900">
-                      {record.文字列__1行_?.value || '-'}
-                    </a>
+                <tr
+                  key={record.$id.value}
+                  className={tableStyles.trClickable}
+                  onClick={() => handleRowClick(record.文字列__1行_?.value || '')}
+                  onKeyDown={(e) => handleRowKeyDown(e, record.文字列__1行_?.value || '')}
+                  role="link"
+                  tabIndex={0}
+                >
+                  <td className={`${tableStyles.td} font-medium text-indigo-600`}>
+                    {record.文字列__1行_?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.文字列__1行__0?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.日付?.value?.replace(/-/g, '/') || '-'}
                   </td>
-                  <td className="px-3 py-2 text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {record.CS_name?.value || '-'}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                  <td className={`${tableStyles.td} text-right`}>
                     {formatNumber(record.計算?.value || record.total?.value)}
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-center text-sm">
+                  <td className={`${tableStyles.td} text-center`}>
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
                         ? 'bg-green-100 text-green-800'

@@ -1,9 +1,8 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import { KintoneClient } from '@/lib/kintone/client';
 import { ProjectRecord, WorkNoRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DashboardContent from './DashboardContent';
+import { getUserProfile } from '@/lib/auth/get-user-profile';
 
 interface DashboardPageProps {
   params: Promise<{
@@ -12,11 +11,10 @@ interface DashboardPageProps {
 }
 
 export default async function DashboardPage({ params }: DashboardPageProps) {
-  const supabase = await createClient();
   const { locale } = await params;
 
-  // 認証チェックはミドルウェアで実行されるため、ここではユーザー情報を取得のみ
-  const { data: { user } } = await supabase.auth.getUser();
+  // ユーザープロファイルを取得（認証チェックはミドルウェアで実行）
+  const userProfile = await getUserProfile();
 
   // kintoneからデータを取得
   let workNoCount = 0;
@@ -53,8 +51,14 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   }
 
   return (
-    <DashboardLayout locale={locale} userEmail={user?.email || ''}>
-      <DashboardContent 
+    <DashboardLayout
+      locale={locale}
+      userEmail={userProfile?.email || ''}
+      userName={userProfile?.name}
+      userNickname={userProfile?.nickname}
+      userProfileImage={userProfile?.profileImage}
+    >
+      <DashboardContent
         locale={locale}
         workNoCount={workNoCount}
         projectCount={projectCount}

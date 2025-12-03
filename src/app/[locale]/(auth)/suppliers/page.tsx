@@ -4,6 +4,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import type { Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
 import type { Database } from '@/types/supabase';
+import SupplierTableClient from './SupplierTableClient';
 
 type Supplier = Database['public']['Tables']['suppliers']['Row'];
 
@@ -154,65 +155,11 @@ export default async function SuppliersPage({ params, searchParams }: SuppliersP
 
         {/* テーブル */}
         <div className={tableStyles.tableContainer}>
-          {suppliers.length === 0 ? (
-            <div className={tableStyles.emptyRow}>
-              <p>
-                {language === 'ja' ? 'データがありません' : 
-                 language === 'th' ? 'ไม่มีข้อมูล' : 
-                 'No data available'}
-              </p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
-                    {language === 'ja' ? '会社名' : language === 'th' ? 'ชื่อบริษัท' : 'Company Name'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    TEL
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48 hidden md:table-cell">
-                    {language === 'ja' ? 'メール' : language === 'th' ? 'อีเมล' : 'Email'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64 hidden lg:table-cell">
-                    {language === 'ja' ? '住所' : language === 'th' ? 'ที่อยู่' : 'Address'}
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {suppliers.map((supplier) => (
-                  <tr key={supplier.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {supplier.company_name_en || supplier.company_name || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {supplier.phone_number || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-                      {supplier.email || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
-                      <div className="max-w-xs truncate">
-                        {supplier.address || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a
-                        href={`/${locale}/suppliers/${supplier.id}`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <SupplierTableClient
+            locale={locale}
+            language={language}
+            suppliers={suppliers}
+          />
           
           {/* ページネーション */}
           {totalPages > 1 && (

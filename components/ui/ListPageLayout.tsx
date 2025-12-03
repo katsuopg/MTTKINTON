@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { tableStyles } from './TableStyles';
 
 interface ListPageLayoutProps {
   children: ReactNode;

@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { getCustomerById } from '@/lib/kintone/customer';
-import { getFieldLabel } from '@/lib/kintone/field-mappings';
 import { CustomerDetailContent } from './CustomerDetailContent';
 import { getWorkNoRecordsByCustomer } from '@/lib/kintone/workno';
 import { getQuotationRecordsByCustomer } from '@/lib/kintone/quotation';

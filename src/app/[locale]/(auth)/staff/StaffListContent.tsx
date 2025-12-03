@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { CustomerStaffRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
-import Link from 'next/link';
 import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { tableStyles } from '@/components/ui/TableStyles';
 
@@ -15,12 +15,21 @@ interface StaffListContentProps {
 }
 
 export default function StaffListContent({ staffList, locale, userEmail }: StaffListContentProps) {
+  const router = useRouter();
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState('');
-  
-  console.log('Total staff records loaded:', staffList.length);
-  console.log('Sample companies:', staffList.slice(0, 5).map(s => s.ルックアップ?.value));
+
+  const handleRowClick = useCallback((staffId: string) => {
+    router.push(`/${locale}/staff/${staffId}`);
+  }, [router, locale]);
+
+  const handleRowKeyDown = useCallback((e: React.KeyboardEvent, staffId: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleRowClick(staffId);
+    }
+  }, [handleRowClick]);
 
   // 部署の一覧を取得
   const divisions = useMemo(() => {
@@ -127,63 +136,62 @@ export default function StaffListContent({ staffList, locale, userEmail }: Staff
         {/* 担当者リスト */}
         <div className={tableStyles.tableContainer}>
           <div className="max-w-4xl">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className={tableStyles.table}>
+              <thead className={tableStyles.thead}>
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? '担当者名' : language === 'th' ? 'ชื่อผู้ติดต่อ' : 'Name'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? '会社名' : language === 'th' ? 'บริษัท' : 'Company'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 hidden md:table-cell">
+                  <th className={`${tableStyles.th} hidden md:table-cell`}>
                     {language === 'ja' ? '部署' : language === 'th' ? 'แผนก' : 'Division'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 hidden lg:table-cell">
+                  <th className={`${tableStyles.th} hidden lg:table-cell`}>
                     {language === 'ja' ? '役職' : language === 'th' ? 'ตำแหน่ง' : 'Position'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? 'メール' : language === 'th' ? 'อีเมล' : 'Email'}
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    <span className="sr-only">View</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={tableStyles.tbody}>
                 {filteredStaff.map((staff) => (
-                  <tr key={staff.$id.value} className="hover:bg-gray-50">
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr
+                    key={staff.$id.value}
+                    className={tableStyles.trClickable}
+                    onClick={() => handleRowClick(staff.$id.value)}
+                    onKeyDown={(e) => handleRowKeyDown(e, staff.$id.value)}
+                    role="link"
+                    tabIndex={0}
+                  >
+                    <td className={`${tableStyles.td} font-medium text-indigo-600`}>
                       {staff.担当者名?.value}
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className={tableStyles.td}>
                       {staff.ルックアップ?.value}
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                    <td className={`${tableStyles.td} hidden md:table-cell`}>
                       {staff.Divison?.value || '-'}
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
+                    <td className={`${tableStyles.td} hidden lg:table-cell`}>
                       {staff.Position?.value || '-'}
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className={tableStyles.td}>
                       {staff.メールアドレス?.value ? (
-                        <a
-                          href={`mailto:${staff.メールアドレス.value}`}
-                          className="text-indigo-600 hover:text-indigo-900"
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `mailto:${staff.メールアドレス.value}`;
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900 cursor-pointer"
                         >
                           {staff.メールアドレス.value}
-                        </a>
+                        </span>
                       ) : (
                         '-'
                       )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/${locale}/staff/${staff.$id.value}`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </Link>
                     </td>
                   </tr>
                 ))}

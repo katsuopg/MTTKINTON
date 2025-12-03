@@ -62,6 +62,9 @@ export default async function middleware(request: NextRequest) {
   // Extract locale from the pathname
   const locale = pathname.split('/')[1] || 'ja';
   
+  // Set locale header for root layout
+  response.headers.set('x-locale', locale);
+  
   // Protected paths
   const protectedPaths = ['/dashboard', '/projects', '/work-orders', '/parts', '/purchase-requests'];
   const isProtectedPath = protectedPaths.some(path => pathname.includes(path));

@@ -9,6 +9,168 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      employees: {
+        Row: {
+          id: string
+          employee_number: string | null
+          name: string
+          name_th: string | null
+          first_name: string | null
+          last_name: string | null
+          first_name_th: string | null
+          last_name_th: string | null
+          nickname: string | null
+          email: string | null
+          tel: string | null
+          date_of_birth: string | null
+          gender: string | null
+          nationality: string | null
+          department: string | null
+          position: string | null
+          employment_type: string | null
+          hire_date: string | null
+          resign_date: string | null
+          status: string | null
+          salary_type: string | null
+          salary_amount: number | null
+          bank_account: string | null
+          id_number: string | null
+          id_expiry: string | null
+          id_image_url: string | null
+          passport_number: string | null
+          passport_expiry: string | null
+          passport_image_url: string | null
+          visa_type: string | null
+          visa_number: string | null
+          visa_expiry: string | null
+          visa_image_url: string | null
+          work_permit_number: string | null
+          work_permit_expiry: string | null
+          work_permit_image_url: string | null
+          license_number: string | null
+          license_expiry: string | null
+          emergency_contact_name: string | null
+          emergency_contact_tel: string | null
+          emergency_contact_address: string | null
+          address: string | null
+          mobile: string | null
+          profile_image_url: string | null
+          resume_files: Json | null
+          bank_book_files: Json | null
+          kintone_record_id: string | null
+          created_at: string | null
+          updated_at: string | null
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          employee_number?: string | null
+          name: string
+          name_th?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          first_name_th?: string | null
+          last_name_th?: string | null
+          nickname?: string | null
+          email?: string | null
+          tel?: string | null
+          date_of_birth?: string | null
+          gender?: string | null
+          nationality?: string | null
+          department?: string | null
+          position?: string | null
+          employment_type?: string | null
+          hire_date?: string | null
+          resign_date?: string | null
+          status?: string | null
+          salary_type?: string | null
+          salary_amount?: number | null
+          bank_account?: string | null
+          id_number?: string | null
+          id_expiry?: string | null
+          id_image_url?: string | null
+          passport_number?: string | null
+          passport_expiry?: string | null
+          passport_image_url?: string | null
+          visa_type?: string | null
+          visa_number?: string | null
+          visa_expiry?: string | null
+          visa_image_url?: string | null
+          work_permit_number?: string | null
+          work_permit_expiry?: string | null
+          work_permit_image_url?: string | null
+          license_number?: string | null
+          license_expiry?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_tel?: string | null
+          emergency_contact_address?: string | null
+          address?: string | null
+          mobile?: string | null
+          profile_image_url?: string | null
+          resume_files?: Json | null
+          bank_book_files?: Json | null
+          kintone_record_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          employee_number?: string | null
+          name?: string
+          name_th?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          first_name_th?: string | null
+          last_name_th?: string | null
+          nickname?: string | null
+          email?: string | null
+          tel?: string | null
+          date_of_birth?: string | null
+          gender?: string | null
+          nationality?: string | null
+          department?: string | null
+          position?: string | null
+          employment_type?: string | null
+          hire_date?: string | null
+          resign_date?: string | null
+          status?: string | null
+          salary_type?: string | null
+          salary_amount?: number | null
+          bank_account?: string | null
+          id_number?: string | null
+          id_expiry?: string | null
+          id_image_url?: string | null
+          passport_number?: string | null
+          passport_expiry?: string | null
+          passport_image_url?: string | null
+          visa_type?: string | null
+          visa_number?: string | null
+          visa_expiry?: string | null
+          visa_image_url?: string | null
+          work_permit_number?: string | null
+          work_permit_expiry?: string | null
+          work_permit_image_url?: string | null
+          license_number?: string | null
+          license_expiry?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_tel?: string | null
+          emergency_contact_address?: string | null
+          address?: string | null
+          mobile?: string | null
+          profile_image_url?: string | null
+          resume_files?: Json | null
+          bank_book_files?: Json | null
+          kintone_record_id?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           address: string | null

@@ -677,11 +677,16 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                       TO
                     </td>
                     <td className="px-3 py-2">
+                      <label htmlFor="customer-select" className="sr-only">
+                        {language === 'ja' ? '顧客' : language === 'th' ? 'ลูกค้า' : 'Customer'}
+                      </label>
                       <Controller
                         control={control}
                         name="customerId"
                         render={({ field }) => (
                           <select
+                            id="customer-select"
+                            aria-label={language === 'ja' ? '顧客' : language === 'th' ? 'ลูกค้า' : 'Customer'}
                             {...field}
                             onChange={(event) => handleCustomerSelect(event.target.value, field.onChange)}
                             className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -729,11 +734,16 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                   </tr>
                   <tr className="border-b border-gray-400">
                     <td className="px-3 py-2">
+                      <label htmlFor="contact-select" className="sr-only">
+                        {language === 'ja' ? '担当者' : language === 'th' ? 'ผู้ติดต่อ' : 'Contact'}
+                      </label>
                       <Controller
                         control={control}
                         name="contactId"
                         render={({ field }) => (
                           <select
+                            id="contact-select"
+                            aria-label={language === 'ja' ? '担当者' : language === 'th' ? 'ผู้ติดต่อ' : 'Contact'}
                             {...field}
                             onChange={(event) => handleContactSelect(event.target.value, field.onChange)}
                             className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"

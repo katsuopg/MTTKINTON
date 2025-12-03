@@ -15,7 +15,7 @@ export async function getSupabaseTables() {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {
+          } catch {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.
@@ -24,7 +24,7 @@ export async function getSupabaseTables() {
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
+          } catch {
             // The `delete` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.
@@ -43,6 +43,7 @@ export async function getSupabaseTables() {
     if (tablesError) {
       // RPCが存在しない場合は、直接SQLクエリを実行
       const { data, error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from('information_schema.tables' as any)
         .select('table_name, table_type')
         .eq('table_schema', 'public')
@@ -79,12 +80,12 @@ export async function getTableColumns(tableName: string) {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {}
+          } catch { /* ignored */ }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options });
-          } catch (error) {}
+          } catch { /* ignored */ }
         },
       },
     }
@@ -92,7 +93,8 @@ export async function getTableColumns(tableName: string) {
 
   try {
     const { data, error } = await supabase
-      .from('information_schema.columns' as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('information_schema.columns' as any)
       .select('column_name, data_type, is_nullable, column_default')
       .eq('table_schema', 'public')
       .eq('table_name', tableName)
@@ -125,12 +127,12 @@ export async function getTableData(tableName: string, limit = 10) {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {}
+          } catch { /* ignored */ }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options });
-          } catch (error) {}
+          } catch { /* ignored */ }
         },
       },
     }

@@ -19,6 +19,7 @@ interface LoginFormProps {
   locale: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function LoginForm({ locale }: LoginFormProps) {
   // const t = useTranslations();
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +41,10 @@ export function LoginForm({ locale }: LoginFormProps) {
       await login(data.email, data.password);
       // サーバーアクションでリダイレクトが実行される
     } catch (err) {
+      // Next.jsのredirect()は内部的にエラーをthrowするため、再throwが必要
+      if (err instanceof Error && err.message === 'NEXT_REDIRECT') {
+        throw err;
+      }
       if (err instanceof Error) {
         setError(err.message);
       } else {

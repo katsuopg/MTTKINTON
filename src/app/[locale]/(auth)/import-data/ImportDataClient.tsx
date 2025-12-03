@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { tableStyles } from '@/components/ui/TableStyles';
 
 type DataSource = 'kintone' | 'supabase' | 'hybrid' | 'none';
@@ -24,10 +24,13 @@ interface ActionResultDetail {
   value: string | number;
 }
 
+type SyncStatus = 'not-synced' | 'syncing' | 'success' | 'error' | 'not-needed';
+
 interface ActionResult {
   status: 'success' | 'error';
   message: string;
   details?: ActionResultDetail[];
+  timestamp?: string;
 }
 
 interface SupabaseImportAction {
@@ -227,6 +230,46 @@ interface ImportDataClientProps {
 export default function ImportDataClient({ locale }: ImportDataClientProps) {
   const [loadingActions, setLoadingActions] = useState<Record<string, boolean>>({});
   const [actionResults, setActionResults] = useState<Record<string, ActionResult | undefined>>({});
+  const [lastSyncDates, setLastSyncDates] = useState<Record<string, string>>({});
+  const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+
+  // localStorageから最終同期日と同期状態を読み込む
+  useEffect(() => {
+    const stored = localStorage.getItem('import-data-last-sync');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setLastSyncDates(parsed);
+        // 同期日があるアプリは成功状態として初期化
+        const statuses: Record<string, SyncStatus> = {};
+        Object.keys(parsed).forEach((id) => {
+          statuses[id] = 'success';
+        });
+        setSyncStatuses(statuses);
+      } catch (e) {
+        console.error('Failed to parse last sync dates:', e);
+      }
+    }
+  }, []);
+
+  // 最終同期日を保存（関数型更新で確実に保存）
+  const saveLastSyncDate = (id: string, timestamp?: string) => {
+    const now = timestamp || new Date().toISOString();
+    setLastSyncDates((prev) => {
+      const updated = { ...prev, [id]: now };
+      // localStorageに即座に保存
+      try {
+        localStorage.setItem('import-data-last-sync', JSON.stringify(updated));
+        console.log(`Saved sync date for ${id}:`, now);
+      } catch (error) {
+        console.error('Failed to save last sync date to localStorage:', error);
+      }
+      return updated;
+    });
+    // 同期状態も更新
+    setSyncStatuses((prev) => ({ ...prev, [id]: 'success' }));
+  };
 
   const appStatuses: AppStatus[] = useMemo(
     () =>
@@ -248,14 +291,24 @@ export default function ImportDataClient({ locale }: ImportDataClientProps) {
   const handleSupabaseImport = async (id: string, endpoint: string) => {
     setLoading(id, true);
     setResult(id, undefined);
+    setSyncStatuses((prev) => ({ ...prev, [id]: 'syncing' }));
+
+    const startTime = new Date().toISOString();
 
     try {
+      // タイムアウト設定（5分）
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
       const data = await response.json();
 
       if (response.ok && data?.success) {
@@ -266,23 +319,40 @@ export default function ImportDataClient({ locale }: ImportDataClientProps) {
           { label: 'Supabase総件数', value: data.supabaseCount ?? '-' },
         ];
 
+        const timestamp = new Date().toISOString();
         setResult(id, {
           status: 'success',
           message: '取り込みが完了しました。',
           details,
+          timestamp,
         });
+        // 同期日を保存（成功時のみ）
+        saveLastSyncDate(id, timestamp);
+        setSyncStatuses((prev) => ({ ...prev, [id]: 'success' }));
       } else {
         setResult(id, {
           status: 'error',
           message: data?.error ?? '取り込みに失敗しました。',
+          timestamp: startTime,
+        });
+        setSyncStatuses((prev) => ({ ...prev, [id]: 'error' }));
+      }
+    } catch (error: any) {
+      console.error('Supabase import error:', error);
+      if (error.name === 'AbortError') {
+        setResult(id, {
+          status: 'error',
+          message: '取り込みがタイムアウトしました（5分以上）。',
+          timestamp: startTime,
+        });
+      } else {
+        setResult(id, {
+          status: 'error',
+          message: '取り込み処理でエラーが発生しました。',
+          timestamp: startTime,
         });
       }
-    } catch (error) {
-      console.error('Supabase import error:', error);
-      setResult(id, {
-        status: 'error',
-        message: '取り込み処理でエラーが発生しました。',
-      });
+      setSyncStatuses((prev) => ({ ...prev, [id]: 'error' }));
     } finally {
       setLoading(id, false);
     }
@@ -353,51 +423,160 @@ export default function ImportDataClient({ locale }: ImportDataClientProps) {
     }
   };
 
+  // 全件取得（Supabase移行済みアプリのみ）- 並列処理で高速化
+  const handleBulkImport = async () => {
+    setIsBulkLoading(true);
+    const supabaseApps = appStatuses.filter(
+      (app) => app.migration === 'completed' && app.action?.kind === 'supabase-import'
+    );
+
+    // 並列処理で全アプリを同時に実行
+    const importPromises = supabaseApps.map((app) => {
+      if (app.action?.kind === 'supabase-import') {
+        return handleSupabaseImport(app.id, app.action.endpoint);
+      }
+      return Promise.resolve();
+    });
+
+    // すべての処理を並列実行
+    await Promise.all(importPromises);
+
+    setIsBulkLoading(false);
+  };
+
+  // 最終同期日のフォーマット
+  const formatLastSyncDate = (id: string): string => {
+    const dateStr = lastSyncDates[id];
+    if (!dateStr) return '未同期';
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleString('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return '未同期';
+    }
+  };
+
+  // 同期状態の取得
+  const getSyncStatus = (status: AppStatus): SyncStatus => {
+    const appId = status.id;
+    
+    // 同期不要なアプリ（アクションがない、またはkintone-loadのみ）
+    if (!status.action || status.action.kind === 'kintone-load') {
+      return 'not-needed';
+    }
+
+    // 同期中
+    if (loadingActions[appId]) {
+      return 'syncing';
+    }
+
+    // 結果から判定
+    const result = actionResults[appId];
+    if (result) {
+      return result.status === 'success' ? 'success' : 'error';
+    }
+
+    // 最終同期日があるかどうか
+    if (lastSyncDates[appId]) {
+      return 'success';
+    }
+
+    return 'not-synced';
+  };
+
+  // 同期状態のラベルとスタイル
+  const getSyncStatusLabel = (status: SyncStatus): { label: string; style: string } => {
+    switch (status) {
+      case 'not-synced':
+        return { label: '未同期', style: 'bg-gray-100 text-gray-600 border border-gray-200' };
+      case 'syncing':
+        return { label: '同期中', style: 'bg-blue-100 text-blue-600 border border-blue-200' };
+      case 'success':
+        return { label: '同期済み', style: 'bg-emerald-100 text-emerald-600 border border-emerald-200' };
+      case 'error':
+        return { label: '同期失敗', style: 'bg-rose-100 text-rose-600 border border-rose-200' };
+      case 'not-needed':
+        return { label: '同期不要', style: 'bg-slate-100 text-slate-500 border border-slate-200' };
+      default:
+        return { label: '不明', style: 'bg-gray-100 text-gray-500 border border-gray-200' };
+    }
+  };
+
   return (
     <div data-testid="import-data-container" className={`${tableStyles.contentWrapper} space-y-6`}>
       <section>
-        <h1 className="text-3xl font-bold text-slate-900">データ同期ステータス</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          各アプリが参照・更新しているデータソースとSupabase移行の進捗を整理した一覧です。kintone参照中のアプリは読み込みボタンで接続確認ができます。
-        </p>
-        <p className="mt-1 text-xs text-slate-500">
-          ※ Supabase移行が完了したアプリは、このページでの手動同期が順次不要になる予定です。
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">データ同期ステータス</h1>
+            <p className="mt-2 text-sm text-slate-600">
+              各アプリが参照・更新しているデータソースとSupabase移行の進捗を整理した一覧です。kintone参照中のアプリは読み込みボタンで接続確認ができます。
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              ※ Supabase移行が完了したアプリは、このページでの手動同期が順次不要になる予定です。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleBulkImport}
+            disabled={isBulkLoading}
+            className={`inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors ${
+              isBulkLoading
+                ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+            }`}
+          >
+            {isBulkLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12c0-2.209 1.343-4.209 3.207-5.593L10.707 5.293A1 1 0 0112 6v4a1 1 0 01-1 1H7a1 1 0 01-.707-1.707l2-2z"></path>
+                </svg>
+                同期中（並列処理）...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                全件取得（並列）
+              </>
+            )}
+          </button>
+        </div>
       </section>
 
       <section className={tableStyles.tableContainer}>
-        <div className="overflow-x-auto">
-          <table className={`table-fixed ${tableStyles.table}`}>
+        {/* デスクトップ表示（テーブル） */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className={`w-full ${tableStyles.table}`}>
             <thead className={tableStyles.thead}>
               <tr>
-                <th className={`${tableStyles.th} w-56`}>
-                  アプリ
-                </th>
-                <th className={`${tableStyles.th} w-32`}>
-                  読み込み
-                </th>
-                <th className={`${tableStyles.th} w-32`}>
-                  書き込み
-                </th>
-                <th className={`${tableStyles.th} w-32`}>
-                  移行状況
-                </th>
-                <th className={tableStyles.th}>
-                  備考
-                </th>
-                <th className={`${tableStyles.th} w-48`}>
-                  アクション
-                </th>
+                <th className={`${tableStyles.th} w-48`}>アプリ</th>
+                <th className={`${tableStyles.th} w-28`}>読み込み</th>
+                <th className={`${tableStyles.th} w-28`}>書き込み</th>
+                <th className={`${tableStyles.th} w-28`}>移行状況</th>
+                <th className={tableStyles.th}>備考</th>
+                <th className={`${tableStyles.th} w-40`}>同期状態</th>
+                <th className={`${tableStyles.th} w-48`}>アクション</th>
               </tr>
             </thead>
             <tbody className={tableStyles.tbody}>
               {appStatuses.map((status) => {
                 const loading = Boolean(loadingActions[status.id]);
                 const result = actionResults[status.id];
+                const lastSync = formatLastSyncDate(status.id);
+                const syncStatus = getSyncStatus(status);
+                const syncStatusInfo = getSyncStatusLabel(syncStatus);
 
                 return (
                   <tr key={status.id} className={tableStyles.tr}>
-                    <td className={`${tableStyles.td} w-56`}>
+                    <td className={tableStyles.td}>
                       <Link
                         href={status.fullPath}
                         className="block font-semibold text-slate-900 hover:text-indigo-600"
@@ -424,14 +603,30 @@ export default function ImportDataClient({ locale }: ImportDataClientProps) {
                       {status.notes || '―'}
                     </td>
                     <td className={tableStyles.td}>
+                      <div className="space-y-1">
+                        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${syncStatusInfo.style}`}>
+                          {syncStatus === 'syncing' && (
+                            <svg className="animate-spin -ml-1 mr-1.5 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12c0-2.209 1.343-4.209 3.207-5.593L10.707 5.293A1 1 0 0112 6v4a1 1 0 01-1 1H7a1 1 0 01-.707-1.707l2-2z"></path>
+                            </svg>
+                          )}
+                          {syncStatusInfo.label}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {lastSync}
+                        </div>
+                      </div>
+                    </td>
+                    <td className={tableStyles.td}>
                       {status.action ? (
                         <div>
                           <button
                             type="button"
                             onClick={() => handleAction(status)}
-                            disabled={loading}
+                            disabled={loading || isBulkLoading}
                             className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-medium shadow-sm transition-colors ${
-                              loading
+                              loading || isBulkLoading
                                 ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
                                 : status.action.kind === 'supabase-import'
                                 ? 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -471,6 +666,109 @@ export default function ImportDataClient({ locale }: ImportDataClientProps) {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* モバイル表示（カード） */}
+        <div className="md:hidden space-y-4">
+          {appStatuses.map((status) => {
+            const loading = Boolean(loadingActions[status.id]);
+            const result = actionResults[status.id];
+            const lastSync = formatLastSyncDate(status.id);
+            const syncStatus = getSyncStatus(status);
+            const syncStatusInfo = getSyncStatusLabel(syncStatus);
+
+            return (
+              <div key={status.id} className="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <Link
+                    href={status.fullPath}
+                    className="font-semibold text-slate-900 hover:text-indigo-600"
+                  >
+                    {status.name}
+                  </Link>
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${MIGRATION_STYLE[status.migration]}`}>
+                    {MIGRATION_LABEL[status.migration]}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-slate-500">読み込み:</span>
+                    <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${DATA_SOURCE_STYLE[status.dataTarget.read]}`}>
+                      {DATA_SOURCE_LABEL[status.dataTarget.read]}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">書き込み:</span>
+                    <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${DATA_SOURCE_STYLE[status.dataTarget.write]}`}>
+                      {DATA_SOURCE_LABEL[status.dataTarget.write]}
+                    </span>
+                  </div>
+                </div>
+
+                {status.notes && (
+                  <div className="text-sm text-slate-600">
+                    <span className="text-slate-500">備考:</span> {status.notes}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-slate-500">
+                    <span className="font-medium">最終同期日:</span> {lastSync}
+                  </div>
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${syncStatusInfo.style}`}>
+                    {syncStatus === 'syncing' && (
+                      <svg className="animate-spin -ml-1 mr-1.5 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12c0-2.209 1.343-4.209 3.207-5.593L10.707 5.293A1 1 0 0112 6v4a1 1 0 01-1 1H7a1 1 0 01-.707-1.707l2-2z"></path>
+                      </svg>
+                    )}
+                    {syncStatusInfo.label}
+                  </div>
+                </div>
+
+                {status.action && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => handleAction(status)}
+                      disabled={loading || isBulkLoading}
+                      className={`w-full inline-flex justify-center rounded-md px-3 py-2 text-sm font-medium shadow-sm transition-colors ${
+                        loading || isBulkLoading
+                          ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                          : status.action.kind === 'supabase-import'
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      }`}
+                    >
+                      {loading ? '実行中...' : status.action.label ?? '実行'}
+                    </button>
+                    {result && (
+                      <div
+                        className={`mt-3 rounded-md border px-3 py-2 text-sm ${
+                          result.status === 'success'
+                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                            : 'border-rose-200 bg-rose-50 text-rose-700'
+                        }`}
+                      >
+                        <p className="font-medium">{result.message}</p>
+                        {result.details && (
+                          <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
+                            {result.details.map((detail) => (
+                              <li key={`${status.id}-${detail.label}`}>
+                                <span className="font-medium text-slate-500">{detail.label}:</span>{' '}
+                                {detail.value}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
