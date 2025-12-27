@@ -11,7 +11,7 @@ export const tableStyles = {
   // テーブル要素
   table: "w-full",
   thead: "bg-slate-50 border-b border-slate-200",
-  th: "px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider",
+  th: "whitespace-nowrap px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider",
   tbody: "divide-y divide-slate-100",
 
   // 通常行
@@ -21,8 +21,8 @@ export const tableStyles = {
   trClickable: "hover:bg-indigo-50 cursor-pointer transition-colors duration-150 group",
 
   // セル
-  td: "px-4 py-3 text-sm text-slate-700",
-  tdCompact: "px-4 py-2 text-sm text-slate-700",
+  td: "whitespace-nowrap px-4 py-3 text-sm text-slate-700",
+  tdCompact: "whitespace-nowrap px-4 py-2 text-sm text-slate-700",
 
   // リンクスタイル（行クリック時の主要カラム）
   tdPrimary: "font-medium text-slate-900 group-hover:text-indigo-600",

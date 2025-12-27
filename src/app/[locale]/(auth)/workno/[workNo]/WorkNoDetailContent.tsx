@@ -174,9 +174,9 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
     
     const normalizedStatus = status.trim();
     if (normalizedStatus.includes('Working')) {
-      return 'bg-blue-50';
+      return 'bg-indigo-50';
     } else if (normalizedStatus.includes('Arrived')) {
-      return 'bg-green-50';
+      return 'bg-emerald-50';
     }
     return '';
   };
@@ -188,13 +188,13 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
         {/* ヘッダーエリア */}
         <div className="bg-white shadow-sm rounded-lg px-6 py-4 mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-slate-900">
               {customer?.name?.value || 'Unknown Customer'}
             </h1>
             <div className="flex items-center space-x-3">
               <Link
                 href={`/${locale}/workno/${record.WorkNo?.value}/edit`}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -203,7 +203,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               </Link>
               <Link
                 href={`/${locale}/workno`}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-4 py-2 border border-slate-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -214,15 +214,15 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
-              <p className="text-gray-500">Work No</p>
+              <p className="text-slate-500">Work No</p>
               <p className="font-medium">{record.WorkNo?.value || '-'}</p>
             </div>
             <div>
-              <p className="text-gray-500">Project</p>
+              <p className="text-slate-500">Project</p>
               <p className="font-medium">{record.文字列__1行__1?.value || '-'}</p>
             </div>
             <div>
-              <p className="text-gray-500">Status</p>
+              <p className="text-slate-500">Status</p>
               <p>
                 <span 
                   className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
@@ -236,7 +236,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               </p>
             </div>
             <div>
-              <p className="text-gray-500">Type</p>
+              <p className="text-slate-500">Type</p>
               <p className="font-medium">{record.Type?.value || '-'}</p>
             </div>
           </div>
@@ -246,14 +246,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* 1. 工事情報 */}
           <div className="bg-white shadow rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">工事情報</h3>
+            <h3 className="text-lg font-semibold mb-4 text-slate-800">工事情報</h3>
             <dl className="space-y-2">
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">開始日</dt>
+                <dt className="text-sm text-slate-500">開始日</dt>
                 <dd className="text-sm font-medium">{record.日付_6?.value?.replace(/-/g, '/') || 'TBD'}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">売上予定日</dt>
+                <dt className="text-sm text-slate-500">売上予定日</dt>
                 <dd className="text-sm font-medium">
                   <span className={isSalesScheduledOverdue ? 'text-red-600' : ''}>
                     {formattedSalesScheduled}
@@ -262,11 +262,11 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">終了日</dt>
+                <dt className="text-sm text-slate-500">終了日</dt>
                 <dd className="text-sm font-medium">{record.日付_5?.value?.replace(/-/g, '/') || 'TBD'}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">注文書番号</dt>
+                <dt className="text-sm text-slate-500">注文書番号</dt>
                 <dd className="text-sm font-medium">
                   {record.ルックアップ?.value ? (
                     <Link 
@@ -279,7 +279,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">担当営業</dt>
+                <dt className="text-sm text-slate-500">担当営業</dt>
                 <dd className="text-sm font-medium">
                   {record.Salesstaff?.value && record.Salesstaff.value.length > 0 
                     ? record.Salesstaff.value.map(staff => staff.name).join(', ')
@@ -292,12 +292,12 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
 
           {/* 2. 見積情報 */}
           <div className="bg-white shadow rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">見積情報</h3>
+            <h3 className="text-lg font-semibold mb-4 text-slate-800">見積情報</h3>
             <dl className="space-y-2">
               {quotationRecords.length > 0 ? (
                 <>
                   <div className="flex justify-between">
-                    <dt className="text-sm text-gray-500">見積番号</dt>
+                    <dt className="text-sm text-slate-500">見積番号</dt>
                     <dd className="text-sm font-medium">
                       <Link 
                         href={`/${locale}/quotation/${quotationRecords[0].$id.value}`}
@@ -308,7 +308,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-sm text-gray-500">見積金額</dt>
+                    <dt className="text-sm text-slate-500">見積金額</dt>
                     <dd className="text-sm font-medium">
                       {(() => {
                         const subtotal = quotationRecords[0].Sub_total?.value ? parseFloat(quotationRecords[0].Sub_total.value) : 0;
@@ -319,7 +319,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-sm text-gray-500">予想コスト</dt>
+                    <dt className="text-sm text-slate-500">予想コスト</dt>
                     <dd className="text-sm font-medium">
                       {quotationRecords[0].costtotal?.value 
                         ? `${parseFloat(quotationRecords[0].costtotal.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
@@ -328,7 +328,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-sm text-gray-500">予想利益率</dt>
+                    <dt className="text-sm text-slate-500">予想利益率</dt>
                     <dd className="text-sm font-medium">
                       {(() => {
                         const subtotal = quotationRecords[0].Sub_total?.value ? parseFloat(quotationRecords[0].Sub_total.value) : 0;
@@ -347,29 +347,29 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                   </div>
                 </>
               ) : (
-                <div className="text-sm text-gray-500 text-center py-4">見積情報なし</div>
+                <div className="text-sm text-slate-500 text-center py-4">見積情報なし</div>
               )}
             </dl>
           </div>
 
           {/* 3. 機械情報 */}
           <div className="bg-white shadow rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">機械情報</h3>
+            <h3 className="text-lg font-semibold mb-4 text-slate-800">機械情報</h3>
             <dl className="space-y-2">
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">Vender</dt>
+                <dt className="text-sm text-slate-500">Vender</dt>
                 <dd className="text-sm font-medium">{record.文字列__1行__5?.value || '-'}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">Model</dt>
+                <dt className="text-sm text-slate-500">Model</dt>
                 <dd className="text-sm font-medium">{record.文字列__1行__9?.value || '-'}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">Serial No.</dt>
+                <dt className="text-sm text-slate-500">Serial No.</dt>
                 <dd className="text-sm font-medium">{record.文字列__1行__10?.value || '-'}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">M/C No.</dt>
+                <dt className="text-sm text-slate-500">M/C No.</dt>
                 <dd className="text-sm font-medium">{record.文字列__1行__11?.value || '-'}</dd>
               </div>
             </dl>
@@ -377,10 +377,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
 
           {/* 4. 実績 */}
           <div className="bg-white shadow rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">実績</h3>
+            <h3 className="text-lg font-semibold mb-4 text-slate-800">実績</h3>
             <dl className="space-y-2">
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">売上高</dt>
+                <dt className="text-sm text-slate-500">売上高</dt>
                 <dd className="text-sm font-medium">
                   {(() => {
                     if (quotationRecords.length > 0) {
@@ -394,7 +394,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">実コスト</dt>
+                <dt className="text-sm text-slate-500">実コスト</dt>
                 <dd className="text-sm font-medium">
                   {(() => {
                     const actualCostTotal = costRecords.reduce((sum, cost) => {
@@ -409,7 +409,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">粗利益</dt>
+                <dt className="text-sm text-slate-500">粗利益</dt>
                 <dd className="text-sm font-medium">
                   {record.profit?.value 
                     ? `${parseFloat(record.profit.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
@@ -418,7 +418,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-sm text-gray-500">利益率</dt>
+                <dt className="text-sm text-slate-500">利益率</dt>
                 <dd className="text-sm font-medium">
                   {(() => {
                     const grossProfit = record.profit?.value ? parseFloat(record.profit.value) : 0;
@@ -438,17 +438,17 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
         {/* タブセクション */}
         <div className="bg-white shadow-sm rounded-lg overflow-hidden">
           {/* タブナビゲーション */}
-          <div className="border-b border-gray-200">
+          <div className="border-b border-slate-200">
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
               <button
                 onClick={() => setActiveTab('cost-sheet')}
                 className={`${
                   activeTab === 'cost-sheet'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <DocumentIcon className={`mr-2 h-5 w-5 ${activeTab === 'cost-sheet' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <DocumentIcon className={`mr-2 h-5 w-5 ${activeTab === 'cost-sheet' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 Cost Sheet
               </button>
               <button
@@ -456,10 +456,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'po-list'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <ListIcon className={`mr-2 h-5 w-5 ${activeTab === 'po-list' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <ListIcon className={`mr-2 h-5 w-5 ${activeTab === 'po-list' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 PO LIST
                 {hasPOTabWarning && (
                   <ExclamationTriangleIcon className="ml-2 h-4 w-4 text-yellow-500" />
@@ -470,10 +470,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'inv-list'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <ClipboardIcon className={`mr-2 h-5 w-5 ${activeTab === 'inv-list' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <ClipboardIcon className={`mr-2 h-5 w-5 ${activeTab === 'inv-list' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 INV LIST
               </button>
               <button
@@ -481,10 +481,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'mechanical-drawing'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <DocumentTextIcon className={`mr-2 h-5 w-5 ${activeTab === 'mechanical-drawing' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <DocumentTextIcon className={`mr-2 h-5 w-5 ${activeTab === 'mechanical-drawing' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 機械図面
               </button>
               <button
@@ -492,10 +492,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'electrical-drawing'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <LightningBoltIcon className={`mr-2 h-5 w-5 ${activeTab === 'electrical-drawing' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <LightningBoltIcon className={`mr-2 h-5 w-5 ${activeTab === 'electrical-drawing' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 電気図面
               </button>
               <button
@@ -503,10 +503,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'man-huar-list'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <UserIcon className={`mr-2 h-5 w-5 ${activeTab === 'man-huar-list' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <UserIcon className={`mr-2 h-5 w-5 ${activeTab === 'man-huar-list' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 Man-Huar List
               </button>
               <button
@@ -514,10 +514,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'man-huar-record'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <CogIcon className={`mr-2 h-5 w-5 ${activeTab === 'man-huar-record' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <CogIcon className={`mr-2 h-5 w-5 ${activeTab === 'man-huar-record' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 Man-Huar Record
               </button>
               <button
@@ -525,10 +525,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'report'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <ChartBarIcon className={`mr-2 h-5 w-5 ${activeTab === 'report' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <ChartBarIcon className={`mr-2 h-5 w-5 ${activeTab === 'report' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 Report
               </button>
               <button
@@ -536,10 +536,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 className={`${
                   activeTab === 'parson-in-charge'
                     ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
               >
-                <UserIcon className={`mr-2 h-5 w-5 ${activeTab === 'parson-in-charge' ? 'text-indigo-600' : 'text-gray-400'}`} />
+                <UserIcon className={`mr-2 h-5 w-5 ${activeTab === 'parson-in-charge' ? 'text-indigo-600' : 'text-slate-400'}`} />
                 Person in charge
               </button>
             </nav>
@@ -550,54 +550,54 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
 
             {activeTab === 'po-list' && (
               <div className="overflow-x-auto">
-                <table className="w-full table-auto divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="w-full table-auto divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                         PO No.
                       </th>
-                      <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                         Status
                       </th>
-                      <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                         PO date
                       </th>
-                      <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                         Delivery date
                       </th>
-                      <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                         Arrival date
                       </th>
-                      <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                         INVOICE DATE
                       </th>
-                      <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                         Payment date
                       </th>
-                      <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                         Sub Total
                       </th>
-                      <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                         Discount
                       </th>
-                      <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                         Grand total
                       </th>
-                      <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                         Requester
                       </th>
-                      <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                         Supplier name
                       </th>
-                      <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                         Payment term
                       </th>
-                      <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                      <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                         Forward
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     {poRecords.map((po) => {
                       const deliveryDate = po.日付_0?.value ? new Date(po.日付_0.value) : null;
                       const today = new Date();
@@ -618,10 +618,10 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                       };
 
                       return (
-                        <tr key={po.$id.value} className={`hover:bg-gray-50 h-12 ${
-                          isOverdue ? 'bg-red-50' : isArrived ? 'bg-green-50' : isOrdered ? 'bg-blue-50' : ''
+                        <tr key={po.$id.value} className={`hover:bg-slate-50 h-12 ${
+                          isOverdue ? 'bg-red-50' : isArrived ? 'bg-emerald-50' : isOrdered ? 'bg-indigo-50' : ''
                         }`}>
-                          <td className="px-1 py-2 text-xs">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs">
                             {po.文字列__1行__1?.value ? (
                               <Link 
                                 href={`/${locale}/po-management/${po.$id.value}`}
@@ -632,7 +632,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                               </Link>
                             ) : '-'}
                           </td>
-                          <td className="px-1 py-2 whitespace-nowrap">
+                          <td className="whitespace-nowrap px-1 py-2 whitespace-nowrap">
                             {po.ドロップダウン_1?.value && (
                               <span 
                                 className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium text-white min-w-20"
@@ -644,8 +644,8 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                               </span>
                             )}
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-center">{formatDate(po.日付?.value)}</td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-center">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">{formatDate(po.日付?.value)}</td>
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">
                             <div className="flex items-center justify-center">
                               {formatDate(po.日付_0?.value)}
                               {!po.日付_0?.value && (
@@ -653,7 +653,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                               )}
                             </div>
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-center">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">
                             <div className="flex items-center justify-center">
                               {formatDate(po.日付_3?.value)}
                               {warnings.hasWarning && warnings.missingFields.includes('Arrival date') && (
@@ -661,7 +661,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                               )}
                             </div>
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-center">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">
                             <div className="flex items-center justify-center">
                               {formatDate(po.日付_4?.value)}
                               {warnings.hasWarning && warnings.missingFields.includes('Invoice date') && (
@@ -669,7 +669,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                               )}
                             </div>
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-center">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">
                             <div className="flex items-center justify-center">
                               {formatDate(po.日付_5?.value)}
                               {warnings.hasWarning && warnings.missingFields.includes('Payment date') && (
@@ -677,17 +677,17 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                               )}
                             </div>
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-right">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-right">
                             {po.subtotal?.value ? parseFloat(po.subtotal.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-right">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-right">
                             {po.discount?.value ? parseFloat(po.discount.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900 text-right">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-right">
                             {po.grand_total?.value ? parseFloat(po.grand_total.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900">{po.requester?.value || '-'}</td>
-                          <td className="px-1 py-2 text-xs text-gray-900">
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">{po.requester?.value || '-'}</td>
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">
                             {po.ルックアップ_1?.value ? (
                               <Link 
                                 href={`/${locale}/suppliers?search=${encodeURIComponent(po.ルックアップ_1.value)}`}
@@ -699,14 +699,14 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                               </Link>
                             ) : '-'}
                           </td>
-                          <td className="px-1 py-2 text-xs text-gray-900">{po.ドロップダウン_0?.value || '-'}</td>
-                          <td className="px-1 py-2 text-xs text-gray-900">{po.forward?.value || '-'}</td>
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">{po.ドロップダウン_0?.value || '-'}</td>
+                          <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">{po.forward?.value || '-'}</td>
                         </tr>
                       );
                     })}
                     {poRecords.length === 0 && (
                       <tr>
-                        <td colSpan={14} className="px-3 py-4 text-sm text-gray-500 text-center">
+                        <td colSpan={14} className="px-3 py-4 text-sm text-slate-500 text-center">
                           {language === 'ja' ? 'データがありません' : 'No data available'}
                         </td>
                       </tr>
@@ -722,73 +722,73 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 {/* テーブル */}
                 <div className="overflow-x-auto">
                   {costRecords.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-8 text-slate-500">
                       {language === 'ja' ? 'この工事番号に関連するコストデータはありません' : 
                        language === 'th' ? 'ไม่มีข้อมูลต้นทุนสำหรับหมายเลขงานนี้' : 
                        'No cost data found for this work number'}
                     </div>
                   ) : (
-                    <table className="w-full table-auto divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="w-full table-auto divide-y divide-slate-200">
+                      <thead className="bg-slate-50">
                         <tr>
-                          <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                             Record No.
                           </th>
-                          <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                             PO No.
                           </th>
-                          <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                             Status
                           </th>
-                          <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                             Arrival Date
                           </th>
-                          <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                             INV Date
                           </th>
-                          <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                             Payment Date
                           </th>
-                          <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                             Description
                           </th>
-                          <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                             Model
                           </th>
-                          <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                             QTY
                           </th>
-                          <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                             UNIT
                           </th>
-                          <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                             Unit Price
                           </th>
-                          <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                             Total
                           </th>
-                          <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                          <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                             Supplier Name
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-white divide-y divide-slate-200">
                         {costRecords.map((cost) => {
                           const statusValue = cost.ドロップダウン_5?.value || '';
                           const isArrived = statusValue.includes('Arrived') || statusValue === 'Arrived';
                           const isWorking = statusValue.includes('Working') || statusValue === 'Working';
 
                           return (
-                            <tr key={cost.$id.value} className={`hover:bg-gray-50 h-12 ${
-                              isArrived ? 'bg-green-50' : isWorking ? 'bg-blue-50' : ''
+                            <tr key={cost.$id.value} className={`hover:bg-slate-50 h-12 ${
+                              isArrived ? 'bg-emerald-50' : isWorking ? 'bg-indigo-50' : ''
                             }`}>
-                              <td className="px-1 py-2 text-xs">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs">
                                 {cost.数値_0?.value || cost.$id?.value || '-'}
                               </td>
-                              <td className="px-1 py-2 text-xs">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs">
                                 {cost.文字列__1行__1?.value || '-'}
                               </td>
-                              <td className="px-1 py-2 whitespace-nowrap">
+                              <td className="whitespace-nowrap px-1 py-2 whitespace-nowrap">
                                 {cost.ドロップダウン_5?.value && (
                                   <span 
                                     className="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium text-white min-w-20"
@@ -800,34 +800,34 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                                   </span>
                                 )}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900 text-center">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">
                                 {formatDate(cost.日付_2?.value)}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900 text-center">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">
                                 {formatDate(cost.日付_3?.value)}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900 text-center">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-center">
                                 {formatDate(cost.日付_4?.value)}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">
                                 {cost.文字列__1行__7?.value || '-'}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">
                                 {cost.文字列__1行__9?.value || '-'}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900 text-right">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-right">
                                 {formatNumber(cost.数値?.value)}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">
                                 {cost.ドロップダウン_3?.value || '-'}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900 text-right">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-right">
                                 {cost.unit_price_0?.value ? parseFloat(cost.unit_price_0.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900 text-right">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900 text-right">
                                 {cost.total_0?.value ? parseFloat(cost.total_0.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                               </td>
-                              <td className="px-1 py-2 text-xs text-gray-900">
+                              <td className="whitespace-nowrap px-1 py-2 text-xs text-slate-900">
                                 {cost.ルックアップ_1?.value || '-'}
                               </td>
                             </tr>
@@ -841,7 +841,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                 {/* 合計表示 */}
                 {costRecords.length > 0 && (
                   <div className="mt-4 text-left">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-slate-700">
                       Total : {(() => {
                         const total = costRecords.reduce((sum, cost) => {
                           const value = cost.total_0?.value ? parseFloat(cost.total_0.value) : 0;
@@ -859,42 +859,42 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
               <div className="overflow-x-auto">
                 {/* 請求書データの表示 */}
                 {invoiceRecords.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-slate-500">
                     {language === 'ja' ? 'この工事番号に関連する請求書データはありません' : 
                      language === 'th' ? 'ไม่มีข้อมูลใบแจ้งหนี้สำหรับหมายเลขงานนี้' : 
                      'No invoice data found for this work number'}
                   </div>
                 ) : (
-                  <table className="w-full table-auto divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                  <table className="w-full table-auto divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                           ID
                         </th>
-                        <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                           Work No.
                         </th>
-                        <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                           Invoice No.
                         </th>
-                        <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                           Invoice Date
                         </th>
-                        <th className="px-1 py-2 text-left text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-left text-xs font-medium text-slate-500">
                           Customer Name
                         </th>
-                        <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                           Tax Excluded
                         </th>
-                        <th className="px-1 py-2 text-right text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-right text-xs font-medium text-slate-500">
                           Total (inc. VAT)
                         </th>
-                        <th className="px-1 py-2 text-center text-xs font-medium text-gray-500">
+                        <th className="whitespace-nowrap px-1 py-2 text-center text-xs font-medium text-slate-500">
                           Status
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white divide-y divide-slate-200">
                       {invoiceRecords.map((invoice) => {
                         // 日付フォーマット関数
                         const formatDate = (dateStr: string | undefined) => {
@@ -910,30 +910,30 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                         };
 
                         return (
-                          <tr key={invoice.$id?.value || 'unknown'} className="hover:bg-gray-50 h-12">
-                            <td className="px-1 py-2 text-xs">
+                          <tr key={invoice.$id?.value || 'unknown'} className="hover:bg-slate-50 h-12">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs">
                               {invoice.$id?.value || '-'}
                             </td>
-                            <td className="px-1 py-2 text-xs text-center">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs text-center">
                               {invoice.文字列__1行_?.value || '-'}
                             </td>
-                            <td className="px-1 py-2 text-xs text-center">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs text-center">
                               {invoice.文字列__1行__0?.value || '-'}
                             </td>
-                            <td className="px-1 py-2 text-xs text-center">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs text-center">
                               {formatDate(invoice.日付?.value)}
                             </td>
-                            <td className="px-1 py-2 text-xs">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs">
                               {invoice.CS_name?.value || '-'}
                             </td>
-                            <td className="px-1 py-2 text-xs text-right">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs text-right">
                               {formatCurrency(invoice.total?.value)}
                             </td>
-                            <td className="px-1 py-2 text-xs text-right">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs text-right">
                               {formatCurrency(invoice.計算?.value)}
                             </td>
-                            <td className="px-1 py-2 text-xs text-center">
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            <td className="whitespace-nowrap px-1 py-2 text-xs text-center">
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
                                 {invoice.ラジオボタン?.value ? invoice.ラジオボタン.value.split('/')[0] : '-'}
                               </span>
                             </td>
@@ -943,18 +943,18 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                     </tbody>
                     
                     {/* 合計行 */}
-                    <tfoot className="bg-gray-50">
+                    <tfoot className="bg-slate-50">
                       <tr>
-                        <td colSpan={5} className="px-1 py-2 text-xs font-semibold text-gray-900 text-right">
+                        <td colSpan={5} className="px-1 py-2 text-xs font-semibold text-slate-900 text-right">
                           Total:
                         </td>
-                        <td className="px-1 py-2 text-xs font-semibold text-gray-900 text-right">
+                        <td className="whitespace-nowrap px-1 py-2 text-xs font-semibold text-slate-900 text-right">
                           {invoiceRecords.reduce((sum, invoice) => {
                             const value = invoice.total?.value ? parseFloat(invoice.total.value) : 0;
                             return sum + value;
                           }, 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
                         </td>
-                        <td className="px-1 py-2 text-xs font-semibold text-gray-900 text-right">
+                        <td className="whitespace-nowrap px-1 py-2 text-xs font-semibold text-slate-900 text-right">
                           {invoiceRecords.reduce((sum, invoice) => {
                             const value = invoice.計算?.value ? parseFloat(invoice.計算.value) : 0;
                             return sum + value;
@@ -977,41 +977,41 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                     部品追加
                   </button>
                 </div>
-                <table className="w-full table-auto divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="w-full table-auto divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         No.
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         部品名
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         型番
                       </th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                         数量
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         単位
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                         単価
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                         金額
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         メーカー
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         備考
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     <tr>
-                      <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
+                      <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
                         機械図面の部品表データがありません
                       </td>
                     </tr>
@@ -1028,41 +1028,41 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                     部品追加
                   </button>
                 </div>
-                <table className="w-full table-auto divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="w-full table-auto divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         No.
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         部品名
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         型番
                       </th>
-                      <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                         数量
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         単位
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                         単価
                       </th>
-                      <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                         金額
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         メーカー
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         備考
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     <tr>
-                      <td colSpan={9} className="px-3 py-8 text-center text-gray-500">
+                      <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
                         電気図面の部品表データがありません
                       </td>
                     </tr>
@@ -1072,25 +1072,25 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
             )}
 
             {activeTab === 'man-huar-list' && (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-slate-500 py-8">
                 Man-Huar List content will be implemented here
               </div>
             )}
 
             {activeTab === 'man-huar-record' && (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-slate-500 py-8">
                 Man-Huar Record content will be implemented here
               </div>
             )}
 
             {activeTab === 'report' && (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-slate-500 py-8">
                 Report content will be implemented here
               </div>
             )}
 
             {activeTab === 'parson-in-charge' && (
-              <div className="text-center text-gray-500 py-8">
+              <div className="text-center text-slate-500 py-8">
                 Person in charge content will be implemented here
               </div>
             )}

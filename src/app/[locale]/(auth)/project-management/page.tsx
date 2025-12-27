@@ -122,36 +122,36 @@ export default async function ProjectManagementPage({ params, searchParams }: Pr
             </div>
           ) : (
             <div className="max-w-7xl overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-32">
                       {language === 'ja' ? 'コード' : language === 'th' ? 'รหัส' : 'Code'}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-64">
                       {language === 'ja' ? 'プロジェクト名' : language === 'th' ? 'ชื่อโครงการ' : 'Project Name'}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 hidden md:table-cell">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-24 hidden md:table-cell">
                       CS ID
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-28">
                       {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 hidden lg:table-cell">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-28 hidden lg:table-cell">
                       {language === 'ja' ? '開始日' : language === 'th' ? 'วันเริ่มต้น' : 'Start Date'}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 hidden lg:table-cell">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-28 hidden lg:table-cell">
                       {language === 'ja' ? '納期' : language === 'th' ? 'กำหนดส่ง' : 'Due Date'}
                     </th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 hidden md:table-cell">
+                    <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-32 hidden md:table-cell">
                       {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {projectRecords.map((record) => (
-                    <tr key={record.$id.value} className="hover:bg-gray-50">
-                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <tr key={record.$id.value} className="hover:bg-slate-50">
+                      <td className="whitespace-nowrap px-3 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                         <Link
                           href={`/${locale}/project-management/${record.PJ_code?.value}`}
                           className="text-indigo-600 hover:text-indigo-900"
@@ -159,33 +159,33 @@ export default async function ProjectManagementPage({ params, searchParams }: Pr
                           {record.PJ_code?.value || '-'}
                         </Link>
                       </td>
-                      <td className="px-3 py-4 text-sm text-gray-900">
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-slate-900">
                         <div className="font-medium">
                           {record.PjName?.value || '-'}
                         </div>
                         {record.Description?.value && (
-                          <div className="text-gray-500 truncate max-w-xs">
+                          <div className="text-slate-500 truncate max-w-xs">
                             {record.Description.value}
                           </div>
                         )}
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                      <td className="whitespace-nowrap px-3 py-4 whitespace-nowrap text-sm text-slate-900 hidden md:table-cell">
                         {record.Cs_ID?.value || '-'}
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="whitespace-nowrap px-3 py-4 whitespace-nowrap text-sm text-slate-900">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           getStatusColor(record.Status?.value || '見積中')
                         }`}>
                           {record.Status?.value || '見積中'}
                         </span>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
+                      <td className="whitespace-nowrap px-3 py-4 whitespace-nowrap text-sm text-slate-900 hidden lg:table-cell">
                         {formatDate(record.Start_date?.value)}
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
+                      <td className="whitespace-nowrap px-3 py-4 whitespace-nowrap text-sm text-slate-900 hidden lg:table-cell">
                         {formatDate(record.Due_date?.value)}
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                      <td className="whitespace-nowrap px-3 py-4 whitespace-nowrap text-sm text-slate-900 hidden md:table-cell">
                         {record.WorkNo?.value ? (
                           <Link
                             href={`/${locale}/workno/${encodeURIComponent(record.WorkNo.value)}`}
@@ -194,7 +194,7 @@ export default async function ProjectManagementPage({ params, searchParams }: Pr
                             {record.WorkNo.value}
                           </Link>
                         ) : (
-                          <span className="text-gray-500">未割当</span>
+                          <span className="text-slate-500">未割当</span>
                         )}
                       </td>
                     </tr>

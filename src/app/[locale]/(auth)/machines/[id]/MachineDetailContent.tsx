@@ -84,7 +84,7 @@ export default function MachineDetailContent({
       {/* ヘッダー */}
       <div className="mb-6 mt-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="text-2xl font-semibold text-slate-900">
             {machineRecord.McItem?.value ? `${machineRecord.McItem.value} ` : ''}{machineRecord.Moldel?.value || 'Machine Details'}
           </h1>
           <button
@@ -95,11 +95,11 @@ export default function MachineDetailContent({
               });
             }}
             disabled={isPending || isNavigating}
-            className="px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-3 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {(isPending || isNavigating) ? (
               <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-slate-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -119,11 +119,11 @@ export default function MachineDetailContent({
             onClick={() => setActiveTab('details')}
             className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'details'
-                ? 'text-blue-600 border-blue-600 bg-blue-50'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                ? 'text-indigo-600 border-indigo-600 bg-indigo-50'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'
             }`}
           >
-            <DocumentIcon className={`mr-3 h-5 w-5 inline-block ${activeTab === 'details' ? 'text-blue-600' : 'text-gray-400'}`} />
+            <DocumentIcon className={`mr-3 h-5 w-5 inline-block ${activeTab === 'details' ? 'text-indigo-600' : 'text-slate-400'}`} />
             {language === 'ja' ? '機械詳細' : language === 'th' ? 'รายละเอียด' : 'Machine Details'}
           </button>
           
@@ -132,14 +132,14 @@ export default function MachineDetailContent({
               onClick={() => setActiveTab('workno')}
               className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'workno'
-                  ? 'text-blue-600 border-blue-600 bg-blue-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'text-indigo-600 border-indigo-600 bg-indigo-50'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
-              <ListIcon className={`mr-3 h-5 w-5 inline-block ${activeTab === 'workno' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <ListIcon className={`mr-3 h-5 w-5 inline-block ${activeTab === 'workno' ? 'text-indigo-600' : 'text-slate-400'}`} />
               {language === 'ja' ? '工事番号一覧' : language === 'th' ? 'รายการเลขที่งาน' : 'Work Number List'}
               <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-                activeTab === 'workno' ? 'bg-green-600 text-white' : 'bg-green-500 text-white'
+                activeTab === 'workno' ? 'bg-emerald-600 text-white' : 'bg-emerald-500 text-white'
               }`}>
                 {workNoRecords.length}
               </span>
@@ -151,14 +151,14 @@ export default function MachineDetailContent({
               onClick={() => setActiveTab('quotation')}
               className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'quotation'
-                  ? 'text-blue-600 border-blue-600 bg-blue-50'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'text-indigo-600 border-indigo-600 bg-indigo-50'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:bg-slate-50'
               }`}
             >
-              <ClipboardIcon className={`mr-3 h-5 w-5 inline-block ${activeTab === 'quotation' ? 'text-blue-600' : 'text-gray-400'}`} />
+              <ClipboardIcon className={`mr-3 h-5 w-5 inline-block ${activeTab === 'quotation' ? 'text-indigo-600' : 'text-slate-400'}`} />
               {language === 'ja' ? '見積一覧' : language === 'th' ? 'รายการใบเสนอราคา' : 'Quotation List'}
               <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
-                activeTab === 'quotation' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'
+                activeTab === 'quotation' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-800'
               }`}>
                 {quotationRecords.length}
               </span>
@@ -173,14 +173,14 @@ export default function MachineDetailContent({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* 左側: 機械詳細情報（2カラム分） */}
             <div className="lg:col-span-2 bg-white shadow overflow-hidden sm:rounded-lg">
-              <div className="border-t border-gray-100">
-                <dl className="divide-y divide-gray-100">
+              <div className="border-t border-slate-100">
+                <dl className="divide-y divide-slate-100">
                 {/* 顧客情報セクション */}
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'CS ID' : 'CS ID'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.CsId_db?.value ? (
                       <TransitionLink
                         href={`/${locale}/customers/${machineRecord.CsId_db.value}`}
@@ -192,103 +192,103 @@ export default function MachineDetailContent({
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? '顧客名' : language === 'th' ? 'ชื่อลูกค้า' : 'Customer Name'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.CsName?.value || '-'}
                   </dd>
                 </div>
                 
                 {/* 機械情報セクション */}
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'カテゴリ' : language === 'th' ? 'หมวดหมู่' : 'Category'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.MachineCategory?.value || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'タイプ' : language === 'th' ? 'ประเภท' : 'Type'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.Drop_down_0?.value || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'メーカー' : language === 'th' ? 'ผู้ผลิต' : 'Vendor'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.Vender?.value || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'モデル' : language === 'th' ? 'รุ่น' : 'Model'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.Moldel?.value || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'シリアル番号' : language === 'th' ? 'หมายเลขซีเรียล' : 'Serial No.'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.SrialNo?.value || '-'}
                   </dd>
                 </div>
 
                 {/* 詳細情報セクション */}
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? '年' : language === 'th' ? 'ปี' : 'Year'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.Year?.value || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? '仕様' : language === 'th' ? 'ข้อมูลจำเพาะ' : 'Specification'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.Specification?.value || '-'}
                   </dd>
                 </div>
 
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'その他' : language === 'th' ? 'อื่นๆ' : 'Others'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.Others?.value || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? 'コメント' : language === 'th' ? 'หมายเหตุ' : 'Comment'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {machineRecord.Comment?.value || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? '作成日' : language === 'th' ? 'วันที่สร้าง' : 'Created Date'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {formatDate(machineRecord.作成日時?.value)}
                   </dd>
                 </div>
                 <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium leading-6 text-gray-900">
+                  <dt className="text-sm font-medium leading-6 text-slate-900">
                     {language === 'ja' ? '更新日' : language === 'th' ? 'วันที่อัปเดต' : 'Updated Date'}
                   </dt>
-                  <dd className="mt-0 text-sm leading-5 text-gray-700 sm:col-span-2 sm:mt-0">
+                  <dd className="mt-0 text-sm leading-5 text-slate-700 sm:col-span-2 sm:mt-0">
                     {formatDate(machineRecord.更新日時?.value)}
                   </dd>
                 </div>
@@ -300,36 +300,36 @@ export default function MachineDetailContent({
             {customerMachines.length > 0 && (
               <div className="lg:col-span-1">
                 <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                  <div className="px-4 py-3 sm:px-6 border-b border-gray-200">
+                  <div className="px-4 py-3 sm:px-6 border-b border-slate-200">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium text-gray-900">
+                      <h3 className="text-lg font-medium text-slate-900">
                         {language === 'ja' ? '保有機械一覧' : language === 'th' ? 'รายการเครื่องจักรที่ครอบครอง' : 'Machine List'}
                       </h3>
-                      <span className="text-sm font-medium text-gray-500">
+                      <span className="text-sm font-medium text-slate-500">
                         {customerMachines.length + 1} {language === 'ja' ? '台' : language === 'th' ? 'เครื่อง' : 'units'}
                       </span>
                     </div>
                   </div>
-                  <div className="divide-y divide-gray-200">
+                  <div className="divide-y divide-slate-200">
                     {/* 現在表示中の機械 */}
-                    <div className="px-4 py-3 bg-blue-50">
+                    <div className="px-4 py-3 bg-indigo-50">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center space-x-4">
-                            <span className="text-sm font-medium text-blue-600">
+                            <span className="text-sm font-medium text-indigo-600">
                               {machineRecord.McItem?.value || '-'}
                             </span>
-                            <span className="text-sm text-gray-900">
+                            <span className="text-sm text-slate-900">
                               {machineRecord.Moldel?.value || '-'}
                             </span>
                             {machineRecord.MCNo?.value && (
-                              <span className="text-sm text-gray-600">
+                              <span className="text-sm text-slate-600">
                                 {machineRecord.MCNo.value}
                               </span>
                             )}
                           </div>
                         </div>
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        <span className="px-2 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full">
                           {language === 'ja' ? '表示中' : language === 'th' ? 'กำลังแสดง' : 'Current'}
                         </span>
                       </div>
@@ -339,7 +339,7 @@ export default function MachineDetailContent({
                       <TransitionLink
                         key={machine.$id.value}
                         href={`/${locale}/machines/${machine.$id.value}`}
-                        className="block px-4 py-3 hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                        className="block px-4 py-3 hover:bg-slate-50 transition-colors duration-150 ease-in-out"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
@@ -347,17 +347,17 @@ export default function MachineDetailContent({
                               <span className="text-sm font-medium text-indigo-600">
                                 {machine.McItem?.value || '-'}
                               </span>
-                              <span className="text-sm text-gray-900">
+                              <span className="text-sm text-slate-900">
                                 {machine.Moldel?.value || '-'}
                               </span>
                               {machine.MCNo?.value && (
-                                <span className="text-sm text-gray-600">
+                                <span className="text-sm text-slate-600">
                                   {machine.MCNo.value}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </div>
@@ -372,39 +372,39 @@ export default function MachineDetailContent({
 
         {activeTab === 'workno' && (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg px-4 py-2">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <h3 className="text-lg font-medium text-slate-900 mb-4">
               {language === 'ja' ? '関連する工事番号' : language === 'th' ? 'เลขที่งานที่เกี่ยวข้อง' : 'Related Work Numbers'}
             </h3>
             {workNoRecords.length === 0 ? (
-              <p className="text-gray-500">
+              <p className="text-slate-500">
                 {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? '工事番号' : language === 'th' ? 'เลขที่งาน' : 'Work No.'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? 'カテゴリ' : language === 'th' ? 'หมวดหมู่' : 'Category'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? '説明' : language === 'th' ? 'คำอธิบาย' : 'Description'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? '納期' : language === 'th' ? 'กำหนดส่ง' : 'Delivery'}
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     {workNoRecords.map((record) => (
-                      <tr key={record.$id.value} className="hover:bg-gray-50">
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <tr key={record.$id.value} className="hover:bg-slate-50">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900">
                           <TransitionLink
                             href={`/${locale}/workno/${record.WorkNo?.value}`}
                             className="text-indigo-600 hover:text-indigo-900 font-medium"
@@ -412,26 +412,26 @@ export default function MachineDetailContent({
                             {record.WorkNo?.value || '-'}
                           </TransitionLink>
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             record.Status?.value === 'Working' 
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-indigo-100 text-indigo-800'
                               : record.Status?.value === 'Finished'
-                              ? 'bg-green-100 text-green-800'
+                              ? 'bg-emerald-100 text-emerald-800'
                               : record.Status?.value === 'Waiting PO'
                               ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
+                              : 'bg-slate-100 text-slate-800'
                           }`}>
                             {getStatusLabel(record.Status?.value || '', language)}
                           </span>
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900">
                           {record.文字列__1行__1?.value || '-'}
                         </td>
-                        <td className="px-3 py-3 text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-900">
                           {record.文字列__1行__2?.value || '-'}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900">
                           {formatDate(record.Salesdate?.value)}
                         </td>
                       </tr>
@@ -445,39 +445,39 @@ export default function MachineDetailContent({
 
         {activeTab === 'quotation' && (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg px-4 py-2">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <h3 className="text-lg font-medium text-slate-900 mb-4">
               {language === 'ja' ? '関連する見積' : language === 'th' ? 'ใบเสนอราคาที่เกี่ยวข้อง' : 'Related Quotations'}
             </h3>
             {quotationRecords.length === 0 ? (
-              <p className="text-gray-500">
+              <p className="text-slate-500">
                 {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
               </p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? '見積番号' : language === 'th' ? 'เลขที่ใบเสนอราคา' : 'Quotation No.'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? '見積日' : language === 'th' ? 'วันที่เสนอราคา' : 'Quote Date'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? '件名' : language === 'th' ? 'หัวข้อ' : 'Subject'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? '金額' : language === 'th' ? 'จำนวนเงิน' : 'Amount'}
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-slate-200">
                     {quotationRecords.map((record) => (
-                      <tr key={record.$id.value} className="hover:bg-gray-50">
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                      <tr key={record.$id.value} className="hover:bg-slate-50">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900">
                           <TransitionLink
                             href={`/${locale}/quotation/${record.qtno2?.value}`}
                             className="text-indigo-600 hover:text-indigo-900 font-medium"
@@ -485,17 +485,17 @@ export default function MachineDetailContent({
                             {record.qtno2?.value || '-'}
                           </TransitionLink>
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900">
                           {formatDate(record.日付?.value)}
                         </td>
-                        <td className="px-3 py-3 text-sm text-gray-900">
+                        <td className="whitespace-nowrap px-3 py-3 text-sm text-slate-900">
                           {record.文字列__1行__4?.value || '-'}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900 text-right">
                           {formatNumber(record.grand_total?.value)}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        <td className="whitespace-nowrap px-3 py-3 whitespace-nowrap text-sm text-slate-900">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
                             {record.ドロップダウン?.value || '-'}
                           </span>
                         </td>

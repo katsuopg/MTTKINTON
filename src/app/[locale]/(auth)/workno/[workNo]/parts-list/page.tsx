@@ -137,7 +137,7 @@ export default function PartsListPage({ params: { locale, workNo } }: PartsListP
       <div className="mb-6">
         <button
           onClick={() => router.back()}
-          className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
+          className="inline-flex items-center text-sm text-slate-500 hover:text-slate-700"
         >
           <ChevronLeft className="w-4 h-4 mr-1" />
           プロジェクト一覧に戻る
@@ -145,8 +145,8 @@ export default function PartsListPage({ params: { locale, workNo } }: PartsListP
       </div>
 
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">パーツリスト管理</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-slate-900">パーツリスト管理</h1>
+        <p className="mt-1 text-sm text-slate-600">
           工事番号: {workNo}
         </p>
       </div>
@@ -160,70 +160,70 @@ export default function PartsListPage({ params: { locale, workNo } }: PartsListP
             <Plus className="w-4 h-4 mr-1" />
             部品追加
           </button>
-          <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          <button className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50">
             <Upload className="w-4 h-4 mr-1" />
             Excelインポート
           </button>
-          <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          <button className="inline-flex items-center px-3 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50">
             <FileDown className="w-4 h-4 mr-1" />
             Excelエクスポート
           </button>
         </div>
-        <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+        <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700">
           <Save className="w-4 h-4 mr-1" />
           保存
         </button>
       </div>
 
       <div className="overflow-x-auto bg-white shadow-sm rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-slate-200">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No.</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部品名</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">型式・品番</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">メーカー</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">手配先</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">単価</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">合計金額</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">手配状況</th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ステータス</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">No.</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">部品名</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">型式・品番</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">メーカー</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">手配先</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">数量</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">単価</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">合計金額</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">手配状況</th>
+              <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ステータス</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-slate-200">
             {parts.map((part) => (
               <tr key={part.id}>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{part.no}</td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap text-sm text-slate-900">{part.no}</td>
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <input
                     type="text"
                     value={part.partName}
                     onChange={(e) => handlePartChange(part.id, 'partName', e.target.value)}
-                    className="w-full text-sm border-gray-300 rounded-md"
+                    className="w-full text-sm border-slate-300 rounded-md"
                   />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <input
                     type="text"
                     value={part.modelPartNumber}
                     onChange={(e) => handlePartChange(part.id, 'modelPartNumber', e.target.value)}
-                    className="w-full text-sm border-gray-300 rounded-md"
+                    className="w-full text-sm border-slate-300 rounded-md"
                   />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <input
                     type="text"
                     value={part.brand}
                     onChange={(e) => handlePartChange(part.id, 'brand', e.target.value)}
-                    className="w-full text-sm border-gray-300 rounded-md"
+                    className="w-full text-sm border-slate-300 rounded-md"
                   />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <select
                     value={part.supplier}
                     onChange={(e) => handlePartChange(part.id, 'supplier', e.target.value)}
-                    className="w-full text-sm border-gray-300 rounded-md"
+                    className="w-full text-sm border-slate-300 rounded-md"
                   >
                     <option value="">選択</option>
                     <option value="商社A">商社A</option>
@@ -231,41 +231,41 @@ export default function PartsListPage({ params: { locale, workNo } }: PartsListP
                     <option value="商社C">商社C</option>
                   </select>
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <input
                     type="number"
                     value={part.qty}
                     onChange={(e) => handlePartChange(part.id, 'qty', parseInt(e.target.value) || 0)}
-                    className="w-16 text-sm border-gray-300 rounded-md"
+                    className="w-16 text-sm border-slate-300 rounded-md"
                   />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <input
                     type="number"
                     value={part.unitPrice}
                     onChange={(e) => handlePartChange(part.id, 'unitPrice', parseInt(e.target.value) || 0)}
-                    className="w-24 text-sm border-gray-300 rounded-md"
+                    className="w-24 text-sm border-slate-300 rounded-md"
                   />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap text-sm text-slate-900">
                   ¥{part.totalAmount.toLocaleString()}
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <select
                     value={part.procurementStatus}
                     onChange={(e) => handlePartChange(part.id, 'procurementStatus', e.target.value)}
-                    className="text-sm border-gray-300 rounded-md"
+                    className="text-sm border-slate-300 rounded-md"
                   >
                     <option value="not_ordered">未手配</option>
                     <option value="ordered">手配済み</option>
                     <option value="received">入荷済み</option>
                   </select>
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="whitespace-nowrap px-3 py-2 whitespace-nowrap">
                   <select
                     value={part.status}
                     onChange={(e) => handlePartChange(part.id, 'status', e.target.value)}
-                    className="text-sm border-gray-300 rounded-md"
+                    className="text-sm border-slate-300 rounded-md"
                   >
                     <option value="considering">検討中</option>
                     <option value="confirmed">確定</option>

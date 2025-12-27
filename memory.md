@@ -1,6 +1,44 @@
 # MTT KINTON - 作業履歴
 
-## 最新作業（2025-12-03）
+## 最新作業（2025-12-27）
+
+### テーブル表示の統一（折り返し禁止対応）
+- **要求**: コスト管理画面のテーブルヘッダーが折り返されている（工事番号、CS IDなど）。デザイン規約に折り返し禁止ルールを追加
+- **修正内容**:
+  1. **デザイン規約の更新** (`docs/design-system.md`)
+     - テーブルヘッダー・セルのテキスト規約を追加
+     - `whitespace-nowrap`の使用を推奨
+     - 折り返しが必要な場合の例外ルールも明記
+
+  2. **TableStyles.tsxの更新** (`components/ui/TableStyles.tsx`)
+     - `th`スタイルに`whitespace-nowrap`を追加
+     - `td`と`tdCompact`スタイルに`whitespace-nowrap`を追加
+     - これにより、tableStylesを使用している全テーブルに自動適用
+
+  3. **コスト管理画面の修正** (`src/app/[locale]/(auth)/cost-management/CostManagementContent.tsx`)
+     - 全テーブルヘッダーに`whitespace-nowrap`を追加
+     - 全テーブルセルに`whitespace-nowrap`を追加
+
+  4. **WorkNoClient.tsxの修正** (`src/app/[locale]/(auth)/workno/WorkNoClient.tsx`)
+     - 独自スタイルのため個別に`whitespace-nowrap`を追加
+
+  5. **その他のテーブル画面の一括修正**（sedで一括置換）
+     - CustomerDetailContent.tsx
+     - WorkNoDetailContent.tsx
+     - parts-list/page.tsx
+     - po-management/[id]/page.tsx
+     - project-management/page.tsx
+     - MachineDetailContent.tsx
+     - QuotationEditForm.tsx
+     - QuotationDetailContent.tsx
+     - POTableRow.tsx
+
+- **対象ファイル数**: 約20ファイル
+- **結果**: 全テーブル画面でヘッダーとセルが折り返されなくなった
+
+---
+
+## 過去の作業（2025-12-03）
 
 ### 従業員詳細ページの改善（レイアウト再編成・機能追加）
 

@@ -124,12 +124,12 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
         </section>
 
         {/* Quotation layout */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-20">
+        <section className="bg-white border border-slate-200 rounded-lg shadow-sm p-20">
           <div className="pb-6 space-y-6">
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="text-2xl font-bold tracking-wide">MEGA TECH (THAI) CO., LTD.</h1>
-                <p className="text-sm text-gray-600 mt-2">
+                <p className="text-sm text-slate-600 mt-2">
                   107/5 หมู่ 8 ซ.เทศบาลสำโรงใต้ 3 ถ.ปู่เจ้า สมิงพราย ต.สำโรงกลาง อ.พระประแดง จ.สมุทรปราการ 10130<br />
                   Tel: +66 (2) 380-0367-68 Fax:+66 (2) 757-6056 E-mail: admin_n@megatech.co.th
                 </p>
@@ -139,35 +139,35 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
               </div>
             </div>
 
-            <div className="border border-gray-400">
+            <div className="border border-slate-400">
               <table className="w-full table-fixed text-sm">
                 <tbody>
                   <tr>
-                    <td rowSpan={customerAddress ? 4 : 3} className="w-24 bg-gray-100 border-r border-gray-400 text-center font-semibold uppercase tracking-[0.3em] text-gray-700">
+                    <td rowSpan={customerAddress ? 4 : 3} className="w-24 bg-slate-100 border-r border-slate-400 text-center font-semibold uppercase tracking-[0.3em] text-slate-700">
                       TO
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       {customerName}
                     </td>
                   </tr>
                   {customerAddress && (
                     <tr>
-                      <td className="px-3 py-2">
+                      <td className="whitespace-nowrap px-3 py-2">
                         <div className="whitespace-pre-wrap">{customerAddress}</div>
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       ATTN: {personInCharge}
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       {customerEmail ? (
                         <>E-mail: {customerEmail}</>
                       ) : (
-                        <span className="text-gray-400">E-mail: -</span>
+                        <span className="text-slate-400">E-mail: -</span>
                       )}
                     </td>
                   </tr>
@@ -180,51 +180,51 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
           {/* Project and details table */}
           <div className="pt-6">
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed border border-gray-400 text-sm">
+              <table className="w-full table-fixed border border-slate-400 text-sm">
                 <tbody>
-                  <tr className="border-b border-gray-400">
+                  <tr className="border-b border-slate-400">
                     <th
                       rowSpan={2}
                       colSpan={2}
-                      className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 align-top text-left pl-6"
+                      className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 align-top text-left pl-6"
                     >
                       PROJECT
                     </th>
-                    <td colSpan={10} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={10} className="border-r border-slate-400 px-3 py-2">
                       {projectName}
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       QT DATE
                     </th>
                     <td colSpan={3} className="px-3 py-2">
                       {formatDisplayDate(quotation.日付?.value)}
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-400">
-                    <td colSpan={10} className="border-r border-gray-400 px-3 py-2">
+                  <tr className="border-b border-slate-400">
+                    <td colSpan={10} className="border-r border-slate-400 px-3 py-2">
                       {quotation.文字列__1行__4?.value || ''}
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       QT NO.
                     </th>
                     <td colSpan={3} className="px-3 py-2">
                       {quotation.qtno2?.value || ''}
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-400">
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                  <tr className="border-b border-slate-400">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       VENDER
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       {quotation.文字列__1行__5?.value || ''}
                     </td>
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       MODEL
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       {quotation.文字列__1行__9?.value || ''}
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       VALID UNTIL
                     </th>
                     <td colSpan={3} className="px-3 py-2">
@@ -232,19 +232,19 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
                     </td>
                   </tr>
                   <tr>
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       SERIAL NO.
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       {quotation.文字列__1行__7?.value || ''}
                     </td>
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       M/C NO.
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       {quotation.文字列__1行__10?.value || ''}
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 text-left pl-6">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 text-left pl-6">
                       DELIVERY DATE
                     </th>
                     <td colSpan={3} className="px-3 py-2">
@@ -259,7 +259,7 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
           {/* Line items table */}
           <div className="pt-6">
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed border border-gray-300 text-sm">
+              <table className="w-full table-fixed border border-slate-300 text-sm">
                 <colgroup>
                   <col className="w-[5.56%]" />
                   <col className="w-[55.56%]" />
@@ -267,13 +267,13 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
                   <col className="w-[16.67%]" />
                   <col className="w-[16.67%]" />
                 </colgroup>
-                <thead className="bg-gray-100 text-gray-600 uppercase">
+                <thead className="bg-slate-100 text-slate-600 uppercase">
                   <tr>
-                    <th className="border border-gray-300 px-1 py-2 text-center">Item</th>
-                    <th className="border border-gray-300 px-2 py-2 text-center">Description</th>
-                    <th className="border border-gray-300 px-1 py-2 text-center">Qty</th>
-                    <th className="border border-gray-300 px-2 py-2 text-center">Unit Price</th>
-                    <th className="border border-gray-300 px-2 py-2 text-center">Amount</th>
+                    <th className="border border-slate-300 px-1 py-2 text-center">Item</th>
+                    <th className="border border-slate-300 px-2 py-2 text-center">Description</th>
+                    <th className="border border-slate-300 px-1 py-2 text-center">Qty</th>
+                    <th className="border border-slate-300 px-2 py-2 text-center">Unit Price</th>
+                    <th className="border border-slate-300 px-2 py-2 text-center">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,19 +293,19 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
 
                     return (
                     <tr key={item.id} className="align-top">
-                      <td className="border border-gray-300 px-1 py-2">
+                      <td className="border border-slate-300 px-1 py-2">
                         <div className="text-center text-sm">{item.value.Text?.value || ''}</div>
                       </td>
-                      <td className="border border-gray-300 px-2 py-2">
+                      <td className="border border-slate-300 px-2 py-2">
                         <div className="text-sm whitespace-pre-wrap">{combinedDescription}</div>
                       </td>
-                      <td className="border border-gray-300 px-1 py-2 text-center text-sm">
+                      <td className="border border-slate-300 px-1 py-2 text-center text-sm">
                         {qtyDisplay}
                       </td>
-                      <td className="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-900 text-sm">
+                      <td className="border border-slate-300 px-2 py-2 text-right font-semibold text-slate-900 text-sm">
                         {formatCurrency(unitPrice)}
                       </td>
-                      <td className="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-900 text-sm">
+                      <td className="border border-slate-300 px-2 py-2 text-right font-semibold text-slate-900 text-sm">
                         {formatCurrency(amount)}
                       </td>
                     </tr>
@@ -314,11 +314,11 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
                   {/* 10行に満たない場合は空行を追加 */}
                   {Array.from({ length: Math.max(0, 10 - lineItems.length) }).map((_, index) => (
                     <tr key={`empty-${index}`} className="h-10">
-                      <td className="border border-gray-300 px-1 py-2">&nbsp;</td>
-                      <td className="border border-gray-300 px-2 py-2">&nbsp;</td>
-                      <td className="border border-gray-300 px-1 py-2">&nbsp;</td>
-                      <td className="border border-gray-300 px-2 py-2">&nbsp;</td>
-                      <td className="border border-gray-300 px-2 py-2">&nbsp;</td>
+                      <td className="border border-slate-300 px-1 py-2">&nbsp;</td>
+                      <td className="border border-slate-300 px-2 py-2">&nbsp;</td>
+                      <td className="border border-slate-300 px-1 py-2">&nbsp;</td>
+                      <td className="border border-slate-300 px-2 py-2">&nbsp;</td>
+                      <td className="border border-slate-300 px-2 py-2">&nbsp;</td>
                     </tr>
                   ))}
                 </tbody>
@@ -339,33 +339,33 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
               <tbody>
                 <tr>
                   <td colSpan={3}>&nbsp;</td>
-                  <td className="border border-gray-300 bg-gray-100 px-3 py-2 font-semibold">SUB TOTAL</td>
-                  <td className="border border-gray-300 px-3 py-2 text-right font-semibold">{formatCurrency(subtotal)}</td>
+                  <td className="border border-slate-300 bg-slate-100 px-3 py-2 font-semibold">SUB TOTAL</td>
+                  <td className="border border-slate-300 px-3 py-2 text-right font-semibold">{formatCurrency(subtotal)}</td>
                 </tr>
                 <tr>
                   <td colSpan={3}>&nbsp;</td>
-                  <td className="border-l border-r border-b border-gray-300 bg-gray-100 px-3 py-2 font-semibold">
+                  <td className="border-l border-r border-b border-slate-300 bg-slate-100 px-3 py-2 font-semibold">
                     <div className="flex items-center justify-between">
                       <span>DISCOUNT</span>
                       {discountRate > 0 && (
-                        <span className={`text-xs font-normal ${discountRate <= 3 ? 'text-blue-600' : 'text-red-600'}`}>
+                        <span className={`text-xs font-normal ${discountRate <= 3 ? 'text-indigo-600' : 'text-red-600'}`}>
                           ({discountRate.toFixed(2)}%)
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="border-r border-b border-gray-300 px-3 py-2 text-right">{formatCurrency(discount)}</td>
+                  <td className="border-r border-b border-slate-300 px-3 py-2 text-right">{formatCurrency(discount)}</td>
                 </tr>
                 <tr>
                   <td colSpan={3}>&nbsp;</td>
-                  <td className="border-l border-r border-b border-gray-300 bg-gray-100 px-3 py-2 font-semibold">GRAND TOTAL</td>
-                  <td className="border-r border-b border-gray-300 px-3 py-2 text-right font-bold text-indigo-600">{formatCurrency(grandTotal)}</td>
+                  <td className="border-l border-r border-b border-slate-300 bg-slate-100 px-3 py-2 font-semibold">GRAND TOTAL</td>
+                  <td className="border-r border-b border-slate-300 px-3 py-2 text-right font-bold text-indigo-600">{formatCurrency(grandTotal)}</td>
                 </tr>
               </tbody>
             </table>
 
-            <div className="grid grid-cols-12 border border-gray-300 text-sm mt-4">
-              <div className="col-span-3 bg-gray-100 border-r border-gray-300 px-3 py-2 font-semibold uppercase">Payment Term</div>
+            <div className="grid grid-cols-12 border border-slate-300 text-sm mt-4">
+              <div className="col-span-3 bg-slate-100 border-r border-slate-300 px-3 py-2 font-semibold uppercase">Payment Term</div>
               <div className="col-span-9 px-3 py-2">
                 <div className="space-y-1">
                   {quotation.payment_1?.value && quotation.payment_1.value !== '-----' && (
@@ -381,8 +381,8 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
               </div>
             </div>
 
-            <div className="grid grid-cols-12 border border-t-0 border-gray-300 text-sm">
-              <div className="col-span-3 bg-gray-100 border-r border-gray-300 px-3 py-2 font-semibold uppercase">Remark</div>
+            <div className="grid grid-cols-12 border border-t-0 border-slate-300 text-sm">
+              <div className="col-span-3 bg-slate-100 border-r border-slate-300 px-3 py-2 font-semibold uppercase">Remark</div>
               <div className="col-span-9 px-3 py-2">
                 <div className="space-y-1">
                   {quotation.Text_1?.value && (
@@ -398,33 +398,33 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
               </div>
             </div>
 
-            <div className="grid grid-cols-3 border border-gray-300 text-center text-sm mt-6">
-              <div className="px-3 py-3 border-r border-gray-300">
+            <div className="grid grid-cols-3 border border-slate-300 text-center text-sm mt-6">
+              <div className="px-3 py-3 border-r border-slate-300">
                 <div className="font-semibold uppercase mb-3 text-sm">SALES STAFF</div>
-                <div className="mb-3 text-sm text-gray-700 font-bold">
+                <div className="mb-3 text-sm text-slate-700 font-bold">
                   {salesStaff}
                 </div>
                 <div className="text-center">
                   <span className="text-sm font-medium">DATE:</span>
-                  <span className="ml-2 text-sm text-gray-700">{formatDisplayDate(quotation.日付?.value)}</span>
+                  <span className="ml-2 text-sm text-slate-700">{formatDisplayDate(quotation.日付?.value)}</span>
                 </div>
               </div>
-              <div className="px-3 py-3 border-r border-gray-300">
+              <div className="px-3 py-3 border-r border-slate-300">
                 <div className="font-semibold uppercase mb-3 text-sm">APPROVED BY</div>
-                <div className="mb-3 text-sm text-gray-700 font-bold">
+                <div className="mb-3 text-sm text-slate-700 font-bold">
                   {approvedBy}
                 </div>
                 <div className="text-center">
                   <span className="text-sm font-medium">DATE:</span>
-                  <span className="ml-2 text-sm text-gray-700">{formatDisplayDate(quotation.日付?.value)}</span>
+                  <span className="ml-2 text-sm text-slate-700">{formatDisplayDate(quotation.日付?.value)}</span>
                 </div>
               </div>
               <div className="px-3 py-3">
                 <div className="font-semibold uppercase mb-3 text-sm">CUSTOMER CONFIRM</div>
-                <div className="mb-3 text-sm text-gray-700">&nbsp;</div>
+                <div className="mb-3 text-sm text-slate-700">&nbsp;</div>
                 <div className="text-center">
                   <span className="text-sm font-medium">DATE:</span>
-                  <span className="ml-2 text-sm text-gray-700 invisible">03-Oct-2025</span>
+                  <span className="ml-2 text-sm text-slate-700 invisible">03-Oct-2025</span>
                 </div>
               </div>
             </div>
@@ -441,7 +441,7 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
           </Link>
           <Link
             href={`/${locale}/quotation`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             {language === 'ja' ? '一覧に戻る' : 'Back to List'}
           </Link>

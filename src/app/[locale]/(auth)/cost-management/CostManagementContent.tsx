@@ -71,9 +71,9 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
     
     const normalizedStatus = status.trim();
     if (normalizedStatus.includes('Working')) {
-      return 'bg-blue-50';
+      return 'bg-indigo-50';
     } else if (normalizedStatus.includes('Arrived')) {
-      return 'bg-green-50';
+      return 'bg-emerald-50';
     }
     return '';
   };
@@ -120,7 +120,7 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
         <div className={tableStyles.tableContainer}>
           <div className="max-w-7xl overflow-x-auto">
           {filteredCosts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-slate-500">
               {searchTerm ? (
                 language === 'ja' ? '検索結果が見つかりませんでした' : 
                 language === 'th' ? 'ไม่พบผลการค้นหา' : 
@@ -132,81 +132,81 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
               )}
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     ID
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? 'WNステータス' : language === 'th' ? 'สถานะ WN' : 'WN Status'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '開始日' : language === 'th' ? 'วันเริ่ม' : 'Start Date'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '完了日' : language === 'th' ? 'วันเสร็จ' : 'Finish Date'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     PO No.
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? 'PO日付' : language === 'th' ? 'วันที่ PO' : 'PO Date'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     CS ID
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '到着日' : language === 'th' ? 'วันที่มาถึง' : 'Arrival Date'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                    {language === 'ja' ? '請求日' : language === 'th' ? 'วันที่ใบแจ้งหนี้' : 'INV DATE'}
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                    {language === 'ja' ? '請求日' : language === 'th' ? 'วันที่ใบแจ้งหนี้' : 'INV Date'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '支払日' : language === 'th' ? 'วันที่ชำระ' : 'Payment Date'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '支払条件' : language === 'th' ? 'เงื่อนไขการชำระ' : 'Payment Term'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     ITEM
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '説明' : language === 'th' ? 'คำอธิบาย' : 'Description'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? 'サプライヤー' : language === 'th' ? 'ซัพพลายเออร์' : 'Supplier'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  <th className="whitespace-nowrap px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? 'モデル/タイプ' : language === 'th' ? 'รุ่น/ประเภท' : 'Model/Type'}
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '単価' : language === 'th' ? 'ราคาต่อหน่วย' : 'Unit Price'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     UNIT
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     QTY
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="whitespace-nowrap px-3 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     {language === 'ja' ? '合計' : language === 'th' ? 'ยอดรวม' : 'Total'}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-slate-200">
                 {filteredCosts.map((record) => (
-                  <tr key={record.$id.value} className={`hover:bg-gray-50 ${getRowColorClass(record.ドロップダウン_5?.value)}`}>
-                    <td className="px-3 py-3 text-sm">
+                  <tr key={record.$id.value} className={`hover:bg-slate-50 ${getRowColorClass(record.ドロップダウン_5?.value)}`}>
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
                       {record.数値_0?.value || record.$id?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
                       {record.文字列__1行__15?.value ? (
                         <Link
                           href={`/${locale}/workno/${encodeURIComponent(record.文字列__1行__15.value)}`}
@@ -218,8 +218,8 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
                         '-'
                       )}
                     </td>
-                    <td className="px-3 py-3 text-sm">
-                      <span 
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
+                      <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium min-w-[60px] justify-center ${
                           getStatusColor(record.ドロップダウン?.value || '')
                         }`}
@@ -227,23 +227,23 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
                         {record.ドロップダウン?.value || '-'}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-center">
                       {formatDate(record.日付?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-center">
                       {formatDate(record.日付_0?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm font-medium">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm font-medium">
                       {record.文字列__1行__1?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-center">
                       {formatDate(record.日付_1?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
                       {record.文字列__1行__2?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
-                      <span 
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
+                      <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium min-w-[70px] justify-center ${
                           getStatusColor(record.ドロップダウン_5?.value || '')
                         }`}
@@ -251,40 +251,40 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
                         {record.ドロップダウン_5?.value || '-'}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-center">
                       {formatDate(record.日付_2?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-center">
                       {formatDate(record.日付_3?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-center">
                       {formatDate(record.日付_4?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
                       {record.ドロップダウン_0?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
                       {record.文字列__1行__3?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="px-3 py-3 text-sm max-w-[200px] truncate" title={record.文字列__1行__7?.value || ''}>
                       {record.文字列__1行__7?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
                       {record.ルックアップ_1?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm">
                       {record.文字列__1行__9?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm text-right font-mono">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-right font-mono">
                       {formatNumber(record.unit_price_0?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-center">
                       {record.ドロップダウン_3?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm text-right font-mono">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-right font-mono">
                       {formatNumber(record.数値?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-right font-mono font-bold">
+                    <td className="whitespace-nowrap px-3 py-3 text-sm text-right font-mono font-bold">
                       {formatNumber(record.total_0?.value)}
                     </td>
                   </tr>

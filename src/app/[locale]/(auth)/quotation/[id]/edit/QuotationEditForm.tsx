@@ -595,7 +595,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
           </div>
         )}
         {successMessage && (
-          <div className="rounded-md bg-green-50 border border-green-200 p-4 text-sm text-green-700">
+          <div className="rounded-md bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-700">
             {successMessage}
           </div>
         )}
@@ -654,12 +654,12 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
         </section>
 
         {/* Quotation layout */}
-        <section className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="px-8 py-6 border-b border-gray-300 space-y-6">
+        <section className="bg-white border border-slate-200 rounded-lg shadow-sm">
+          <div className="px-8 py-6 border-b border-slate-300 space-y-6">
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="text-2xl font-bold tracking-wide">MEGA TECH (THAI) CO., LTD.</h1>
-                <p className="text-sm text-gray-600 leading-4 mt-2">
+                <p className="text-sm text-slate-600 leading-4 mt-2">
                   107/5 หมู่ 8 ซ.เทศบาลสำโรงใต้ 3 ถ.ปู่เจ้า สมิงพราย ต.สำโรงกลาง อ.พระประแดง จ.สมุทรปราการ 10130<br />
                   Tel: +66 (2) 380-0367-68 Fax:+66 (2) 757-6056 E-mail: admin_n@megatech.co.th
                 </p>
@@ -669,14 +669,14 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
               </div>
             </div>
 
-            <div className="border border-gray-400">
+            <div className="border border-slate-400">
               <table className="w-full table-fixed text-sm">
                 <tbody>
-                  <tr className="border-b border-gray-400">
-                    <td rowSpan={4} className="w-24 bg-gray-100 border-r border-gray-400 text-center font-semibold uppercase tracking-[0.3em] text-gray-700">
+                  <tr className="border-b border-slate-400">
+                    <td rowSpan={4} className="w-24 bg-slate-100 border-r border-slate-400 text-center font-semibold uppercase tracking-[0.3em] text-slate-700">
                       TO
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       <label htmlFor="customer-select" className="sr-only">
                         {language === 'ja' ? '顧客' : language === 'th' ? 'ลูกค้า' : 'Customer'}
                       </label>
@@ -689,7 +689,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             aria-label={language === 'ja' ? '顧客' : language === 'th' ? 'ลูกค้า' : 'Customer'}
                             {...field}
                             onChange={(event) => handleCustomerSelect(event.target.value, field.onChange)}
-                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           >
                             <option value="">
                               {language === 'ja'
@@ -713,8 +713,8 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                       />
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-400">
-                    <td className="px-3 py-2">
+                  <tr className="border-b border-slate-400">
+                    <td className="whitespace-nowrap px-3 py-2">
                       <Controller
                         control={control}
                         name="customerAddress"
@@ -726,14 +726,14 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             placeholder={
                               language === 'ja' ? '住所' : language === 'th' ? 'ที่อยู่' : 'Address'
                             }
-                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-gray-100 text-gray-800 focus:outline-none focus:ring-0 resize-none"
+                            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-slate-100 text-slate-800 focus:outline-none focus:ring-0 resize-none"
                           />
                         )}
                       />
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-400">
-                    <td className="px-3 py-2">
+                  <tr className="border-b border-slate-400">
+                    <td className="whitespace-nowrap px-3 py-2">
                       <label htmlFor="contact-select" className="sr-only">
                         {language === 'ja' ? '担当者' : language === 'th' ? 'ผู้ติดต่อ' : 'Contact'}
                       </label>
@@ -746,7 +746,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             aria-label={language === 'ja' ? '担当者' : language === 'th' ? 'ผู้ติดต่อ' : 'Contact'}
                             {...field}
                             onChange={(event) => handleContactSelect(event.target.value, field.onChange)}
-                            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             disabled={!selectedCustomerId || isStaffLoading}
                           >
                             <option value="">
@@ -792,7 +792,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2">
                       <Controller
                         control={control}
                         name="contactEmail"
@@ -802,7 +802,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             type="email"
                             readOnly
                             placeholder="E-mail"
-                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-gray-100 text-gray-800 focus:outline-none focus:ring-0"
+                            className="w-full border border-slate-300 rounded px-3 py-2 text-sm bg-slate-100 text-slate-800 focus:outline-none focus:ring-0"
                           />
                         )}
                       />
@@ -815,12 +815,12 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
             <div className="mt-6">
               <div className="flex gap-4">
                 {/* Machine selection */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-4">
                   <div className="flex items-center gap-3">
                     <select
                       value={selectedMachineId}
                       onChange={(event) => setSelectedMachineId(event.target.value)}
-                      className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       disabled={!selectedCustomerId || isMachineLoading || machineOptions.length === 0}
                     >
                       <option value="">
@@ -875,13 +875,13 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                         setValue('machineNo', '');
                         setSelectedMachineId('');
                       }}
-                      className="inline-flex items-center rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+                      className="inline-flex items-center rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
                     >
                       {language === 'ja' ? 'クリア' : language === 'th' ? 'ลบ' : 'Clear'}
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center rounded border border-green-500 px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50"
+                      className="inline-flex items-center rounded border border-emerald-500 px-4 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50"
                       disabled
                     >
                       {language === 'ja' ? '登録' : language === 'th' ? 'ลงทะเบียน' : 'Register'}
@@ -891,7 +891,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                 </div>
 
                 {/* QT number assignment */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
+                <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-4">
                   <div className="flex items-center h-[42px]">
                     <button
                       type="button"
@@ -908,17 +908,17 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
           {/* Project and details table */}
               <div className="px-8 py-6">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full table-fixed border border-gray-400 text-sm">
+                  <table className="min-w-full table-fixed border border-slate-400 text-sm">
                     <tbody>
-                      <tr className="border-b border-gray-400">
+                      <tr className="border-b border-slate-400">
                     <th
                       rowSpan={2}
                       colSpan={2}
-                      className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700 align-top"
+                      className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700 align-top"
                     >
                       PROJECT
                     </th>
-                    <td colSpan={10} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={10} className="border-r border-slate-400 px-3 py-2">
                       <Controller
                         control={control}
                         name="projectName"
@@ -927,7 +927,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             {...field}
                             value={field.value && field.value !== '' ? field.value : '-----'}
                             onChange={(event) => field.onChange(event.target.value === '-----' ? '' : event.target.value)}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           >
                             {PROJECT_OPTIONS.map((option) => (
                               <option key={option} value={option}>
@@ -943,7 +943,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                         )}
                       />
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       QT DATE
                     </th>
                     <td colSpan={3} className="px-3 py-2">
@@ -955,11 +955,11 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             <input
                               {...field}
                               type="date"
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-sm text-transparent caret-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                              className="w-full border border-slate-300 rounded px-2 py-1 text-sm text-transparent caret-transparent focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             />
                             <div
                               className={`pointer-events-none absolute inset-0 flex items-center px-2 text-sm ${
-                                field.value ? 'text-gray-900' : 'text-gray-400'
+                                field.value ? 'text-slate-900' : 'text-slate-400'
                               }`}
                             >
                               {field.value ? formatDisplayDate(field.value) : 'DD-MMM-YYYY'}
@@ -969,21 +969,21 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                       />
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-400">
-                    <td colSpan={10} className="border-r border-gray-400 px-3 py-2">
+                  <tr className="border-b border-slate-400">
+                    <td colSpan={10} className="border-r border-slate-400 px-3 py-2">
                       <Controller
                         control={control}
                         name="title"
                         render={({ field }) => (
                           <input
                             {...field}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             placeholder={language === 'ja' ? 'タイトル' : language === 'th' ? 'หัวข้อ' : 'Title'}
                           />
                         )}
                       />
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       QT NO.
                     </th>
                     <td colSpan={3} className="px-3 py-2">
@@ -993,18 +993,18 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                         render={({ field }) => (
                           <input
                             {...field}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             placeholder="MTTQT..."
                           />
                         )}
                       />
                     </td>
                   </tr>
-                  <tr className="border-b border-gray-400">
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                  <tr className="border-b border-slate-400">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       VENDER
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       <Controller
                         control={control}
                         name="vendor"
@@ -1012,16 +1012,16 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                           <input
                             {...field}
                             readOnly
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 text-gray-800 focus:outline-none focus:ring-0"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm bg-slate-100 text-slate-800 focus:outline-none focus:ring-0"
                             placeholder={language === 'ja' ? '仕入先' : language === 'th' ? 'ผู้ผลิต/ซัพพลายเออร์' : 'Vendor'}
                           />
                         )}
                       />
                     </td>
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       MODEL
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       <Controller
                         control={control}
                         name="model"
@@ -1029,13 +1029,13 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                           <input
                             {...field}
                             readOnly
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 text-gray-800 focus:outline-none focus:ring-0"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm bg-slate-100 text-slate-800 focus:outline-none focus:ring-0"
                             placeholder="Model"
                           />
                         )}
                       />
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       VALID UNTIL
                     </th>
                     <td colSpan={3} className="px-3 py-2">
@@ -1047,7 +1047,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             {...field}
                             value={field.value && field.value !== '' ? field.value : '20 days'}
                             onChange={(event) => field.onChange(event.target.value === '-----' ? '' : event.target.value)}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           >
                             {VALID_UNTIL_OPTIONS.map((option) => (
                               <option key={option} value={option}>
@@ -1060,10 +1060,10 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                     </td>
                   </tr>
                   <tr>
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       SERIAL NO.
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       <Controller
                         control={control}
                         name="serialNo"
@@ -1071,16 +1071,16 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                           <input
                             {...field}
                             readOnly
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 text-gray-800 focus:outline-none focus:ring-0"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm bg-slate-100 text-slate-800 focus:outline-none focus:ring-0"
                             placeholder="Serial No."
                           />
                         )}
                       />
                     </td>
-                    <th colSpan={2} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                    <th colSpan={2} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       M/C NO.
                     </th>
-                    <td colSpan={4} className="border-r border-gray-400 px-3 py-2">
+                    <td colSpan={4} className="border-r border-slate-400 px-3 py-2">
                       <Controller
                         control={control}
                         name="machineNo"
@@ -1088,13 +1088,13 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                           <input
                             {...field}
                             readOnly
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-gray-100 text-gray-800 focus:outline-none focus:ring-0"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm bg-slate-100 text-slate-800 focus:outline-none focus:ring-0"
                             placeholder="Machine No."
                           />
                         )}
                       />
                     </td>
-                    <th colSpan={3} className="bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase tracking-wide text-gray-700">
+                    <th colSpan={3} className="bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase tracking-wide text-slate-700">
                       DELIVERY DATE
                     </th>
                     <td colSpan={3} className="px-3 py-2">
@@ -1104,7 +1104,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                         render={({ field }) => (
                           <input
                             {...field}
-                            className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            className="w-full border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                             placeholder={language === 'ja' ? '納期' : language === 'th' ? 'กำหนดส่ง' : 'Delivery date'}
                           />
                         )}
@@ -1117,7 +1117,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
           {/* Line items table */}
           <div className="py-6">
             <div className="overflow-x-auto">
-              <table className="w-full table-fixed border border-gray-400 text-sm">
+              <table className="w-full table-fixed border border-slate-400 text-sm">
                 <colgroup>
                   <col className="w-[2.78%]" />
                   <col className="w-[5.56%]" />
@@ -1131,19 +1131,19 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                   <col className="w-[5.56%]" />
                   <col className="w-[11.11%]" />
                 </colgroup>
-                <thead className="bg-gray-100 text-gray-600 uppercase">
+                <thead className="bg-slate-100 text-slate-600 uppercase">
                   <tr>
-                    <th className="border border-gray-400 px-1 py-2 text-center">&nbsp;</th>
-                    <th className="border border-gray-400 px-1 py-2 text-center">Item</th>
-                    <th className="border border-gray-400 px-2 py-2 text-center">Category</th>
-                    <th className="border border-gray-400 px-2 py-2 text-center">Description</th>
-                    <th className="border border-gray-400 px-2 py-2 text-center">Type</th>
-                    <th className="border border-gray-400 px-2 py-2 text-center">Cost</th>
-                    <th className="border border-gray-400 px-1 py-2 text-center">Rate</th>
-                    <th className="border border-gray-400 px-2 py-2 text-center">Unit Price</th>
-                    <th className="border border-gray-400 px-1 py-2 text-center">Qty</th>
-                    <th className="border border-gray-400 px-1 py-2 text-center">Unit</th>
-                    <th className="border border-gray-400 px-2 py-2 text-center">Amount</th>
+                    <th className="border border-slate-400 px-1 py-2 text-center">&nbsp;</th>
+                    <th className="border border-slate-400 px-1 py-2 text-center">Item</th>
+                    <th className="border border-slate-400 px-2 py-2 text-center">Category</th>
+                    <th className="border border-slate-400 px-2 py-2 text-center">Description</th>
+                    <th className="border border-slate-400 px-2 py-2 text-center">Type</th>
+                    <th className="border border-slate-400 px-2 py-2 text-center">Cost</th>
+                    <th className="border border-slate-400 px-1 py-2 text-center">Rate</th>
+                    <th className="border border-slate-400 px-2 py-2 text-center">Unit Price</th>
+                    <th className="border border-slate-400 px-1 py-2 text-center">Qty</th>
+                    <th className="border border-slate-400 px-1 py-2 text-center">Unit</th>
+                    <th className="border border-slate-400 px-2 py-2 text-center">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1157,12 +1157,12 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
 
                     return (
                       <tr key={field.id} className="align-top">
-                        <td className="border border-gray-300 px-1 py-1">
+                        <td className="border border-slate-300 px-1 py-1">
                           <div className="flex flex-col items-center justify-center space-y-1">
                             <button
                               type="button"
                               onClick={() => insert(index + 1, createEmptyLineItem())}
-                              className="h-5 w-5 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-indigo-400 hover:text-indigo-500 text-xs"
+                              className="h-5 w-5 flex items-center justify-center rounded-full border border-slate-300 text-slate-600 hover:border-indigo-400 hover:text-indigo-500 text-xs"
                               aria-label={language === 'ja' ? '行を追加' : language === 'th' ? 'เพิ่มแถว' : 'Add row'}
                             >
                               +
@@ -1170,7 +1170,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             <button
                               type="button"
                               onClick={() => remove(index)}
-                              className="h-5 w-5 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-red-400 hover:text-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs"
+                              className="h-5 w-5 flex items-center justify-center rounded-full border border-slate-300 text-slate-600 hover:border-red-400 hover:text-red-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs"
                               aria-label={language === 'ja' ? '行を削除' : language === 'th' ? 'ลบแถว' : 'Remove row'}
                               disabled={fields.length === 1}
                             >
@@ -1178,34 +1178,34 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             </button>
                           </div>
                         </td>
-                        <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-slate-300 px-2 py-2">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.Text`}
                             render={({ field }) => (
-                              <input {...field} className="w-full border border-gray-300 rounded px-1 py-1 text-sm text-center" />
+                              <input {...field} className="w-full border border-slate-300 rounded px-1 py-1 text-sm text-center" />
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-slate-300 px-2 py-2">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.category`}
                             render={({ field }) => (
-                              <input {...field} className="w-full border border-gray-300 rounded px-1 py-1 text-sm" />
+                              <input {...field} className="w-full border border-slate-300 rounded px-1 py-1 text-sm" />
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-slate-300 px-2 py-2">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.Desc`}
                             render={({ field }) => (
-                              <textarea {...field} rows={2} className="w-full border border-gray-300 rounded px-1 py-1 text-sm resize-none" />
+                              <textarea {...field} rows={2} className="w-full border border-slate-300 rounded px-1 py-1 text-sm resize-none" />
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-slate-300 px-2 py-2">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.type`}
@@ -1227,7 +1227,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-right">
+                        <td className="border border-slate-300 px-2 py-2 text-right">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.Cost`}
@@ -1239,42 +1239,42 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                                   const value = e.target.value.replace(/,/g, '');
                                   field.onChange(value);
                                 }}
-                                className="w-full border border-gray-300 rounded px-1 py-1 text-sm text-right"
+                                className="w-full border border-slate-300 rounded px-1 py-1 text-sm text-right"
                               />
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-right">
+                        <td className="border border-slate-300 px-2 py-2 text-right">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.Rate`}
                             render={({ field }) => (
-                              <input {...field} className="w-full border border-gray-300 rounded px-1 py-1 text-sm text-right" />
+                              <input {...field} className="w-full border border-slate-300 rounded px-1 py-1 text-sm text-right" />
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-900">
+                        <td className="border border-slate-300 px-2 py-2 text-right font-semibold text-slate-900">
                           {formatCurrency(unitPrice)}
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-right">
+                        <td className="border border-slate-300 px-2 py-2 text-right">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.QTY`}
                             render={({ field }) => (
-                              <input {...field} className="w-full border border-gray-300 rounded px-1 py-1 text-sm text-right" />
+                              <input {...field} className="w-full border border-slate-300 rounded px-1 py-1 text-sm text-right" />
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-slate-300 px-2 py-2">
                           <Controller
                             control={control}
                             name={`lineItems.${index}.unit`}
                             render={({ field }) => (
-                              <input {...field} className="w-full border border-gray-300 rounded px-1 py-1 text-sm" />
+                              <input {...field} className="w-full border border-slate-300 rounded px-1 py-1 text-sm" />
                             )}
                           />
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-right font-semibold text-gray-900">
+                        <td className="border border-slate-300 px-2 py-2 text-right font-semibold text-slate-900">
                           {formatCurrency(amount)}
                         </td>
                       </tr>
@@ -1289,20 +1289,20 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
 
         {/* Totals */}
         <div className="px-8 pb-6">
-            <div className="grid grid-cols-12 text-sm border border-gray-400">
-              <div className="col-span-8 border-r border-gray-400 px-3 py-4 text-gray-300 italic">&nbsp;</div>
-              <div className="col-span-4 divide-y divide-gray-400">
+            <div className="grid grid-cols-12 text-sm border border-slate-400">
+              <div className="col-span-8 border-r border-slate-400 px-3 py-4 text-slate-300 italic">&nbsp;</div>
+              <div className="col-span-4 divide-y divide-slate-400">
                 <div className="flex">
-                  <div className="w-1/2 bg-gray-100 px-3 py-2 font-semibold">SUB TOTAL</div>
+                  <div className="w-1/2 bg-slate-100 px-3 py-2 font-semibold">SUB TOTAL</div>
                   <div className="w-1/2 px-3 py-2 text-right font-semibold">{formatCurrency(computedSubTotal)}</div>
                 </div>
                 <div className="flex">
-                  <div className="w-1/2 bg-gray-100 px-3 py-2 font-semibold flex items-center justify-between">
+                  <div className="w-1/2 bg-slate-100 px-3 py-2 font-semibold flex items-center justify-between">
                     <span>DISCOUNT</span>
                     {computedSubTotal > 0 && discountValue && (() => {
                       const discountRate = (parseFloat(discountValue) / computedSubTotal) * 100;
                       return (
-                        <span className={`text-xs font-normal ${discountRate <= 3 ? 'text-blue-600' : 'text-red-600'}`}>
+                        <span className={`text-xs font-normal ${discountRate <= 3 ? 'text-indigo-600' : 'text-red-600'}`}>
                           ({discountRate.toFixed(2)}%)
                         </span>
                       );
@@ -1320,28 +1320,28 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                             const value = e.target.value.replace(/,/g, '');
                             field.onChange(value);
                           }}
-                          className="w-full border border-gray-300 rounded px-2 py-1 text-right text-sm"
+                          className="w-full border border-slate-300 rounded px-2 py-1 text-right text-sm"
                         />
                       )}
                     />
                   </div>
                 </div>
                 <div className="flex">
-                  <div className="w-1/2 bg-gray-100 px-3 py-2 font-semibold">GRAND TOTAL</div>
+                  <div className="w-1/2 bg-slate-100 px-3 py-2 font-semibold">GRAND TOTAL</div>
                   <div className="w-1/2 px-3 py-2 text-right font-bold text-indigo-600">{formatCurrency(computedGrandTotal)}</div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-12 border border-gray-400 text-sm mt-4">
-              <div className="col-span-3 bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase">Payment Term</div>
+            <div className="grid grid-cols-12 border border-slate-400 text-sm mt-4">
+              <div className="col-span-3 bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase">Payment Term</div>
               <div className="col-span-9 px-3 py-2">
                 <div className="space-y-2">
                   <Controller
                     control={control}
                     name="paymentTerm1"
                     render={({ field }) => (
-                      <select {...field} className="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                      <select {...field} className="w-full border border-slate-300 rounded px-2 py-1 text-sm">
                         {PAYMENT_TERM_OPTIONS.map((option) => (
                           <option key={option} value={option}>
                             {option}
@@ -1354,7 +1354,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                     control={control}
                     name="paymentTerm2"
                     render={({ field }) => (
-                      <select {...field} className="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                      <select {...field} className="w-full border border-slate-300 rounded px-2 py-1 text-sm">
                         {PAYMENT_TERM2_OPTIONS.map((option) => (
                           <option key={option} value={option}>
                             {option}
@@ -1367,7 +1367,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
                     control={control}
                     name="paymentTerm3"
                     render={({ field }) => (
-                      <select {...field} className="w-full border border-gray-300 rounded px-2 py-1 text-sm">
+                      <select {...field} className="w-full border border-slate-300 rounded px-2 py-1 text-sm">
                         {PAYMENT_TERM3_OPTIONS.map((option) => (
                           <option key={option} value={option}>
                             {option}
@@ -1380,62 +1380,62 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
               </div>
             </div>
 
-            <div className="grid grid-cols-12 border border-t-0 border-gray-400 text-sm">
-              <div className="col-span-3 bg-gray-100 border-r border-gray-400 px-3 py-2 font-semibold uppercase">Remark</div>
+            <div className="grid grid-cols-12 border border-t-0 border-slate-400 text-sm">
+              <div className="col-span-3 bg-slate-100 border-r border-slate-400 px-3 py-2 font-semibold uppercase">Remark</div>
               <div className="col-span-9 px-3 py-2">
                 <div className="space-y-2">
                   <Controller
                     control={control}
                     name="remark1"
                     render={({ field }) => (
-                      <input {...field} type="text" className="w-full border border-gray-300 rounded px-2 py-1 text-sm" placeholder="Remark1" />
+                      <input {...field} type="text" className="w-full border border-slate-300 rounded px-2 py-1 text-sm" placeholder="Remark1" />
                     )}
                   />
                   <Controller
                     control={control}
                     name="remark2"
                     render={({ field }) => (
-                      <input {...field} type="text" className="w-full border border-gray-300 rounded px-2 py-1 text-sm" placeholder="Remark2" />
+                      <input {...field} type="text" className="w-full border border-slate-300 rounded px-2 py-1 text-sm" placeholder="Remark2" />
                     )}
                   />
                   <Controller
                     control={control}
                     name="remark3"
                     render={({ field }) => (
-                      <input {...field} type="text" className="w-full border border-gray-300 rounded px-2 py-1 text-sm" placeholder="Remark3" />
+                      <input {...field} type="text" className="w-full border border-slate-300 rounded px-2 py-1 text-sm" placeholder="Remark3" />
                     )}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 border border-gray-400 text-center text-sm mt-6">
-              <div className="px-3 py-3 border-r border-gray-400">
+            <div className="grid grid-cols-3 border border-slate-400 text-center text-sm mt-6">
+              <div className="px-3 py-3 border-r border-slate-400">
                 <div className="font-semibold uppercase mb-3 text-sm">SALES STAFF</div>
-                <div className="mb-3 text-sm text-gray-700 font-bold">
+                <div className="mb-3 text-sm text-slate-700 font-bold">
                   {approvalInfo.sales}
                 </div>
                 <div className="text-center">
                   <span className="text-sm font-medium">DATE:</span>
-                  <span className="ml-2 text-sm text-gray-700">{formatDisplayDate(defaultValues.qtDate)}</span>
+                  <span className="ml-2 text-sm text-slate-700">{formatDisplayDate(defaultValues.qtDate)}</span>
                 </div>
               </div>
-              <div className="px-3 py-3 border-r border-gray-400">
+              <div className="px-3 py-3 border-r border-slate-400">
                 <div className="font-semibold uppercase mb-3 text-sm">APPROVED BY</div>
-                <div className="mb-3 text-sm text-gray-700 font-bold">
+                <div className="mb-3 text-sm text-slate-700 font-bold">
                   {approvalInfo.approver}
                 </div>
                 <div className="text-center">
                   <span className="text-sm font-medium">DATE:</span>
-                  <span className="ml-2 text-sm text-gray-700">{formatDisplayDate(defaultValues.qtDate)}</span>
+                  <span className="ml-2 text-sm text-slate-700">{formatDisplayDate(defaultValues.qtDate)}</span>
                 </div>
               </div>
               <div className="px-3 py-3">
                 <div className="font-semibold uppercase mb-3 text-sm">CUSTOMER CONFIRM</div>
-                <div className="mb-3 text-sm text-gray-700">&nbsp;</div>
+                <div className="mb-3 text-sm text-slate-700">&nbsp;</div>
                 <div className="text-center">
                   <span className="text-sm font-medium">DATE:</span>
-                  <span className="ml-2 text-sm text-gray-700 invisible">03-Oct-2025</span>
+                  <span className="ml-2 text-sm text-slate-700 invisible">03-Oct-2025</span>
                 </div>
               </div>
             </div>
@@ -1444,7 +1444,7 @@ export default function QuotationEditForm({ locale, quotation, userEmail, custom
         <div className="flex justify-end gap-3">
           <button
             type="button"
-            className="px-4 py-2 text-sm border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            className="px-4 py-2 text-sm border border-slate-300 rounded-md text-slate-700 bg-white hover:bg-slate-50"
             onClick={() => router.back()}
             disabled={isSubmitting}
           >

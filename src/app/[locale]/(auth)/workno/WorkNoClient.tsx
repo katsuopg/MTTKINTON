@@ -288,58 +288,58 @@ export default function WorkNoClient({
       <div className="overflow-x-auto bg-white shadow rounded-lg">
         {filteredRecords.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">
+            <p className="text-slate-500">
               {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
             </p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200" style={{minWidth: '1200px'}}>
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-slate-200" style={{minWidth: '1200px'}}>
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
                 </th>
-                <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                   PO
                 </th>
-                <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                   INV
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   CS ID
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Category
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Model
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Grand Total
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Gross Profit
                 </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="whitespace-nowrap px-2 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่ขายที่คาดการณ์' : 'Sales Date'}
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-slate-200">
               {filteredRecords.filter(item => item?.record?.$id?.value).map((item) => (
                 <tr key={item.record.$id.value} className="transition-colors duration-150" style={{
                   backgroundColor: item.record.Status?.value === 'Finished' ? '#f0fdf4' : 'transparent'
                 }}>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900">
                     <div className="flex items-center">
                       {item.isChild && (
-                        <span className="mr-2 text-gray-400">└</span>
+                        <span className="mr-2 text-slate-400">└</span>
                       )}
                       <a
                         href={`/${locale}/projects/${item.record.WorkNo?.value}`}
@@ -355,19 +355,19 @@ export default function WorkNoClient({
                        item.record.Status?.value !== 'Cancel' && (
                         <div className="relative ml-1 group inline-flex">
                           <span className="text-yellow-500 cursor-help">⚠️</span>
-                          <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-md px-3 py-2 whitespace-nowrap left-full ml-1 top-1/2 transform -translate-y-1/2">
+                          <div className="absolute z-10 invisible group-hover:visible bg-slate-800 text-white text-xs rounded-md px-3 py-2 whitespace-nowrap left-full ml-1 top-1/2 transform -translate-y-1/2">
                             {language === 'ja' 
                               ? '売上予定日が過ぎています。担当営業に再確認をしてください。'
                               : language === 'th'
                               ? 'วันที่ขายที่คาดการณ์ผ่านไปแล้ว กรุณาตรวจสอบกับฝ่ายขายอีกครั้ง'
                               : 'Sales date has passed. Please reconfirm with sales staff.'}
-                            <div className="absolute w-2 h-2 bg-gray-800 transform rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
+                            <div className="absolute w-2 h-2 bg-slate-800 transform rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
                           </div>
                         </div>
                       )}
                     </div>
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900">
                     <span 
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                       style={{
@@ -394,16 +394,16 @@ export default function WorkNoClient({
                       {getStatusLabel(item.record.Status?.value || '', language)}
                     </span>
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900 text-center">
                     {item.record.ルックアップ?.value && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white justify-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500 text-white justify-center">
                         PO
                       </span>
                     )}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900 text-center">
                     {hasInvoice(item.record) && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white justify-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500 text-white justify-center">
                         INV
                         {getInvoiceCount(item.record) > 1 && (
                           <span className="ml-1 text-xs">({getInvoiceCount(item.record)})</span>
@@ -411,7 +411,7 @@ export default function WorkNoClient({
                       </span>
                     )}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900">
                     {item.record.文字列__1行__8?.value ? (
                       <a
                         href={`/${locale}/customers/${item.record.文字列__1行__8.value}`}
@@ -422,29 +422,29 @@ export default function WorkNoClient({
                       </a>
                     ) : '-'}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900">
                     {item.record.文字列__1行__1?.value || '-'}
                   </td>
-                  <td className="px-2 py-2 text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-2 py-2 text-sm text-slate-900">
                     {item.record.文字列__1行__2?.value || '-'}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900">
                     {item.record.文字列__1行__9?.value || '-'}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
                     {formatNumber(item.record.grand_total?.value)}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm text-slate-900 text-right">
                     {formatNumber(item.record.profit?.value)}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm">
+                  <td className="whitespace-nowrap px-2 py-2 whitespace-nowrap text-sm">
                     <span className={
                       item.record.Salesdate?.value && 
                       new Date(item.record.Salesdate.value) < new Date() &&
                       item.record.Status?.value !== 'Finished' &&
                       item.record.Status?.value !== 'Cancel' 
                         ? 'text-red-600 font-medium' 
-                        : 'text-gray-900'
+                        : 'text-slate-900'
                     }>
                       {formatDate(item.record.Salesdate?.value)}
                     </span>
