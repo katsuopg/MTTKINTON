@@ -118,7 +118,7 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
 
         {/* テーブル */}
         <div className={tableStyles.tableContainer}>
-          <div className="max-w-7xl overflow-x-auto">
+          <div className="overflow-x-auto">
           {filteredCosts.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               {searchTerm ? (

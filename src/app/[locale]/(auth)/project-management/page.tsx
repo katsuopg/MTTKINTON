@@ -121,7 +121,7 @@ export default async function ProjectManagementPage({ params, searchParams }: Pr
                'No projects'}
             </div>
           ) : (
-            <div className="max-w-7xl overflow-x-auto">
+            <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
