@@ -50,6 +50,14 @@ export const KINTONE_APPS = {
   }
 } as const;
 
+// Kintoneファイル情報の型
+export interface KintoneFileInfo {
+  contentType: string;
+  fileKey: string;
+  name: string;
+  size: string;
+}
+
 // kintoneレコードの基本型
 export interface KintoneRecord {
   $id: { type: "__ID__"; value: string };
@@ -167,23 +175,18 @@ export interface CustomerRecord extends KintoneRecord {
   備考: { type: "MULTI_LINE_TEXT"; value: string };
 }
 
-// Customer Staff (顧客担当者)
-export interface CustomerStaffRecord extends KintoneRecord {
-  担当者名: { type: "SINGLE_LINE_TEXT"; value: string };
-  Divison?: { type: "SINGLE_LINE_TEXT"; value: string }; // スペルミスだがkintone側に合わせる
-  Position?: { type: "SINGLE_LINE_TEXT"; value: string };
-  メールアドレス?: { type: "SINGLE_LINE_TEXT"; value: string };
-  文字列__1行__7?: { type: "SINGLE_LINE_TEXT"; value: string }; // Mobile phone
-  ルックアップ?: { type: "SINGLE_LINE_TEXT"; value: string }; // 会社名
-  Text?: { type: "SINGLE_LINE_TEXT"; value: string }; // 住所?
-  [key: string]: any; // 一時的に任意のフィールドを許可
-};
+// Customer Staff (顧客担当者) - 定義は下部に移動
+// Legacy fields (日本語フィールド): 担当者名, Divison, Position, メールアドレス, 文字列__1行__7, ルックアップ, Text
 
 // Employee Management (従業員管理)
 export interface EmployeeRecord extends KintoneRecord {
   氏名: { type: "SINGLE_LINE_TEXT"; value: string }; // 従業員名
-  ID_No: { type: "SINGLE_LINE_TEXT"; value: string }; // ID No.
-  パスポート番号: { type: "SINGLE_LINE_TEXT"; value: string }; // パスポート番号
+  氏名_タイ語?: { type: "SINGLE_LINE_TEXT"; value: string }; // 氏名（タイ語）
+  氏名タイ語?: { type: "SINGLE_LINE_TEXT"; value: string }; // 氏名タイ語（別名）
+  従業員番号?: { type: "SINGLE_LINE_TEXT"; value: string }; // 従業員番号 (MTT68067形式)
+  IdNo?: { type: "SINGLE_LINE_TEXT"; value: string }; // タイID番号
+  ID_No?: { type: "SINGLE_LINE_TEXT"; value: string }; // ID No. (別名)
+  パスポート番号?: { type: "SINGLE_LINE_TEXT"; value: string }; // パスポート番号
   パスポート有効期限: { type: "DATE"; value: string }; // パスポート有効期限
   役職: { type: "SINGLE_LINE_TEXT"; value: string }; // 役職
   TEL: { type: "SINGLE_LINE_TEXT"; value: string }; // TEL
@@ -196,6 +199,8 @@ export interface EmployeeRecord extends KintoneRecord {
   緊急時連絡先TEL: { type: "SINGLE_LINE_TEXT"; value: string }; // 緊急時連絡先TEL
   緊急時連絡先住所: { type: "SINGLE_LINE_TEXT"; value: string }; // 緊急時連絡先住所
   "履歴書・資格証記録": { type: "FILE"; value: any[] }; // 履歴書・資格証記録
+  ID?: { type: "FILE"; value: KintoneFileInfo[] }; // ID画像
+  パスポート?: { type: "FILE"; value: KintoneFileInfo[] }; // パスポート画像
   在籍状況: { type: "DROP_DOWN"; value: string }; // 在籍状況
   入社日: { type: "DATE"; value: string }; // 入社日
   退社日: { type: "DATE"; value: string }; // 退社日

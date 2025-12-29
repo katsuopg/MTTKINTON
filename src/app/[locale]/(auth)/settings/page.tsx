@@ -3,15 +3,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import ImportDataClient from './ImportDataClient';
+import SettingsClient from './SettingsClient';
 
-interface ImportDataPageProps {
+interface SettingsPageProps {
   params: Promise<{
     locale: string;
   }>;
 }
 
-export default async function ImportDataPage({ params }: ImportDataPageProps) {
+export default async function SettingsPage({ params }: SettingsPageProps) {
   const { locale } = await params;
   const supabase = await createClient();
   const {
@@ -25,14 +25,16 @@ export default async function ImportDataPage({ params }: ImportDataPageProps) {
 
   const title =
     locale === 'ja'
-      ? 'データ同期'
+      ? 'APP設定'
       : locale === 'th'
-      ? 'ซิงก์ข้อมูล'
-      : 'Data Sync';
+      ? 'การตั้งค่าแอป'
+      : 'App Settings';
 
   return (
     <DashboardLayout locale={locale} userEmail={user.email || ''} title={title}>
-      <ImportDataClient locale={locale} />
+      <SettingsClient locale={locale} />
     </DashboardLayout>
   );
 }
+
+
