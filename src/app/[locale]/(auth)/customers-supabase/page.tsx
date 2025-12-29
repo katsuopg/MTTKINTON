@@ -12,6 +12,7 @@ interface CustomerListPageProps {
 }
 
 // Supabaseのデータ構造をKintoneの形式に変換
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function convertToKintoneFormat(customers: any[]): CustomerRecord[] {
   return customers.map(customer => ({
     $id: { type: '__ID__', value: customer.kintone_record_id },
@@ -30,7 +31,7 @@ function convertToKintoneFormat(customers: any[]): CustomerRecord[] {
     更新者: { type: 'MODIFIER', value: { code: '', name: '' } },
     作成日時: { type: 'CREATED_TIME', value: customer.created_at },
     更新日時: { type: 'UPDATED_TIME', value: customer.updated_at }
-  }));
+  } as unknown as CustomerRecord));
 }
 
 export default async function CustomerListSupabasePage({ params }: CustomerListPageProps) {

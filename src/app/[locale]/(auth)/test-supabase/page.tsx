@@ -11,17 +11,19 @@ export default async function TestSupabasePage({ params }: { params: Promise<{ l
   }
 
   // Supabaseからデータ取得
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: customers } = await supabase
     .from('customers')
     .select('*')
     .limit(5)
-    .order('customer_id');
+    .order('customer_id') as { data: any[] | null };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: invoices } = await supabase
     .from('invoices')
     .select('*')
     .limit(5)
-    .order('invoice_date', { ascending: false });
+    .order('invoice_date', { ascending: false }) as { data: any[] | null };
 
   return (
     <div className="p-8">

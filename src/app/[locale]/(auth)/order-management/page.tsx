@@ -6,6 +6,7 @@ import { type Language } from '@/lib/kintone/field-mappings';
 import OrderFilters from './OrderFilters';
 import FileViewerModal from './FileViewerModal';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 // 注文書レコードの型定義
 interface OrderRecord {
@@ -89,7 +90,7 @@ export default async function OrderManagementPage({ params: { locale }, searchPa
   } catch (error) {
     console.error('Error fetching order data:', error);
   }
-  
+
   // 日付フォーマット関数
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '-';
@@ -99,9 +100,16 @@ export default async function OrderManagementPage({ params: { locale }, searchPa
     const year = date.getFullYear();
     return `${year}/${month}/${day}`;
   };
-  
+
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email || ''} title={pageTitle}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email || ''}
+      title={pageTitle}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>

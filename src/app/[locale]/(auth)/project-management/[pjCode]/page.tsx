@@ -6,6 +6,7 @@ import { fetchCustomer } from '@/lib/kintone/api';
 import ProjectDetailContent from './ProjectDetailContent';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface ProjectDetailPageProps {
   params: Promise<{
@@ -45,9 +46,11 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
     error = true;
   }
 
+  const userInfo = await getCurrentUserInfo();
+
   if (!record) {
     return (
-      <DashboardLayout locale={locale} userEmail={user.email} title={language === 'ja' ? 'プロジェクト詳細' : language === 'th' ? 'รายละเอียดโครงการ' : 'Project Details'}>
+      <DashboardLayout locale={locale} userEmail={user.email} title={language === 'ja' ? 'プロジェクト詳細' : language === 'th' ? 'รายละเอียดโครงการ' : 'Project Details'} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
         <div className="max-w-7xl mx-auto">
           <div className="bg-white shadow-sm rounded-lg p-6">
             <p className="text-red-600">
@@ -73,7 +76,7 @@ export default async function ProjectDetailPage({ params }: ProjectDetailPagePro
   const pageTitle = language === 'ja' ? 'プロジェクト詳細' : language === 'th' ? 'รายละเอียดโครงการ' : 'Project Details';
 
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
       <ProjectDetailContent 
         record={record} 
         customer={customer} 

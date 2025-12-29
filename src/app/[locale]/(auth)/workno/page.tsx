@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { invoiceCache } from '@/lib/kintone/invoice-cache';
 import { type Language } from '@/lib/kintone/field-mappings';
 import WorkNoClient from './WorkNoClient';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 // ページレベルのキャッシュ設定（5分）
 export const revalidate = 300;
@@ -91,9 +92,21 @@ export default async function ProjectsPage({ params, searchParams }: ProjectsPag
   }
 
   const pageTitle = language === 'ja' ? '工事番号管理' : language === 'th' ? 'จัดการหมายเลขงาน' : 'Work No. Management';
-  
+
+  // ユーザー情報を取得
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email}
+      title={pageTitle}
+      userInfo={userInfo ? {
+        email: userInfo.email,
+        name: userInfo.name,
+        avatarUrl: userInfo.avatarUrl,
+      } : undefined}
+    >
       <WorkNoClient
         locale={locale}
         language={language}

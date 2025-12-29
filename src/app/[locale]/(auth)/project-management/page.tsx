@@ -7,6 +7,7 @@ import { type Language } from '@/lib/kintone/field-mappings';
 import { getStatusColor } from '@/lib/kintone/utils';
 import Link from 'next/link';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface ProjectManagementPageProps {
   params: Promise<{
@@ -68,9 +69,16 @@ export default async function ProjectManagementPage({ params, searchParams }: Pr
   };
 
   const pageTitle = language === 'ja' ? 'プロジェクト管理' : language === 'th' ? 'จัดการโครงการ' : 'Project Management';
-  
+
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email}
+      title={pageTitle}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>

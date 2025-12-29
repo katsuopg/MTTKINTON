@@ -1,8 +1,6 @@
-import { Inter } from "next/font/google";
-import "../globals.css";
 import { notFound } from 'next/navigation';
-
-const inter = Inter({ subsets: ["latin"] });
+import { SidebarProvider } from '@/context/SidebarContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 // Simple message loading function
 async function getMessages(locale: string) {
@@ -21,9 +19,9 @@ export default async function LocaleLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  
+
   // Validate locale
-  if (!['ja', 'th'].includes(locale)) {
+  if (!['ja', 'th', 'en'].includes(locale)) {
     notFound();
   }
 
@@ -32,14 +30,15 @@ export default async function LocaleLayout({
     messages = await getMessages(locale);
   } catch (error) {
     console.error('Failed to load messages:', error);
-    notFound();
+    // Use default messages if locale file not found
+    messages = {};
   }
 
   return (
-    <html lang={locale}>
-      <body className={inter.className} suppressHydrationWarning={true}>
+    <ThemeProvider>
+      <SidebarProvider>
         {children}
-      </body>
-    </html>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }

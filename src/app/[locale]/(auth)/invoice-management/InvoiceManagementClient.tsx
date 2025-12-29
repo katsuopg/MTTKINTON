@@ -146,79 +146,80 @@ export default function InvoiceManagementClient({
       />
 
       {/* テーブル表示 */}
-      <div className="overflow-x-auto bg-white shadow rounded-lg">
-        {isLoading ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">
-              {language === 'ja' ? '読み込み中...' : language === 'th' ? 'กำลังโหลด...' : 'Loading...'}
-            </p>
-          </div>
-        ) : filteredInvoices.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">
+      <div className={tableStyles.tableContainer}>
+        <div className="max-w-full overflow-x-auto">
+          {isLoading ? (
+            <div className={tableStyles.emptyRow}>
+              <div className="flex items-center justify-center gap-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-brand-500"></div>
+                <span>{language === 'ja' ? '読み込み中...' : language === 'th' ? 'กำลังโหลด...' : 'Loading...'}</span>
+              </div>
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div className={tableStyles.emptyRow}>
               {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
-            </p>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? '工事番号' : 'Work No.'}
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? '請求書番号' : 'Invoice No.'}
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? '請求書日付' : 'Invoice Date'}
-                </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? '顧客名' : 'Customer'}
-                </th>
-                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? '金額' : 'Amount'}
-                </th>
-                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? 'ステータス' : 'Status'}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredInvoices.map((record) => (
-                <tr key={record.$id.value} className="hover:bg-gray-50">
-                  <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-indigo-600">
-                    <a href={`/${locale}/workno/${record.文字列__1行_?.value}`} className="hover:text-indigo-900">
-                      {record.文字列__1行_?.value || '-'}
-                    </a>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {record.文字列__1行__0?.value || '-'}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                    {record.日付?.value?.replace(/-/g, '/') || '-'}
-                  </td>
-                  <td className="px-3 py-2 text-sm text-gray-900">
-                    {record.CS_name?.value || '-'}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
-                    {formatNumber(record.計算?.value || record.total?.value)}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-center text-sm">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
-                        ? 'bg-green-100 text-green-800'
-                        : record.ラジオボタン?.value?.includes('Pending') || record.ラジオボタン?.value?.includes('รอ')
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {record.ラジオボタン?.value || '-'}
-                    </span>
-                  </td>
+            </div>
+          ) : (
+            <table className={tableStyles.table}>
+              <thead className={tableStyles.thead}>
+                <tr>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '工事番号' : 'Work No.'}
+                  </th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '請求書番号' : 'Invoice No.'}
+                  </th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '請求書日付' : 'Invoice Date'}
+                  </th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '顧客名' : 'Customer'}
+                  </th>
+                  <th className={`${tableStyles.th} text-end`}>
+                    {language === 'ja' ? '金額' : 'Amount'}
+                  </th>
+                  <th className={`${tableStyles.th} text-center`}>
+                    {language === 'ja' ? 'ステータス' : 'Status'}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody className={tableStyles.tbody}>
+                {filteredInvoices.map((record) => (
+                  <tr key={record.$id.value} className={tableStyles.tr}>
+                    <td className={tableStyles.td}>
+                      <a href={`/${locale}/workno/${record.文字列__1行_?.value}`} className={tableStyles.tdLink}>
+                        {record.文字列__1行_?.value || '-'}
+                      </a>
+                    </td>
+                    <td className={`${tableStyles.td} text-gray-800 dark:text-white/90`}>
+                      {record.文字列__1行__0?.value || '-'}
+                    </td>
+                    <td className={tableStyles.td}>
+                      {record.日付?.value?.replace(/-/g, '/') || '-'}
+                    </td>
+                    <td className={tableStyles.td}>
+                      {record.CS_name?.value || '-'}
+                    </td>
+                    <td className={`${tableStyles.td} text-end font-medium text-gray-800 dark:text-white/90`}>
+                      {formatNumber(record.計算?.value || record.total?.value)}
+                    </td>
+                    <td className={`${tableStyles.td} text-center`}>
+                      <span className={`inline-flex px-2.5 py-0.5 text-theme-xs font-medium rounded-full ${
+                        record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
+                          ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
+                          : record.ラジオボタン?.value?.includes('Pending') || record.ラジオボタン?.value?.includes('รอ')
+                          ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400'
+                      }`}>
+                        {record.ラジオボタン?.value || '-'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );

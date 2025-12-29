@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { WorkNoRecord } from '@/types/kintone';
 import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/20/solid';
+import { getStatusColor } from '@/lib/kintone/utils';
+import { tableStyles } from '@/components/ui/TableStyles';
 
 interface DashboardContentProps {
   locale: string;
@@ -12,26 +13,29 @@ interface DashboardContentProps {
   recentWorkNos: WorkNoRecord[];
 }
 
+// ステータスフィルターのタブ
+const STATUS_TABS = [
+  { key: 'all', labelJa: '全て', labelEn: 'All', labelTh: 'ทั้งหมด' },
+  { key: 'Working', labelJa: '作業中', labelEn: 'Working', labelTh: 'กำลังทำงาน' },
+  { key: 'Wating PO', labelJa: 'PO待ち', labelEn: 'Waiting PO', labelTh: 'รอ PO' },
+  { key: 'Pending', labelJa: '保留', labelEn: 'Pending', labelTh: 'รอดำเนินการ' },
+  { key: 'Stock', labelJa: '在庫', labelEn: 'Stock', labelTh: 'สต็อก' },
+];
+
 export default function DashboardContent({ locale, workNoCount, projectCount, recentWorkNos }: DashboardContentProps) {
-  // Convert locale to Language type
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
-  
-  // ページネーションの設定
+
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('all');
   const itemsPerPage = 10;
-  
-  // 日付フォーマット関数
+
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return '未定';
-    
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
     if (language === 'ja') {
-      // 日本語: YYYY-MM-DD
       return dateString;
     } else {
-      // 英語・タイ語: DD/MM/YYYY
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const year = date.getFullYear();
@@ -39,388 +43,384 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
     }
   };
 
-  // 数値フォーマット関数
   const formatNumber = (value: string | undefined) => {
     if (!value) return '-';
     const num = parseFloat(value);
     if (isNaN(num)) return value;
     return num.toLocaleString() + 'B';
   };
-  
-  // ページネーション計算
+
+  // フィルタリングされたデータ
+  const filteredWorkNos = useMemo(() => {
+    if (activeTab === 'all') return recentWorkNos;
+    return recentWorkNos.filter(record => record.Status?.value === activeTab);
+  }, [recentWorkNos, activeTab]);
+
+  // ページネーション
   const paginatedWorkNos = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return recentWorkNos.slice(startIndex, endIndex);
-  }, [recentWorkNos, currentPage]);
-  
-  const totalPages = Math.ceil(recentWorkNos.length / itemsPerPage);
-  
+    return filteredWorkNos.slice(startIndex, endIndex);
+  }, [filteredWorkNos, currentPage]);
+
+  const totalPages = Math.ceil(filteredWorkNos.length / itemsPerPage);
+
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  const getTabLabel = (tab: typeof STATUS_TABS[0]) => {
+    switch (language) {
+      case 'ja': return tab.labelJa;
+      case 'th': return tab.labelTh;
+      default: return tab.labelEn;
+    }
+  };
+
   return (
-    <div className="p-4">
-      {/* Dashboard Cards */}
-      <div className="mb-8">
-        <div className="grid grid-cols-3 gap-4 md:gap-6" style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem'}}>
-          {/* Work No.管理カード（メイン） */}
-          <a 
-            href={`/${locale}/projects`} 
-            className="group relative bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200"
-          >
-            <div className="p-4">
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-3">
-                  <div className="h-12 w-12 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                    <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-gray-900 group-hover:text-green-600 transition-colors mb-1">
-                    {workNoCount}
-                  </p>
-                  <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                    {language === 'ja' ? '実行中' : language === 'th' ? 'กำลังดำเนินการ' : 'WIP'} {getFieldLabel('WorkNo', language)}
-                  </p>
-                </div>
+    <div className="p-4 md:p-6">
+      {/* Dashboard Metrics - TailAdmin Style */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 md:gap-6 mb-6">
+        {/* Work No. Card */}
+        <a
+          href={`/${locale}/projects`}
+          className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 hover:shadow-lg transition-shadow"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800 shrink-0">
+              <svg className="w-6 h-6 text-gray-800 dark:text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="font-bold text-gray-800 text-title-sm dark:text-white/90">
+                {workNoCount}
+              </h4>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-gray-500 text-theme-sm dark:text-gray-400">
+                  {language === 'ja' ? '実行中' : language === 'th' ? 'กำลังดำเนินการ' : 'WIP'} {getFieldLabel('WorkNo', language)}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                  Active
+                </span>
               </div>
             </div>
-          </a>
+          </div>
+        </a>
 
-          {/* プロジェクト管理カード */}
-          <a 
-            href={`/${locale}/projects`} 
-            className="group relative bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200"
-          >
-            <div className="p-4">
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-3">
-                  <div className="h-12 w-12 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
-                    <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors mb-1">
-                    {projectCount}
-                  </p>
-                  <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                    プロジェクト
-                  </p>
-                </div>
+        {/* Project Card */}
+        <a
+          href={`/${locale}/projects`}
+          className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 hover:shadow-lg transition-shadow"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800 shrink-0">
+              <svg className="w-6 h-6 text-gray-800 dark:text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="font-bold text-gray-800 text-title-sm dark:text-white/90">
+                {projectCount}
+              </h4>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-gray-500 text-theme-sm dark:text-gray-400">
+                  {language === 'ja' ? 'プロジェクト' : language === 'th' ? 'โปรเจกต์' : 'Projects'}
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                  +20%
+                </span>
               </div>
             </div>
-          </a>
+          </div>
+        </a>
 
-          {/* アラートカード */}
-          <div className="relative bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
-            <div className="p-4">
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-3">
-                  <div className="h-12 w-12 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
-                    <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-gray-900 mb-1">
-                    0
-                  </p>
-                  <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                    アラート
-                  </p>
-                </div>
+        {/* Alert Card */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800 shrink-0">
+              <svg className="w-6 h-6 text-gray-800 dark:text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="font-bold text-gray-800 text-title-sm dark:text-white/90">
+                0
+              </h4>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-gray-500 text-theme-sm dark:text-gray-400">
+                  {language === 'ja' ? 'アラート' : language === 'th' ? 'การแจ้งเตือน' : 'Alerts'}
+                </span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Work Numbers Table */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-gray-900">
-            {language === 'ja' ? '実行中の' : language === 'th' ? 'งานที่กำลังดำเนินการ' : 'Work in Progress'} {getFieldLabel('WorkNo', language)}
-          </h2>
-        </div>
-        <div className="overflow-x-auto bg-white shadow rounded-lg">
-          {recentWorkNos.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">データがありません</p>
+      {/* Work Numbers Table - TailAdmin Style */}
+      <div className={tableStyles.tableContainer}>
+        {/* Header with Tabs and Filter */}
+        <div className="px-5 py-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 dark:border-white/[0.05]">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              {language === 'ja' ? '作業一覧' : language === 'th' ? 'รายการงาน' : 'Delivery Activities'}
+            </h3>
+            <p className="text-gray-500 text-theme-sm dark:text-gray-400">
+              {language === 'ja' ? '最近の作業状況を確認' : language === 'th' ? 'ติดตามกิจกรรมการจัดส่งล่าสุดของคุณ' : 'Track your recent shipping activities'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Status Tabs - TailAdmin ChartTab Style */}
+            <div className="hidden sm:flex items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
+              {STATUS_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => handleTabChange(tab.key)}
+                  className={`px-3 py-2 font-medium rounded-md text-theme-sm transition-colors hover:text-gray-900 dark:hover:text-white ${
+                    activeTab === tab.key
+                      ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  {getTabLabel(tab)}
+                </button>
+              ))}
             </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200" style={{minWidth: '1200px'}}>
-              <thead className="bg-gray-50">
+
+            {/* Filter Button */}
+            <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 text-theme-sm shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              Filter
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Tab Select - TailAdmin Style */}
+        <div className="sm:hidden px-5 py-3 border-b border-gray-100 dark:border-white/[0.05]">
+          <select
+            value={activeTab}
+            onChange={(e) => handleTabChange(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-theme-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+          >
+            {STATUS_TABS.map((tab) => (
+              <option key={tab.key} value={tab.key}>
+                {getTabLabel(tab)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Table */}
+        {filteredWorkNos.length === 0 ? (
+          <div className="px-5 py-10 text-center text-theme-sm text-gray-500 dark:text-gray-400">
+            {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
+          </div>
+        ) : (
+          <div className="max-w-full overflow-x-auto">
+            <table className={tableStyles.table}>
+              <thead className={tableStyles.thead}>
                 <tr>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Order ID'}
                   </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className={tableStyles.th}>Category</th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '顧客' : language === 'th' ? 'บริษัท' : 'Company'}
+                  </th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่มาถึง' : 'Arrival'}
+                  </th>
+                  <th className={tableStyles.th}>Description</th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '合計金額' : language === 'th' ? 'ราคา' : 'Price'}
+                  </th>
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
-                  </th>
-                  <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    PO
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CS ID
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Model
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Grand Total
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gross Profit
-                  </th>
-                  <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่ขายที่คาดการณ์' : 'Sales Date'}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={tableStyles.tbody}>
                 {paginatedWorkNos.map((record) => (
-                  <tr key={record.$id.value} className="transition-colors duration-150" style={{
-                    backgroundColor: record.Status?.value === 'Finished' ? '#f0fdf4' : 'transparent'
-                  }}>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex items-center">
+                  <tr key={record.$id.value} className={tableStyles.tr}>
+                    <td className={tableStyles.td}>
+                      <div className="flex items-center gap-2">
                         <a
                           href={`/${locale}/projects/${record.WorkNo?.value}`}
-                          className="text-indigo-600 hover:text-indigo-900 font-medium"
-                          style={{transform: 'scaleX(0.9)', transformOrigin: 'left', display: 'inline-block'}}
+                          className="font-medium text-gray-800 text-theme-sm hover:text-brand-500 dark:text-white/90 dark:hover:text-brand-400"
                         >
-                          {record.WorkNo?.value}
+                          #{record.WorkNo?.value}
                         </a>
-                        {/* 売上予定日が過ぎているかチェック */}
-                        {record.Salesdate?.value && 
+                        {record.Salesdate?.value &&
                          new Date(record.Salesdate.value) < new Date() &&
                          record.Status?.value !== 'Finished' &&
                          record.Status?.value !== 'Cancel' && (
-                          <div className="relative ml-1 group inline-flex">
-                            <span className="text-yellow-500 cursor-help">⚠️</span>
-                            <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-md px-3 py-2 whitespace-nowrap left-full ml-1 top-1/2 transform -translate-y-1/2">
-                              {language === 'ja' 
-                                ? '売上予定日が過ぎています。担当営業に再確認をしてください。'
-                                : language === 'th'
-                                ? 'วันที่ขายที่คาดการณ์ผ่านไปแล้ว กรุณาตรวจสอบกับฝ่ายขายอีกครั้ง'
-                                : 'Sales date has passed. Please reconfirm with sales staff.'}
-                              <div className="absolute w-2 h-2 bg-gray-800 transform rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
-                            </div>
-                          </div>
+                          <span className="text-yellow-500" title={language === 'ja' ? '売上予定日が過ぎています' : 'Overdue'}>⚠️</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                      <span 
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                        style={{
-                          backgroundColor: 
-                            record.Status?.value === 'Working' ? '#dbeafe' :
-                            record.Status?.value === 'Finished' ? '#10b981' :
-                            record.Status?.value === 'Wating PO' ? '#fef08a' :
-                            record.Status?.value === 'Stock' ? '#f3e8ff' :
-                            record.Status?.value === 'Pending' ? '#fed7aa' :
-                            record.Status?.value === 'Cancel' ? '#fee2e2' :
-                            record.Status?.value === 'Expenses' ? '#e0e7ff' :
-                            '#f3f4f6',
-                          color:
-                            record.Status?.value === 'Working' ? '#1e40af' :
-                            record.Status?.value === 'Finished' ? '#ffffff' :
-                            record.Status?.value === 'Wating PO' ? '#a16207' :
-                            record.Status?.value === 'Stock' ? '#7c3aed' :
-                            record.Status?.value === 'Pending' ? '#ea580c' :
-                            record.Status?.value === 'Cancel' ? '#dc2626' :
-                            record.Status?.value === 'Expenses' ? '#4338ca' :
-                            '#6b7280'
-                        }}
-                      >
-                        {getStatusLabel(record.Status?.value || '', language)}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
-                      {record.ルックアップ?.value && (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white justify-center">
-                          PO
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {record.文字列__1行__8?.value ? (
-                        <a
-                          href={`/${locale}/customers/${record.文字列__1行__8.value}`}
-                          className="text-indigo-600 hover:text-indigo-900"
-                          style={{transform: 'scaleX(0.9)', transformOrigin: 'left', display: 'inline-block'}}
-                        >
-                          {record.文字列__1行__8.value}
-                        </a>
-                      ) : '-'}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                    <td className={tableStyles.td}>
                       {record.文字列__1行__1?.value || '-'}
                     </td>
-                    <td className="px-2 py-2 text-sm text-gray-900">
-                      {record.文字列__1行__2?.value || '-'}
+                    <td className={tableStyles.td}>
+                      {record.文字列__1行__8?.value || '-'}
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                      {record.文字列__1行__9?.value || '-'}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatNumber(record.grand_total?.value)}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatNumber(record.profit?.value)}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm">
+                    <td className={tableStyles.td}>
                       <span className={
-                        record.Salesdate?.value && 
+                        record.Salesdate?.value &&
                         new Date(record.Salesdate.value) < new Date() &&
                         record.Status?.value !== 'Finished' &&
-                        record.Status?.value !== 'Cancel' 
-                          ? 'text-red-600 font-medium' 
-                          : 'text-gray-900'
+                        record.Status?.value !== 'Cancel'
+                          ? 'text-error-500 font-medium'
+                          : ''
                       }>
                         {formatDate(record.Salesdate?.value)}
+                      </span>
+                    </td>
+                    <td className={`${tableStyles.td} max-w-[200px] truncate`}>
+                      {record.文字列__1行__2?.value || '-'}
+                    </td>
+                    <td className={`${tableStyles.td} font-medium`}>
+                      {formatNumber(record.grand_total?.value)}
+                    </td>
+                    <td className={tableStyles.td}>
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(record.Status?.value || '')}`}>
+                        {getStatusLabel(record.Status?.value || '', language)}
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-          
-          {/* ページネーション */}
-          {totalPages > 1 && (
-            <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-              <div className="flex-1 flex justify-between sm:hidden">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  前へ
-                </button>
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  次へ
-                </button>
-              </div>
-              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm text-gray-700">
-                    {language === 'ja' ? `${recentWorkNos.length}件中` : language === 'th' ? `${recentWorkNos.length} รายการ` : `${recentWorkNos.length} items`}
-                    {' '}
-                    <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span>
-                    {' - '}
-                    <span className="font-medium">
-                      {Math.min(currentPage * itemsPerPage, recentWorkNos.length)}
-                    </span>
-                    {language === 'ja' ? '件を表示' : language === 'th' ? ' แสดง' : ' showing'}
-                  </p>
-                </div>
-                <div>
-                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                    <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span className="sr-only">Previous</span>
-                      <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                    
-                    {/* ページ番号 */}
-                    {[...Array(totalPages)].map((_, idx) => {
-                      const pageNumber = idx + 1;
-                      const isCurrentPage = pageNumber === currentPage;
-                      
-                      // 表示するページ番号を制限（現在のページの前後2ページ + 最初と最後）
-                      if (
-                        pageNumber === 1 ||
-                        pageNumber === totalPages ||
-                        (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2)
-                      ) {
-                        return (
-                          <button
-                            key={pageNumber}
-                            onClick={() => handlePageChange(pageNumber)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              isCurrentPage
-                                ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                            }`}
-                          >
-                            {pageNumber}
-                          </button>
-                        );
-                      }
-                      
-                      // 省略記号を表示
-                      if (pageNumber === currentPage - 3 || pageNumber === currentPage + 3) {
-                        return (
-                          <span key={pageNumber} className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                            ...
-                          </span>
-                        );
-                      }
-                      
-                      return null;
-                    })}
-                    
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <span className="sr-only">Next</span>
-                      <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                  </nav>
-                </div>
-              </div>
+          </div>
+        )}
+
+        {/* Pagination - TailAdmin Style */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-white/[0.05]">
+            <p className="text-gray-500 text-theme-sm dark:text-gray-400">
+              Showing <span className="font-medium text-gray-700 dark:text-gray-300">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+              <span className="font-medium text-gray-700 dark:text-gray-300">{Math.min(currentPage * itemsPerPage, filteredWorkNos.length)}</span> of{' '}
+              <span className="font-medium text-gray-700 dark:text-gray-300">{filteredWorkNos.length}</span>
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {[...Array(Math.min(totalPages, 5))].map((_, idx) => {
+                let pageNumber: number;
+                if (totalPages <= 5) {
+                  pageNumber = idx + 1;
+                } else if (currentPage <= 3) {
+                  pageNumber = idx + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNumber = totalPages - 4 + idx;
+                } else {
+                  pageNumber = currentPage - 2 + idx;
+                }
+
+                return (
+                  <button
+                    key={pageNumber}
+                    onClick={() => handlePageChange(pageNumber)}
+                    className={`flex items-center justify-center w-10 h-10 rounded-lg font-medium text-theme-sm transition-colors ${
+                      currentPage === pageNumber
+                        ? 'bg-brand-500 text-white'
+                        : 'border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]'
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                );
+              })}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">
-          クイックアクセス
+      {/* Quick Access - TailAdmin Style */}
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
+          {language === 'ja' ? 'クイックアクセス' : language === 'th' ? 'การเข้าถึงด่วน' : 'Quick Access'}
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
           <a
             href={`/${locale}/parts-list`}
-            className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+            className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 hover:shadow-lg transition-shadow group"
           >
-            <h3 className="text-lg font-medium text-gray-900">パーツリスト管理</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              プロジェクト別のパーツリストを管理
-            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800 shrink-0">
+                <svg className="w-6 h-6 text-gray-800 dark:text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 text-theme-sm dark:text-white/90 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors">
+                  {language === 'ja' ? 'パーツリスト管理' : language === 'th' ? 'การจัดการรายการชิ้นส่วน' : 'Parts List Management'}
+                </h3>
+                <p className="mt-1 text-gray-500 text-theme-xs dark:text-gray-400">
+                  {language === 'ja' ? 'プロジェクト別のパーツリストを管理' : language === 'th' ? 'จัดการรายการชิ้นส่วนตามโปรเจกต์' : 'Manage parts lists by project'}
+                </p>
+              </div>
+            </div>
           </a>
           <a
             href={`/${locale}/purchase-request`}
-            className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+            className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 hover:shadow-lg transition-shadow group"
           >
-            <h3 className="text-lg font-medium text-gray-900">購買依頼管理</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              設計・エンジニアからの購買依頼を処理
-            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800 shrink-0">
+                <svg className="w-6 h-6 text-gray-800 dark:text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-800 text-theme-sm dark:text-white/90 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors">
+                  {language === 'ja' ? '購買依頼管理' : language === 'th' ? 'การจัดการคำขอซื้อ' : 'Purchase Request Management'}
+                </h3>
+                <p className="mt-1 text-gray-500 text-theme-xs dark:text-gray-400">
+                  {language === 'ja' ? '設計・エンジニアからの購買依頼を処理' : language === 'th' ? 'ดำเนินการตามคำขอซื้อจากวิศวกร' : 'Process purchase requests from engineers'}
+                </p>
+              </div>
+            </div>
           </a>
         </div>
       </div>

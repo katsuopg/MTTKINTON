@@ -22,13 +22,13 @@ export default function FiscalYearSelect({ currentYear, locale, language }: Fisc
 
   return (
     <div className="flex items-center space-x-3">
-      <label className="text-sm font-medium text-gray-700">
+      <label className="text-theme-sm font-medium text-gray-700 dark:text-gray-300">
         {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีงบประมาณ:' : 'Fiscal Year:'}
       </label>
       <select
         value={currentYear}
         onChange={handleChange}
-        className="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
       >
         {[14, 13, 12, 11, 10, 9, 8].map((year) => (
           <option key={year} value={year}>

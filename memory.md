@@ -1,6 +1,110 @@
 # MTT KINTON - 作業履歴
 
-## 最新作業（2025-10-08）
+## 最新作業（2025-12-29）
+
+### 全ページへのユーザー情報（ニックネーム・アバター）表示対応
+- **要求**: ヘッダーにニックネームとアバターを表示し、全ページで継承されるようにする
+- **実装内容**:
+  1. `lib/auth/user-info.ts` を作成
+     - `getCurrentUserInfo()` 関数：Supabaseから現在のユーザー情報を取得
+     - ニックネーム、アバターURL、従業員番号を統一的に取得
+     - displayName優先順位：ニックネーム > 従業員名 > メールアドレス
+  2. 全ページにuserInfoを適用（合計28ファイル）
+     - リスト系ページ: dashboard, workno, machines, suppliers, po-management, order-management, invoice-management, project-management, import-data, settings, employees, quotation, customers, staff, cost-management
+     - 詳細ページ: quotation/[id], customers/[id], staff/[staffId], suppliers/[id], workno/[workNo], workno/[workNo]/edit, machines/[id], po-management/[id], project-management/[pjCode], employees/[employeeId], employees/[employeeId]/edit, employees/new, order-management/[id]
+  3. クライアントコンポーネントの更新
+     - 各ClientContentコンポーネントにuserInfo propsを追加
+     - DashboardLayoutにuserInfoを渡す
+  4. order-management/[id]/page.tsxのリファクタリング
+     - クライアントコンポーネントをOrderDetailContent.tsxに分離
+     - サーバーコンポーネントでgetCurrentUserInfoを呼び出し、propsとして渡す
+- **技術的詳細**:
+  - サーバーコンポーネント(page.tsx)でgetCurrentUserInfo()を呼び出し
+  - クライアントコンポーネントにpropsとして渡す
+  - DashboardLayoutがuserInfoを受け取りヘッダーに表示
+  - 従業員一覧のアバター表示：大文字小文字を区別しない比較（.toLowerCase()）
+  - params型をPromise形式に統一（Next.js 15対応）
+
+---
+
+## 過去の作業（2025-12-31）
+
+### プロフィールページ - アバターアップロード機能の実装
+- **要求**: プロフィール画像をユーザーが設定できるように
+- **実装内容**:
+  1. ProfileContent.tsxにアバターアップロード機能を追加
+     - アバター画像にホバー時カメラアイコンオーバーレイを表示
+     - ファイル選択ダイアログを起動してアップロード
+     - アップロード中はスピナー表示
+  2. `/api/profile/avatar/route.ts`を作成
+     - FormDataでファイルを受け取り
+     - Supabase Storage（profilesバケット）にアップロード
+     - ユーザーメタデータのavatar_urlを更新
+     - Service Role Keyを使用してRLSをバイパス
+  3. Supabase Storageの設定
+     - `profiles`バケットを作成（Supabase Dashboard）
+     - `20251231_storage_policies.sql`でRLSポリシーを設定
+- **技術的詳細**:
+  - ファイルサイズ制限: 2MB以下
+  - ファイル名: `{user.id}-{timestamp}.{ext}`
+  - Service Role Keyでadmin権限を使用（RLSバイパス）
+- **修正内容**:
+  - アップロード成功時のメッセージを`t.saveSuccess`→`t.uploadSuccess`に変更
+  - タイ語ラベル追加: `uploadSuccess: 'อัปโหลดรูปภาพแล้ว'`
+
+### プロフィールページ - UIリデザイン
+- **要求**: ニックネームを氏名の隣に移動、基本情報削除、詳細を見るボタン削除
+- **実装内容**:
+  1. ニックネームを氏名の右隣に表示（括弧付き）
+  2. 編集モード時はニックネーム入力フィールドを表示
+  3. 基本情報セクションを完全削除
+  4. 従業員詳細へのリンクボタンを削除
+- **動作確認**: プロフィールページでアバターアップロードと編集機能が正常動作
+
+---
+
+## 過去の作業（2025-12-28）
+
+### 従業員管理アプリ - 社内メールアドレスカラムの追加
+- **要求**: 従業員管理アプリのSupabase移行において、社内メールアドレスをDBに追加
+- **実装内容**:
+  1. Kintone従業員アプリのフィールド構造を確認
+     - 「社内メールアドレス」フィールドはKintoneに存在しない
+     - ユーザー確認：Supabaseのみで管理することに決定
+  2. Supabaseマイグレーションを適用
+     - `20251230_add_company_email.sql`を作成・適用
+     - `company_email VARCHAR(255)`カラムをemployeesテーブルに追加
+     - コメント：「社内メールアドレス（@megatech.co.th等）」
+  3. UIの修正
+     - 従業員詳細ページ（EmployeeDetailContent.tsx）は既に対応済み
+     - 従業員一覧ページ（EmployeesClient.tsx）を修正
+       - メール列のヘッダーを「社内メール」に変更
+       - `company_email`フィールドを優先的に表示するように変更
+- **技術的詳細**:
+  - Supabaseマイグレーション履歴の競合を解決（`migration repair`コマンド使用）
+  - 社内メールアドレスはKintoneとは同期せず、Supabase上のみで管理
+- **動作確認**: employeesテーブルにcompany_emailカラムが正常に追加されたことを確認
+
+### プロフィールページ - 社内メールアドレスでの従業員紐付け
+- **要求**: 社内メールアドレス（company_email）でログインユーザーと従業員データを紐付け可能にする
+- **実装内容**:
+  1. プロフィールページ（profile/page.tsx）の従業員検索ロジックを拡張
+     - 検索順序：①従業員番号 → ②メタデータの従業員番号 → ③社内メールアドレス（company_email）
+     - ログインメールアドレスがcompany_emailと一致する場合も従業員を検索
+  2. 従業員詳細ページへのリンクを追加
+     - ProfileContent.tsxにemployeeIdを渡す
+     - 「詳細を見る」ボタンを追加（多言語対応：日本語/英語/タイ語）
+- **技術的詳細**:
+  - company_emailカラムでのフィルタリングを追加
+  - employeeIdを取得してプロフィールから従業員詳細ページへ遷移可能に
+- **紐付け方法のまとめ**:
+  1. 内部ドメイン方式：`従業員番号@mtt.internal` でログイン
+  2. user_idカラム：`employees.user_id` → `auth.users.id` の外部キー
+  3. 社内メールアドレス：`company_email`とログインメールアドレスの一致
+
+---
+
+## 過去の作業（2025-10-08）
 
 ### Kintone→Supabaseデータ移行の実装
 - **要求**: KintoneのデータをSupabaseに取り込み、Supabaseから表示するよう変更

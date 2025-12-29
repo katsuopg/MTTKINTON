@@ -112,6 +112,26 @@ export async function getInvoiceRecords(fiscalPeriod: string = '14', limit: numb
 }
 
 /**
+ * 工事番号から請求書レコードを取得
+ */
+export async function getInvoiceRecordsByWorkNo(workNo: string): Promise<InvoiceRecord[]> {
+  const API_TOKEN = process.env.KINTONE_API_TOKEN_INVOICE || '';
+  const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
+
+  // 文字列__1行_フィールド（工事番号）でフィルタリング
+  const query = `文字列__1行_ = "${workNo}" order by 日付 desc`;
+
+  try {
+    const records = await client.getRecords<InvoiceRecord>(query);
+    console.log(`Found ${records.length} invoice records for work no ${workNo}`);
+    return records;
+  } catch (error) {
+    console.error('Error fetching invoice records by work no:', error);
+    return [];
+  }
+}
+
+/**
  * 顧客名から請求書レコードを取得
  */
 export async function getInvoiceRecordsByCustomer(

@@ -12,9 +12,10 @@ interface StaffListContentProps {
   staffList: CustomerStaffRecord[];
   locale: string;
   userEmail: string;
+  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export default function StaffListContent({ staffList, locale, userEmail }: StaffListContentProps) {
+export default function StaffListContent({ staffList, locale, userEmail, userInfo }: StaffListContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState('');
@@ -76,7 +77,7 @@ export default function StaffListContent({ staffList, locale, userEmail }: Staff
   const pageTitle = language === 'ja' ? '顧客担当者管理' : language === 'th' ? 'จัดการผู้ติดต่อ' : 'Staff Management';
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>
@@ -101,7 +102,7 @@ export default function StaffListContent({ staffList, locale, userEmail }: Staff
             <select
               value={selectedDivision}
               onChange={(e) => setSelectedDivision(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
             >
               <option value="">
                 {language === 'ja' ? '全部署' : language === 'th' ? 'ทุกแผนก' : 'All Divisions'}
@@ -126,78 +127,76 @@ export default function StaffListContent({ staffList, locale, userEmail }: Staff
 
         {/* 担当者リスト */}
         <div className={tableStyles.tableContainer}>
-          <div className="max-w-4xl">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    {language === 'ja' ? '担当者名' : language === 'th' ? 'ชื่อผู้ติดต่อ' : 'Name'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                    {language === 'ja' ? '会社名' : language === 'th' ? 'บริษัท' : 'Company'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 hidden md:table-cell">
-                    {language === 'ja' ? '部署' : language === 'th' ? 'แผนก' : 'Division'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 hidden lg:table-cell">
-                    {language === 'ja' ? '役職' : language === 'th' ? 'ตำแหน่ง' : 'Position'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
-                    {language === 'ja' ? 'メール' : language === 'th' ? 'อีเมล' : 'Email'}
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    <span className="sr-only">View</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredStaff.map((staff) => (
-                  <tr key={staff.$id.value} className="hover:bg-gray-50">
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {staff.担当者名?.value}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {staff.ルックアップ?.value}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-                      {staff.Divison?.value || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
-                      {staff.Position?.value || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {staff.メールアドレス?.value ? (
-                        <a
-                          href={`mailto:${staff.メールアドレス.value}`}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          {staff.メールアドレス.value}
-                        </a>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link
-                        href={`/${locale}/staff/${staff.$id.value}`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {filteredStaff.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500">
-                  {language === 'ja' ? '該当する担当者が見つかりません' : 
-                   language === 'th' ? 'ไม่พบผู้ติดต่อที่ตรงกัน' : 
-                   'No staff members found'}
-                </p>
+          <div className="max-w-full overflow-x-auto">
+            {filteredStaff.length === 0 ? (
+              <div className={tableStyles.emptyRow}>
+                {language === 'ja' ? '該当する担当者が見つかりません' :
+                 language === 'th' ? 'ไม่พบผู้ติดต่อที่ตรงกัน' :
+                 'No staff members found'}
               </div>
+            ) : (
+              <table className={tableStyles.table}>
+                <thead className={tableStyles.thead}>
+                  <tr>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? '担当者名' : language === 'th' ? 'ชื่อผู้ติดต่อ' : 'Name'}
+                    </th>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? '会社名' : language === 'th' ? 'บริษัท' : 'Company'}
+                    </th>
+                    <th className={`${tableStyles.th} hidden md:table-cell`}>
+                      {language === 'ja' ? '部署' : language === 'th' ? 'แผนก' : 'Division'}
+                    </th>
+                    <th className={`${tableStyles.th} hidden lg:table-cell`}>
+                      {language === 'ja' ? '役職' : language === 'th' ? 'ตำแหน่ง' : 'Position'}
+                    </th>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? 'メール' : language === 'th' ? 'อีเมล' : 'Email'}
+                    </th>
+                    <th className={`${tableStyles.th} text-end`}>
+                      <span className="sr-only">View</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className={tableStyles.tbody}>
+                  {filteredStaff.map((staff) => (
+                    <tr key={staff.$id.value} className={tableStyles.tr}>
+                      <td className={`${tableStyles.td} text-gray-800 dark:text-white/90 font-medium`}>
+                        {staff.担当者名?.value}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {staff.ルックアップ?.value}
+                      </td>
+                      <td className={`${tableStyles.td} hidden md:table-cell`}>
+                        {staff.Divison?.value || '-'}
+                      </td>
+                      <td className={`${tableStyles.td} hidden lg:table-cell`}>
+                        {staff.Position?.value || '-'}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {staff.メールアドレス?.value ? (
+                          <a
+                            href={`mailto:${staff.メールアドレス.value}`}
+                            className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                          >
+                            {staff.メールアドレス.value}
+                          </a>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td className={`${tableStyles.td} text-end`}>
+                        <Link
+                          href={`/${locale}/staff/${staff.$id.value}`}
+                          className={tableStyles.tdLink}
+                        >
+                          {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>

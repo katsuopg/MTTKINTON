@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+interface OrganizationMemberUpdate {
+  is_active?: boolean;
+  left_at?: string | null;
+}
+
+interface OrganizationMemberInsert {
+  organization_id: string;
+  employee_id: string;
+  role: string;
+  is_active: boolean;
+  joined_at: string;
+}
+
 // 従業員の所属組織一覧を取得
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -96,9 +109,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 既存の所属を無効化（削除ではなくis_active=falseに）
+    const updateData: OrganizationMemberUpdate = { is_active: false, left_at: new Date().toISOString() };
     const { error: updateError } = await supabase
       .from('organization_members')
-      .update({ is_active: false, left_at: new Date().toISOString() })
+      .update(updateData as never)
       .eq('employee_id', employee_id)
       .eq('is_active', true);
 
@@ -112,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     // 新しい所属を追加
     if (organization_ids.length > 0) {
-      const newMembers = organization_ids.map((org_id: string) => ({
+      const newMembers: OrganizationMemberInsert[] = organization_ids.map((org_id: string) => ({
         organization_id: org_id,
         employee_id,
         role: 'member',
@@ -122,7 +136,7 @@ export async function POST(request: NextRequest) {
 
       const { error: insertError } = await supabase
         .from('organization_members')
-        .upsert(newMembers, {
+        .upsert(newMembers as never[], {
           onConflict: 'organization_id,employee_id',
           ignoreDuplicates: false,
         });

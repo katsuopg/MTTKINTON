@@ -95,17 +95,17 @@ export default function SearchFilter({
   };
 
   return (
-    <div className={`flex items-center gap-4 mb-6 ${className}`}>
-      {/* 期間フィルター */}
+    <div className={`flex flex-wrap items-center gap-4 mb-6 ${className}`}>
+      {/* 期間フィルター - TailAdminスタイル */}
       {showPeriodFilter && (
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-theme-sm font-medium text-gray-700 dark:text-gray-300">
             {periodLabel}
           </label>
           <select
             value={selectedPeriod}
             onChange={handlePeriodChange}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white"
+            className="px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-theme-sm bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
           >
             {(getPeriodOptions() || []).map((option) => (
               <option key={option.value} value={option.value}>
@@ -116,22 +116,29 @@ export default function SearchFilter({
         </div>
       )}
 
-      {/* 件数表示 */}
+      {/* 件数表示 - TailAdminスタイル */}
       {totalCount !== undefined && (
-        <div className="text-sm text-gray-600 whitespace-nowrap">
+        <div className="text-theme-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
           {totalCount}{countLabel}
         </div>
       )}
 
-      {/* 検索フィールド */}
+      {/* 検索フィールド - TailAdminスタイル */}
       <div className="flex-1 max-w-xs">
-        <input
-          type="text"
-          value={searchInput}
-          onChange={handleSearchInputChange}
-          placeholder={searchPlaceholder}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-        />
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            value={searchInput}
+            onChange={handleSearchInputChange}
+            placeholder={searchPlaceholder}
+            className="w-full py-2.5 pl-10 pr-4 text-theme-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+          />
+        </div>
       </div>
     </div>
   );

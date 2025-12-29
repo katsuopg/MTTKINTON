@@ -19,9 +19,10 @@ interface CustomerListContentProps {
   locale: string;
   userEmail: string;
   salesSummary?: Record<string, { period: string; sales: number }[]>;
+  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export function CustomerListContent({ customers, locale, userEmail, salesSummary = {} }: CustomerListContentProps) {
+export function CustomerListContent({ customers, locale, userEmail, salesSummary = {}, userInfo }: CustomerListContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,7 +90,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
   };
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>
@@ -126,101 +127,90 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
           </p>
         </div>
 
-        {/* テーブル */}
+        {/* テーブル - TailAdminスタイル */}
         <div className={tableStyles.tableContainer}>
-          <div className="max-w-6xl overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="max-w-full overflow-x-auto">
+            <table className={tableStyles.table}>
+              <thead className={tableStyles.thead}>
                 <tr>
-                  <th 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-24"
+                  <th
+                    className={`${tableStyles.th} cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.02]`}
                     onClick={() => handleSort('csId')}
                   >
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-1">
                       CS ID
                       {sortField === 'csId' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
+                        <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
                   </th>
-                  <th 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-64"
+                  <th
+                    className={`${tableStyles.th} cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.02]`}
                     onClick={() => handleSort('companyName')}
                   >
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-1">
                       {language === 'ja' ? '会社名' : language === 'th' ? 'ชื่อบริษัท' : 'Company Name'}
                       {sortField === 'companyName' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
+                        <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32 hidden md:table-cell">
+                  <th className={`${tableStyles.th} text-center hidden md:table-cell`}>
                     {language === 'ja' ? '売上高' : language === 'th' ? 'ยอดขาย' : 'Sales'}
                   </th>
-                  <th 
-                    className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 w-20"
+                  <th
+                    className={`${tableStyles.th} cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.02]`}
                     onClick={() => handleSort('rank')}
                   >
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-1">
                       {language === 'ja' ? 'ランク' : language === 'th' ? 'ระดับ' : 'Rank'}
                       {sortField === 'rank' && (
-                        <span className="ml-1">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
+                        <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    TEL
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className={tableStyles.th}>TEL</th>
+                  <th className={`${tableStyles.th} text-end`}>
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={tableStyles.tbody}>
                 {filteredAndSortedCustomers.map((customer) => (
-                  <tr 
-                    key={customer.$id.value} 
-                    className="hover:bg-gray-50"
-                  >
-                    <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={customer.$id.value} className={tableStyles.tr}>
+                    <td className={tableStyles.td}>
                       <TransitionLink
                         href={`/${locale}/customers/${customer.文字列__1行_.value}`}
-                        className="text-indigo-600 hover:text-indigo-900 inline-block"
+                        className={tableStyles.tdLink}
                       >
                         {customer.文字列__1行_.value}
                       </TransitionLink>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    <td className={`${tableStyles.td} text-gray-800 dark:text-white/90`}>
                       {customer.会社名.value}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
+                    <td className={`${tableStyles.td} hidden md:table-cell`}>
                       <div className="flex justify-center">
                         <MiniSalesChart salesData={salesSummary[customer.会社名.value]} />
                       </div>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        customer.顧客ランク?.value === 'A' ? 'bg-green-100 text-green-800' :
-                        customer.顧客ランク?.value === 'B' ? 'bg-yellow-100 text-yellow-800' :
-                        customer.顧客ランク?.value === 'C' ? 'bg-orange-100 text-orange-800' :
-                        'bg-gray-100 text-gray-800'
+                    <td className={tableStyles.td}>
+                      <span className={`${tableStyles.statusBadge} ${
+                        customer.顧客ランク?.value === 'A' ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500' :
+                        customer.顧客ランク?.value === 'B' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500' :
+                        customer.顧客ランク?.value === 'C' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
+                        'bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400'
                       }`}>
                         {customer.顧客ランク?.value || '-'}
                       </span>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                    <td className={tableStyles.td}>
                       {customer.TEL?.value || '-'}
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-right text-sm font-medium">
+                    <td className={`${tableStyles.td} text-end`}>
                       <TransitionLink
                         href={`/${locale}/customers/${customer.文字列__1行_.value}`}
-                        className="text-indigo-600 hover:text-indigo-900 inline-block"
+                        className={tableStyles.tdLink}
                       >
                         {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
                       </TransitionLink>
@@ -229,14 +219,14 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                 ))}
                 {filteredAndSortedCustomers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-3 py-2 text-sm text-gray-500 text-center">
+                    <td colSpan={6} className={tableStyles.emptyRow}>
                       {searchTerm ? (
-                        language === 'ja' ? '検索結果が見つかりませんでした' : 
-                        language === 'th' ? 'ไม่พบผลการค้นหา' : 
+                        language === 'ja' ? '検索結果が見つかりませんでした' :
+                        language === 'th' ? 'ไม่พบผลการค้นหา' :
                         'No search results found'
                       ) : (
-                        language === 'ja' ? '顧客データがありません' : 
-                        language === 'th' ? 'ไม่มีข้อมูลลูกค้า' : 
+                        language === 'ja' ? '顧客データがありません' :
+                        language === 'th' ? 'ไม่มีข้อมูลลูกค้า' :
                         'No customer data'
                       )}
                     </td>

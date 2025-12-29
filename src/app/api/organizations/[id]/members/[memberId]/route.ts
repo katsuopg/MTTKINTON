@@ -29,7 +29,7 @@ export async function PUT(
 
     const { data, error } = await supabase
       .from('organization_members')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', memberId)
       .select()
       .single();

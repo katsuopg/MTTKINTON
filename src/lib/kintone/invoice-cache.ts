@@ -44,7 +44,7 @@ class InvoiceCache {
       this.isRefreshing = true;
       console.log('Fetching fresh invoice data from Kintone');
       
-      const records = await getInvoiceRecords(500, 0);
+      const records = await getInvoiceRecords('', 500);
       
       // 工事番号ごとのマップを作成
       const workNoMap = new Map<string, InvoiceRecord[]>();
@@ -87,7 +87,7 @@ class InvoiceCache {
   }
 
   // 差分更新用（将来の実装用）
-  async updateInvoice(workNo: string, invoice: InvoiceRecord): void {
+  async updateInvoice(workNo: string, invoice: InvoiceRecord): Promise<void> {
     if (!this.cache) return;
 
     // キャッシュ内の該当データを更新

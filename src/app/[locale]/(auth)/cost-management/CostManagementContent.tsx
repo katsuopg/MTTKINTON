@@ -12,9 +12,10 @@ interface CostManagementContentProps {
   costRecords: CostRecord[];
   locale: string;
   userEmail: string;
+  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export function CostManagementContent({ costRecords, locale, userEmail }: CostManagementContentProps) {
+export function CostManagementContent({ costRecords, locale, userEmail, userInfo }: CostManagementContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchTerm, setSearchTerm] = useState('');
   const pageTitle = language === 'ja' ? 'コスト管理' : language === 'th' ? 'จัดการต้นทุน' : 'Cost Management';
@@ -79,7 +80,7 @@ export function CostManagementContent({ costRecords, locale, userEmail }: CostMa
   };
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>

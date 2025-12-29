@@ -48,21 +48,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '組織コードと組織名は必須です' }, { status: 400 });
     }
 
+    const insertData = {
+      code,
+      name,
+      name_en: name_en || null,
+      name_th: name_th || null,
+      // parent_idが空文字列の場合はnullに変換
+      parent_id: parent_id === '' || parent_id === null ? null : parent_id,
+      description: description || null,
+      // display_orderを数値に変換
+      display_order: parseInt(String(display_order), 10) || 0,
+      created_by: user.email || 'system',
+      updated_by: user.email || 'system',
+    };
     const { data, error } = await supabase
       .from('organizations')
-      .insert({
-        code,
-        name,
-        name_en: name_en || null,
-        name_th: name_th || null,
-        // parent_idが空文字列の場合はnullに変換
-        parent_id: parent_id === '' || parent_id === null ? null : parent_id,
-        description: description || null,
-        // display_orderを数値に変換
-        display_order: parseInt(String(display_order), 10) || 0,
-        created_by: user.email || 'system',
-        updated_by: user.email || 'system',
-      })
+      .insert(insertData as never)
       .select()
       .single();
 

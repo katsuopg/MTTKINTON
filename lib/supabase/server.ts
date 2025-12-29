@@ -28,7 +28,7 @@ export const createClient = async () => {
 // サーバーアクション用のSupabaseクライアントを作成
 export const createActionClient = async () => {
   const cookieStore = await cookies();
-  
+
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -38,15 +38,23 @@ export const createActionClient = async () => {
           return cookieStore.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({
-            name,
-            value,
-            path: options.path || '/',
-            ...options,
-          });
+          try {
+            cookieStore.set({
+              name,
+              value,
+              path: options.path || '/',
+              ...options,
+            });
+          } catch {
+            // Server Componentからの呼び出し時はエラーを無視
+          }
         },
         remove(name: string) {
-          cookieStore.delete(name);
+          try {
+            cookieStore.delete(name);
+          } catch {
+            // Server Componentからの呼び出し時はエラーを無視
+          }
         }
       }
     }

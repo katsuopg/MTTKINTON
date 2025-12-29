@@ -1,39 +1,52 @@
-// 統一されたテーブルスタイルの定義（プロジェクト管理ページベース）
+// TailAdmin統一テーブルスタイルの定義
 export const tableStyles = {
-  // ページレイアウト - 工事番号管理と同じ構造
-  contentWrapper: "py-4 px-4",
-  
-  // テーブルコンテナ
-  tableContainer: "bg-white shadow-sm rounded-lg overflow-hidden",
-  
-  // テーブル要素
-  table: "w-full divide-y divide-gray-200",
-  thead: "bg-gray-50",
-  th: "px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
-  tbody: "bg-white divide-y divide-gray-200",
-  tr: "hover:bg-gray-50 transition-colors duration-150",
-  td: "px-4 py-2 whitespace-nowrap text-sm text-gray-900",
-  tdLink: "text-indigo-600 hover:text-indigo-900 font-medium",
-  emptyRow: "px-4 py-2 text-center text-sm text-gray-500",
-  
-  // 検索バー - プロジェクト管理と同じスタイル
+  // ページレイアウト
+  contentWrapper: "p-4 md:p-6",
+
+  // テーブルコンテナ - TailAdminスタイル
+  tableContainer: "overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]",
+
+  // テーブル要素 - TailAdminスタイル
+  table: "min-w-full",
+  thead: "border-b border-gray-100 dark:border-white/[0.05]",
+  th: "px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400",
+  tbody: "divide-y divide-gray-100 dark:divide-white/[0.05]",
+  tr: "hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors duration-150",
+  trClickable: "hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors duration-150 cursor-pointer",
+  td: "px-4 py-3 whitespace-nowrap text-theme-sm text-gray-500 dark:text-gray-400",
+  tdPrimary: "text-gray-800 dark:text-white/90 font-medium",
+  tdLink: "text-brand-500 hover:text-brand-600 font-medium",
+  emptyRow: "px-4 py-6 text-center text-theme-sm text-gray-500 dark:text-gray-400",
+
+  // 検索バー - TailAdminスタイル
   searchWrapper: "mb-4",
   searchForm: "flex items-center gap-3",
-  searchInput: "flex-1 max-w-md px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm",
-  searchButton: "px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500",
-  clearButton: "px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700",
-  
-  // フィルターバー - プロジェクト管理と同じスタイル
+  searchInput: "flex-1 max-w-md px-4 py-2.5 text-theme-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300",
+  searchButton: "px-4 py-2.5 border border-transparent text-theme-sm font-medium rounded-lg shadow-theme-xs text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500",
+  clearButton: "px-3 py-2 text-theme-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200",
+
+  // フィルターバー
   filterBar: "mb-4",
-  
+
   // レコード数表示
-  recordCount: "text-sm text-gray-600",
-  
-  // ステータスバッジ
-  statusBadge: "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-  
+  recordCount: "text-theme-sm text-gray-500 dark:text-gray-400",
+
+  // ステータスバッジ - TailAdminスタイル
+  statusBadge: "inline-flex items-center px-2.5 py-0.5 rounded-full text-theme-xs font-medium",
+
+  // アバタースタイル
+  avatar: "w-8 h-8 rounded-full bg-brand-100 text-brand-600 dark:bg-brand-900 dark:text-brand-200 flex items-center justify-center text-sm font-medium",
+
+  // タグスタイル
+  tag: "inline-flex items-center px-2 py-0.5 rounded text-theme-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+
+  // ボタンスタイル
+  addButton: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500",
+  editButton: "text-brand-500 hover:text-brand-600 text-sm font-medium",
+  deleteButton: "text-rose-500 hover:text-rose-600 text-sm font-medium",
+
   // 旧スタイル（後方互換性のため）
-  wrapper: "bg-white shadow-sm rounded-lg overflow-hidden",
-  header: "px-4 py-2 flex justify-between items-center border-b border-gray-200",
-  title: "text-lg leading-6 font-medium text-gray-900"
+  wrapper: "overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]",
+  header: "px-5 py-4 flex justify-between items-center border-b border-gray-100 dark:border-white/[0.05]",
+  title: "text-lg font-semibold text-gray-800 dark:text-white"
 };

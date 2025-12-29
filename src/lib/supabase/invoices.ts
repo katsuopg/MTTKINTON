@@ -110,8 +110,9 @@ export async function getSalesSummaryByCustomersFromSupabase(
 
   // 顧客ごと、期間ごとに集計
   const summaryByCustomer: Record<string, Record<string, number>> = {};
-  
-  (data || []).forEach(record => {
+
+  const records = (data || []) as { customer_name: string | null; work_no: string | null; grand_total: number | null }[];
+  records.forEach(record => {
     const customerName = record.customer_name || '';
     const workNo = record.work_no || '';
     const match = workNo.match(/^(\d+)-/);

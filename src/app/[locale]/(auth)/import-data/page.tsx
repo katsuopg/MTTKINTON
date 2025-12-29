@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ImportDataClient from './ImportDataClient';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface ImportDataPageProps {
   params: Promise<{
@@ -30,8 +31,15 @@ export default async function ImportDataPage({ params }: ImportDataPageProps) {
       ? 'ซิงก์ข้อมูล'
       : 'Data Sync';
 
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email || ''} title={title}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email || ''}
+      title={title}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <ImportDataClient locale={locale} />
     </DashboardLayout>
   );

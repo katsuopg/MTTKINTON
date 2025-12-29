@@ -4,6 +4,7 @@ import { KintoneClient } from '@/lib/kintone/client';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import type { Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface SupplierRecord {
   $id: { value: string };
@@ -54,18 +55,18 @@ export default async function SuppliersPage({ params: { locale }, searchParams }
     
     // 検索クエリがある場合はフィルタリング
     if (searchQuery) {
+      const queryLower = searchQuery.toLowerCase();
       suppliers = suppliers.filter(supplier => {
         const companyName = supplier.文字列__1行_.value.toLowerCase();
         const localName = supplier.会社名.value.toLowerCase();
-        const query = searchQuery.toLowerCase();
-        return companyName.includes(query) || localName.includes(query);
+        return companyName.includes(queryLower) || localName.includes(queryLower);
       });
-      
+
       // 完全一致が1件だけの場合は直接詳細ページへリダイレクト
       if (suppliers.length === 1) {
-        const exactMatch = suppliers.find(supplier => 
-          supplier.文字列__1行_.value.toLowerCase() === query || 
-          supplier.会社名.value.toLowerCase() === query
+        const exactMatch = suppliers.find(supplier =>
+          supplier.文字列__1行_.value.toLowerCase() === queryLower ||
+          supplier.会社名.value.toLowerCase() === queryLower
         );
         if (exactMatch) {
           redirect(`/${locale}/suppliers/${exactMatch.$id.value}`);
@@ -103,8 +104,15 @@ export default async function SuppliersPage({ params: { locale }, searchParams }
 
   const pageTitle = language === 'ja' ? '仕入業者管理' : language === 'th' ? 'จัดการซัพพลายเออร์' : 'Supplier Management';
 
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email}
+      title={pageTitle}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>
@@ -155,90 +163,92 @@ export default async function SuppliersPage({ params: { locale }, searchParams }
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-              <p className="text-red-600 mb-2">
-                {language === 'ja' ? '仕入業者データの取得に失敗しました' : 
-                 language === 'th' ? 'ไม่สามารถโหลดข้อมูลซัพพลายเออร์' : 
-                 'Failed to load supplier data'}
-              </p>
-              <p className="text-sm text-gray-600">
-                {language === 'ja' ? 'エラー: KintoneアプリIDまたはAPIトークンが正しくありません。管理者に確認してください。' : 
-                 language === 'th' ? 'ข้อผิดพลาด: Kintone App ID หรือ API Token ไม่ถูกต้อง กรุณาติดต่อผู้ดูแลระบบ' : 
-                 'Error: Kintone App ID or API Token is incorrect. Please contact the administrator.'}
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                App ID: {process.env.KINTONE_APP_SUPPLIER_LIST} (環境変数: KINTONE_APP_SUPPLIER_LIST)
-              </p>
-              <p className="text-sm text-blue-600 mt-3">
-                {language === 'ja' ? '※ 以下はデモデータを表示しています' : 
-                 language === 'th' ? '※ แสดงข้อมูลตัวอย่าง' : 
-                 '※ Showing demo data'}
-              </p>
+            <div className="flex items-start gap-3 rounded-xl border border-error-500 bg-error-50 p-4 mt-4 dark:bg-error-500/15">
+              <svg className="w-5 h-5 text-error-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-error-600 dark:text-error-400 font-medium text-theme-sm mb-1">
+                  {language === 'ja' ? '仕入業者データの取得に失敗しました' :
+                   language === 'th' ? 'ไม่สามารถโหลดข้อมูลซัพพลายเออร์' :
+                   'Failed to load supplier data'}
+                </p>
+                <p className="text-theme-xs text-gray-600 dark:text-gray-400">
+                  {language === 'ja' ? 'エラー: KintoneアプリIDまたはAPIトークンが正しくありません。' :
+                   language === 'th' ? 'ข้อผิดพลาด: Kintone App ID หรือ API Token ไม่ถูกต้อง' :
+                   'Error: Kintone App ID or API Token is incorrect.'}
+                </p>
+                <p className="text-theme-xs text-brand-500 dark:text-brand-400 mt-2">
+                  {language === 'ja' ? '※ 以下はデモデータを表示しています' :
+                   language === 'th' ? '※ แสดงข้อมูลตัวอย่าง' :
+                   '※ Showing demo data'}
+                </p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* テーブル */}
+        {/* テーブル - TailAdmin Style */}
         <div className={tableStyles.tableContainer}>
-          {suppliers.length === 0 ? (
-            <div className={tableStyles.emptyRow}>
-              <p>
-                {language === 'ja' ? 'データがありません' : 
-                 language === 'th' ? 'ไม่มีข้อมูล' : 
+          <div className="max-w-full overflow-x-auto">
+            {suppliers.length === 0 ? (
+              <div className={tableStyles.emptyRow}>
+                {language === 'ja' ? 'データがありません' :
+                 language === 'th' ? 'ไม่มีข้อมูล' :
                  'No data available'}
-              </p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
-                    {language === 'ja' ? '会社名' : language === 'th' ? 'ชื่อบริษัท' : 'Company Name'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    TEL
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48 hidden md:table-cell">
-                    {language === 'ja' ? 'メール' : language === 'th' ? 'อีเมล' : 'Email'}
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64 hidden lg:table-cell">
-                    {language === 'ja' ? '住所' : language === 'th' ? 'ที่อยู่' : 'Address'}
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {suppliers.map((supplier) => (
-                  <tr key={supplier.$id.value} className="hover:bg-gray-50">
-                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {supplier.会社名.value || supplier.文字列__1行_.value || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {supplier.TEL.value || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
-                      {supplier.MAIL?.value || '-'}
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 hidden lg:table-cell">
-                      <div className="max-w-xs truncate">
-                        {supplier.文字列__複数行_?.value || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <a
-                        href={`/${locale}/suppliers/${supplier.$id.value}`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </a>
-                    </td>
+              </div>
+            ) : (
+              <table className={tableStyles.table}>
+                <thead className={tableStyles.thead}>
+                  <tr>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? '会社名' : language === 'th' ? 'ชื่อบริษัท' : 'Company Name'}
+                    </th>
+                    <th className={tableStyles.th}>
+                      TEL
+                    </th>
+                    <th className={`${tableStyles.th} hidden md:table-cell`}>
+                      {language === 'ja' ? 'メール' : language === 'th' ? 'อีเมล' : 'Email'}
+                    </th>
+                    <th className={`${tableStyles.th} hidden lg:table-cell`}>
+                      {language === 'ja' ? '住所' : language === 'th' ? 'ที่อยู่' : 'Address'}
+                    </th>
+                    <th className={`${tableStyles.th} text-end`}>
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className={tableStyles.tbody}>
+                  {suppliers.map((supplier) => (
+                    <tr key={supplier.$id.value} className={tableStyles.tr}>
+                      <td className={`${tableStyles.td} text-gray-800 dark:text-white/90 font-medium`}>
+                        {supplier.会社名.value || supplier.文字列__1行_.value || '-'}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {supplier.TEL.value || '-'}
+                      </td>
+                      <td className={`${tableStyles.td} hidden md:table-cell`}>
+                        {supplier.MAIL?.value || '-'}
+                      </td>
+                      <td className={`${tableStyles.td} hidden lg:table-cell`}>
+                        <div className="max-w-xs truncate">
+                          {supplier.文字列__複数行_?.value || '-'}
+                        </div>
+                      </td>
+                      <td className={`${tableStyles.td} text-end`}>
+                        <a
+                          href={`/${locale}/suppliers/${supplier.$id.value}`}
+                          className={tableStyles.tdLink}
+                        >
+                          {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       </div>
     </DashboardLayout>

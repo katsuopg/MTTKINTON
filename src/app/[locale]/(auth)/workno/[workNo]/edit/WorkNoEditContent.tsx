@@ -10,18 +10,21 @@ interface WorkNoEditContentProps {
   record: WorkNoRecord;
   locale: string;
   userEmail: string;
+  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export default function WorkNoEditContent({ record, locale, userEmail }: WorkNoEditContentProps) {
+export default function WorkNoEditContent({ record, locale, userEmail, userInfo }: WorkNoEditContentProps) {
   const router = useRouter();
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const pageTitle = `${getFieldLabel('WorkNo', language)} - ${language === 'ja' ? '編集' : 'Edit'}`;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rec = record as any; // Type assertion for kintone dynamic fields
 
   const [formData, setFormData] = useState({
     workNo: record.WorkNo?.value || '',
     status: record.Status?.value || '',
-    startDate: record.Start_date?.value || '',
-    finishDate: record.Finish_date?.value || '',
+    startDate: record.日付_6?.value || '',
+    finishDate: record.日付_5?.value || '',
     salesDate: record.Salesdate?.value || '',
     csId: record.文字列__1行__8?.value || '',
     category: record.文字列__1行__1?.value || '',
@@ -29,7 +32,7 @@ export default function WorkNoEditContent({ record, locale, userEmail }: WorkNoE
     model: record.文字列__1行__9?.value || '',
     grandTotal: record.grand_total?.value || '0',
     profit: record.profit?.value || '0',
-    remarks: record.文字列__複数行__0?.value || '',
+    remarks: (record as any).文字列__複数行__0?.value || '',
     // 請求書関連フィールド
     inv3: record.文字列__1行__3?.value || '',
     inv4: record.文字列__1行__4?.value || '',
@@ -73,7 +76,7 @@ export default function WorkNoEditContent({ record, locale, userEmail }: WorkNoE
   };
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className="py-8 px-4 max-w-full w-full">
         {/* タイトルエリア */}
         <div className="mb-6">
@@ -152,13 +155,13 @@ export default function WorkNoEditContent({ record, locale, userEmail }: WorkNoE
                     <tr>
                       <td className="py-1 whitespace-nowrap">{language === 'ja' ? '注文書番号' : 'PO Number'}</td>
                       <td className="py-1 text-right">
-                        <span className="text-gray-600">{record.ルックアップ?.value || '-'}</span>
+                        <span className="text-gray-600">{rec.ルックアップ?.value || '-'}</span>
                       </td>
                     </tr>
                     <tr>
                       <td className="py-1 whitespace-nowrap">{language === 'ja' ? '注文書受取日' : 'PO Receive Date'}</td>
                       <td className="py-1 text-right">
-                        <span className="text-gray-600">{record.日付_0?.value?.replace(/-/g, '/') || '-'}</span>
+                        <span className="text-gray-600">{rec.日付_0?.value?.replace(/-/g, '/') || '-'}</span>
                       </td>
                     </tr>
                     <tr>
@@ -199,7 +202,7 @@ export default function WorkNoEditContent({ record, locale, userEmail }: WorkNoE
                     <tr>
                       <td className="py-1 whitespace-nowrap">{language === 'ja' ? '見積番号' : 'Quotation No'}</td>
                       <td className="py-1 text-right">
-                        <span className="text-gray-600">{record.ルックアップ_0?.value || '-'}</span>
+                        <span className="text-gray-600">{rec.ルックアップ_0?.value || '-'}</span>
                       </td>
                     </tr>
                     <tr>
@@ -281,11 +284,11 @@ export default function WorkNoEditContent({ record, locale, userEmail }: WorkNoE
                     </tr>
                     <tr>
                       <td className="py-1 whitespace-nowrap">Serial No.</td>
-                      <td className="py-1 text-right">{record.文字列__1行__15?.value || '-'}</td>
+                      <td className="py-1 text-right">{rec.文字列__1行__15?.value || '-'}</td>
                     </tr>
                     <tr>
                       <td className="py-1 whitespace-nowrap">M/C No.</td>
-                      <td className="py-1 text-right">{record.文字列__1行__5?.value || '-'}</td>
+                      <td className="py-1 text-right">{rec.文字列__1行__5?.value || '-'}</td>
                     </tr>
                     <tr>
                       <td className="py-1 whitespace-nowrap">M/C Item</td>

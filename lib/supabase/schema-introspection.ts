@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 // Supabaseの内部スキーマ情報を取得するための高度な関数
 export async function introspectDatabase() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -100,7 +100,7 @@ export async function introspectDatabase() {
 
 // 外部キー関係を取得
 export async function getTableRelationships(tableName: string) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

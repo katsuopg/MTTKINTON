@@ -70,36 +70,36 @@ export default function POFilters({ locale, language }: POFiltersProps) {
           value={keyword}
           onChange={handleKeywordChange}
           placeholder={
-            language === 'ja' ? 'キーワード検索...' : 
-            language === 'th' ? 'ค้นหา...' : 
+            language === 'ja' ? 'キーワード検索...' :
+            language === 'th' ? 'ค้นหา...' :
             'Search...'
           }
-          className="px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500 w-48"
+          className="h-10 w-48 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 placeholder:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-gray-500 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
         />
       </div>
 
       {/* Not Arrived フィルター */}
-      <label className="flex items-center">
+      <label className="flex items-center cursor-pointer">
         <input
           type="checkbox"
           checked={notArrived}
           onChange={(e) => updateFilters({ notArrived: e.target.checked })}
-          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          className="h-4 w-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
         />
-        <span className="ml-2 text-sm text-gray-700">
+        <span className="ml-2 text-theme-sm text-gray-700 dark:text-gray-300">
           {language === 'ja' ? '未着' : language === 'th' ? 'ยังไม่มาถึง' : 'Not arrived'}
         </span>
       </label>
 
       {/* アラートフィルター */}
-      <label className="flex items-center">
+      <label className="flex items-center cursor-pointer">
         <input
           type="checkbox"
           checked={alertOnly}
           onChange={(e) => updateFilters({ alertOnly: e.target.checked })}
-          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+          className="h-4 w-4 text-brand-500 border-gray-300 rounded focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
         />
-        <span className="ml-2 text-sm text-gray-700">
+        <span className="ml-2 text-theme-sm text-gray-700 dark:text-gray-300">
           {language === 'ja' ? 'アラート' : language === 'th' ? 'แจ้งเตือน' : 'Alert'}
         </span>
       </label>

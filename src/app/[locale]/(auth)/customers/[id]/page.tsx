@@ -9,6 +9,7 @@ import { getMachineRecordsByCustomer } from '@/lib/kintone/machine';
 import { getCustomerStaffByCustomer } from '@/lib/kintone/customer-staff';
 import { getInvoiceRecordsByCustomer } from '@/lib/kintone/invoice';
 import type { Language } from '@/lib/kintone/field-mappings';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 export const metadata: Metadata = {
   title: 'Customer Detail - MTT KINTON',
@@ -45,6 +46,8 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
     ]);
     
 
+    const userInfo = await getCurrentUserInfo();
+
     return (
       <CustomerDetailContent
         locale={locale}
@@ -59,6 +62,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
         allInvoiceRecords={allInvoiceRecords}
         allWorkNoRecords={allWorkNoRecords}
         allQuotationRecords={allQuotationRecords}
+        userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
       />
     );
   } catch (error) {

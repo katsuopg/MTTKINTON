@@ -57,14 +57,15 @@ export async function POST(
       return NextResponse.json({ error: '従業員IDは必須です' }, { status: 400 });
     }
 
+    const insertData = {
+      organization_id: id,
+      employee_id,
+      role: role || 'member',
+      is_active: true,
+    };
     const { data, error } = await supabase
       .from('organization_members')
-      .insert({
-        organization_id: id,
-        employee_id,
-        role: role || 'member',
-        is_active: true,
-      })
+      .insert(insertData as never)
       .select()
       .single();
 

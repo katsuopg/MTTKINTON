@@ -9,6 +9,7 @@ import POTableRow from './POTableRow';
 import FiscalYearSelect from './FiscalYearSelect';
 import POFilters from './POFilters';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface POManagementPageProps {
   params: Promise<{
@@ -103,9 +104,16 @@ export default async function POManagementPage({ params, searchParams }: POManag
   } catch (error) {
     console.error('Error fetching PO data:', error);
   }
-  
+
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email}
+      title={pageTitle}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>
@@ -201,7 +209,7 @@ export default async function POManagementPage({ params, searchParams }: POManag
                                   record.ドロップダウン_1?.value === 'Arrived';
                 
                 // 納期超過チェック（納品済みでない場合のみ）
-                const isOverdue = deliveryDate && deliveryDate < today && !isDelivered;
+                const isOverdue = !!(deliveryDate && deliveryDate < today && !isDelivered);
                 
                 return (
                   <POTableRow

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { KintoneClient } from '@/lib/kintone/client';
 import { QuotationRecord } from '@/types/kintone';
 import QuotationDetailContent from './QuotationDetailContent';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface QuotationDetailPageProps {
   params: {
@@ -13,23 +14,23 @@ interface QuotationDetailPageProps {
 
 export default async function QuotationDetailPage({ params: { locale, id } }: QuotationDetailPageProps) {
   const supabase = await createClient();
-  
+
   // 認証チェック
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     redirect(`/${locale}/auth/login`);
   }
 
   // 見積もり詳細を取得
   let quotation: QuotationRecord | null = null;
-  
+
   try {
     const quotationClient = new KintoneClient(
       process.env.KINTONE_APP_QUOTATION!,
       process.env.KINTONE_API_TOKEN_QUOTATION!
     );
-    
+
     quotation = await quotationClient.getRecord<QuotationRecord>(id);
   } catch (error) {
     console.error('Error fetching quotation detail:', error);
@@ -52,11 +53,14 @@ export default async function QuotationDetailPage({ params: { locale, id } }: Qu
     );
   }
 
+  const userInfo = await getCurrentUserInfo();
+
   return (
     <QuotationDetailContent
       quotation={quotation}
       locale={locale}
       userEmail={user.email || ''}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
     />
   );
 }

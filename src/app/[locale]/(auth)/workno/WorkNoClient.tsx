@@ -282,178 +282,167 @@ export default function WorkNoClient({
         periodLabel={language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
         totalCount={filteredRecords.length}
         countLabel={countLabel}
+        language={language}
       />
 
-      {/* テーブル表示 */}
-      <div className="overflow-x-auto bg-white shadow rounded-lg">
-        {filteredRecords.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">
+      {/* テーブル表示 - TailAdminスタイル */}
+      <div className={tableStyles.tableContainer}>
+        <div className="max-w-full overflow-x-auto">
+          {filteredRecords.length === 0 ? (
+            <div className={tableStyles.emptyRow}>
               {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
-            </p>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200" style={{minWidth: '1200px'}}>
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  PO
-                </th>
-                <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  INV
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CS ID
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Model
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Grand Total
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Gross Profit
-                </th>
-                <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่ขายที่คาดการณ์' : 'Sales Date'}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            </div>
+          ) : (
+            <table className={tableStyles.table} style={{minWidth: '1200px'}}>
+              <thead className={tableStyles.thead}>
+                <tr>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
+                  </th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
+                  </th>
+                  <th className={`${tableStyles.th} text-center`}>
+                    PO
+                  </th>
+                  <th className={`${tableStyles.th} text-center`}>
+                    INV
+                  </th>
+                  <th className={tableStyles.th}>
+                    CS ID
+                  </th>
+                  <th className={tableStyles.th}>
+                    Category
+                  </th>
+                  <th className={tableStyles.th}>
+                    Description
+                  </th>
+                  <th className={tableStyles.th}>
+                    Model
+                  </th>
+                  <th className={`${tableStyles.th} text-end`}>
+                    Grand Total
+                  </th>
+                  <th className={`${tableStyles.th} text-end`}>
+                    Gross Profit
+                  </th>
+                  <th className={tableStyles.th}>
+                    {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่ขายที่คาดการณ์' : 'Sales Date'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className={tableStyles.tbody}>
               {filteredRecords.filter(item => item?.record?.$id?.value).map((item) => (
-                <tr key={item.record.$id.value} className="transition-colors duration-150" style={{
-                  backgroundColor: item.record.Status?.value === 'Finished' ? '#f0fdf4' : 'transparent'
-                }}>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                <tr
+                  key={item.record.$id.value}
+                  className={`${tableStyles.tr} ${item.record.Status?.value === 'Finished' ? 'bg-success-50 dark:bg-success-500/10' : ''}`}
+                >
+                  <td className={tableStyles.td}>
                     <div className="flex items-center">
                       {item.isChild && (
-                        <span className="mr-2 text-gray-400">└</span>
+                        <span className="mr-2 text-gray-400 dark:text-gray-500">└</span>
                       )}
                       <a
                         href={`/${locale}/projects/${item.record.WorkNo?.value}`}
-                        className="text-indigo-600 hover:text-indigo-900 font-medium"
-                        style={{transform: 'scaleX(0.9)', transformOrigin: 'left', display: 'inline-block'}}
+                        className={tableStyles.tdLink}
                       >
                         {item.record.WorkNo?.value}
                       </a>
                       {/* 売上予定日が過ぎているかチェック */}
-                      {item.record.Salesdate?.value && 
+                      {item.record.Salesdate?.value &&
                        new Date(item.record.Salesdate.value) < new Date() &&
                        item.record.Status?.value !== 'Finished' &&
                        item.record.Status?.value !== 'Cancel' && (
                         <div className="relative ml-1 group inline-flex">
-                          <span className="text-yellow-500 cursor-help">⚠️</span>
-                          <div className="absolute z-10 invisible group-hover:visible bg-gray-800 text-white text-xs rounded-md px-3 py-2 whitespace-nowrap left-full ml-1 top-1/2 transform -translate-y-1/2">
-                            {language === 'ja' 
+                          <span className="text-warning-500 cursor-help">⚠️</span>
+                          <div className="absolute z-10 invisible group-hover:visible bg-gray-800 dark:bg-gray-700 text-white text-theme-xs rounded-lg px-3 py-2 whitespace-nowrap left-full ml-1 top-1/2 transform -translate-y-1/2 shadow-theme-lg">
+                            {language === 'ja'
                               ? '売上予定日が過ぎています。担当営業に再確認をしてください。'
                               : language === 'th'
                               ? 'วันที่ขายที่คาดการณ์ผ่านไปแล้ว กรุณาตรวจสอบกับฝ่ายขายอีกครั้ง'
                               : 'Sales date has passed. Please reconfirm with sales staff.'}
-                            <div className="absolute w-2 h-2 bg-gray-800 transform rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
+                            <div className="absolute w-2 h-2 bg-gray-800 dark:bg-gray-700 transform rotate-45 -left-1 top-1/2 -translate-y-1/2"></div>
                           </div>
                         </div>
                       )}
                     </div>
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
-                    <span 
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: 
-                          item.record.Status?.value === 'Working' ? '#dbeafe' :
-                          item.record.Status?.value === 'Finished' ? '#10b981' :
-                          item.record.Status?.value === 'Wating PO' ? '#fef08a' :
-                          item.record.Status?.value === 'Stock' ? '#f3e8ff' :
-                          item.record.Status?.value === 'Pending' ? '#fed7aa' :
-                          item.record.Status?.value === 'Cancel' ? '#fee2e2' :
-                          item.record.Status?.value === 'Expenses' ? '#e0e7ff' :
-                          '#f3f4f6',
-                        color:
-                          item.record.Status?.value === 'Working' ? '#1e40af' :
-                          item.record.Status?.value === 'Finished' ? '#ffffff' :
-                          item.record.Status?.value === 'Wating PO' ? '#a16207' :
-                          item.record.Status?.value === 'Stock' ? '#7c3aed' :
-                          item.record.Status?.value === 'Pending' ? '#ea580c' :
-                          item.record.Status?.value === 'Cancel' ? '#dc2626' :
-                          item.record.Status?.value === 'Expenses' ? '#4338ca' :
-                          '#6b7280'
-                      }}
+                  <td className={tableStyles.td}>
+                    <span
+                      className={`${tableStyles.statusBadge} ${
+                        item.record.Status?.value === 'Working' ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' :
+                        item.record.Status?.value === 'Finished' ? 'bg-success-500 text-white' :
+                        item.record.Status?.value === 'Wating PO' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' :
+                        item.record.Status?.value === 'Stock' ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400' :
+                        item.record.Status?.value === 'Pending' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
+                        item.record.Status?.value === 'Cancel' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' :
+                        item.record.Status?.value === 'Expenses' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400' :
+                        'bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400'
+                      }`}
                     >
                       {getStatusLabel(item.record.Status?.value || '', language)}
                     </span>
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                  <td className={`${tableStyles.td} text-center`}>
                     {item.record.ルックアップ?.value && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white justify-center">
+                      <span className={`${tableStyles.statusBadge} bg-success-500 text-white`}>
                         PO
                       </span>
                     )}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-center">
+                  <td className={`${tableStyles.td} text-center`}>
                     {hasInvoice(item.record) && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500 text-white justify-center">
+                      <span className={`${tableStyles.statusBadge} bg-success-500 text-white`}>
                         INV
                         {getInvoiceCount(item.record) > 1 && (
-                          <span className="ml-1 text-xs">({getInvoiceCount(item.record)})</span>
+                          <span className="ml-1 text-theme-xs">({getInvoiceCount(item.record)})</span>
                         )}
                       </span>
                     )}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {item.record.文字列__1行__8?.value ? (
                       <a
                         href={`/${locale}/customers/${item.record.文字列__1行__8.value}`}
-                        className="text-indigo-600 hover:text-indigo-900"
-                        style={{transform: 'scaleX(0.9)', transformOrigin: 'left', display: 'inline-block'}}
+                        className={tableStyles.tdLink}
                       >
                         {item.record.文字列__1行__8.value}
                       </a>
                     ) : '-'}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {item.record.文字列__1行__1?.value || '-'}
                   </td>
-                  <td className="px-2 py-2 text-sm text-gray-900">
+                  <td className={`${tableStyles.td} whitespace-normal`}>
                     {item.record.文字列__1行__2?.value || '-'}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <td className={tableStyles.td}>
                     {item.record.文字列__1行__9?.value || '-'}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                  <td className={`${tableStyles.td} text-end text-gray-800 dark:text-white/90`}>
                     {formatNumber(item.record.grand_total?.value)}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-900 text-right">
+                  <td className={`${tableStyles.td} text-end text-gray-800 dark:text-white/90`}>
                     {formatNumber(item.record.profit?.value)}
                   </td>
-                  <td className="px-2 py-2 whitespace-nowrap text-sm">
+                  <td className={tableStyles.td}>
                     <span className={
-                      item.record.Salesdate?.value && 
+                      item.record.Salesdate?.value &&
                       new Date(item.record.Salesdate.value) < new Date() &&
                       item.record.Status?.value !== 'Finished' &&
-                      item.record.Status?.value !== 'Cancel' 
-                        ? 'text-red-600 font-medium' 
-                        : 'text-gray-900'
+                      item.record.Status?.value !== 'Cancel'
+                        ? 'text-error-500 font-medium'
+                        : 'text-gray-800 dark:text-white/90'
                     }>
                       {formatDate(item.record.Salesdate?.value)}
                     </span>
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        )}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );

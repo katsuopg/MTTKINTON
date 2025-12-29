@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function getSupabaseTables() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,7 +66,7 @@ export async function getSupabaseTables() {
 
 // 特定のテーブルのカラム情報を取得
 export async function getTableColumns(tableName: string) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -112,7 +112,7 @@ export async function getTableColumns(tableName: string) {
 
 // Supabaseのテーブルから実際のデータを取得（例）
 export async function getTableData(tableName: string, limit = 10) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

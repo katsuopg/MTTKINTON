@@ -1,5 +1,3 @@
-import type { AbstractIntlMessages } from 'next-intl';
-
 export const locales = ['ja', 'th'] as const;
 export type Locale = (typeof locales)[number];
 
@@ -30,4 +28,4 @@ export const pathnames: PathnameType = {
 
 export const localePrefix = 'always';
 
-export type Messages = AbstractIntlMessages;
+export type Messages = Record<string, string>;

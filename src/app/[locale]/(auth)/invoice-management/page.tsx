@@ -5,6 +5,7 @@ import { type Language } from '@/lib/kintone/field-mappings';
 import InvoiceManagementClient from './InvoiceManagementClient';
 import { getInvoiceRecords } from '@/lib/kintone/invoice';
 import { InvoiceRecord } from '@/types/kintone';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface InvoiceManagementPageProps {
   params: Promise<{
@@ -48,9 +49,16 @@ export default async function InvoiceManagementPage({ params, searchParams }: In
   }
   
   const pageTitle = language === 'ja' ? '請求書管理' : language === 'th' ? 'จัดการใบแจ้งหนี้' : 'Invoice Management';
-  
+
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email}
+      title={pageTitle}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <InvoiceManagementClient
         locale={locale}
         language={language}

@@ -11,7 +11,13 @@ const nextConfig = {
         tls: false,
       };
     }
-    
+
+    // SVGRサポート
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ["@svgr/webpack"],
+    });
+
     // Supabaseモジュールの最適化設定
     config.optimization = {
       ...config.optimization,
@@ -28,8 +34,18 @@ const nextConfig = {
         },
       },
     };
-    
+
     return config;
+  },
+
+  // Turbopack用SVGRサポート
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
   },
   
   // サーバーコンポーネント用外部パッケージ

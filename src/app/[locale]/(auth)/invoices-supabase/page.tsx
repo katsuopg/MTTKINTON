@@ -1,5 +1,5 @@
-import { InvoiceManagementClient } from '../invoices/InvoiceManagementClient';
-import { createClient } from '../../../../../lib/supabase/server';
+import InvoiceManagementClient from '../invoice-management/InvoiceManagementClient';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getInvoicesFromSupabase } from '@/lib/supabase/invoices';
 import { InvoiceRecord } from '@/types/kintone';
@@ -14,6 +14,7 @@ interface InvoiceManagementPageProps {
 }
 
 // Supabaseのデータ構造をKintoneの形式に変換
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function convertToKintoneFormat(invoices: any[]): InvoiceRecord[] {
   return invoices.map(invoice => ({
     $id: { type: '__ID__', value: invoice.kintone_record_id },
@@ -32,7 +33,7 @@ function convertToKintoneFormat(invoices: any[]): InvoiceRecord[] {
     更新者: { type: 'MODIFIER', value: { code: '', name: invoice.updated_by || '' } },
     作成日時: { type: 'CREATED_TIME', value: invoice.created_at },
     更新日時: { type: 'UPDATED_TIME', value: invoice.updated_at }
-  }));
+  } as unknown as InvoiceRecord));
 }
 
 export default async function InvoiceManagementSupabasePage({ 
@@ -54,12 +55,14 @@ export default async function InvoiceManagementSupabasePage({
   // Kintone形式に変換
   const kintoneFormatInvoices = convertToKintoneFormat(invoices);
 
+  const language = locale === 'ja' ? 'ja' : locale === 'th' ? 'th' : 'en';
+
   return (
-    <InvoiceManagementClient 
-      initialRecords={kintoneFormatInvoices} 
+    <InvoiceManagementClient
+      initialInvoiceRecords={kintoneFormatInvoices}
       locale={locale}
-      userEmail={user.email || ''}
-      initialPeriod={period}
+      language={language}
+      initialSearchQuery=""
     />
   );
 }

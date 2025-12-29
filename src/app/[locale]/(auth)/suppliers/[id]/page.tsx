@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { KintoneClient } from '@/lib/kintone/client';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import type { Language } from '@/lib/kintone/field-mappings';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface SupplierRecord {
   $id: { value: string };
@@ -57,9 +58,11 @@ export default async function SupplierDetailPage({ params: { locale, id } }: Sup
 
   const pageTitle = language === 'ja' ? '仕入業者詳細' : language === 'th' ? 'รายละเอียดซัพพลายเออร์' : 'Supplier Details';
 
+  const userInfo = await getCurrentUserInfo();
+
   if (error || !supplier) {
     return (
-      <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+      <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
         <div className="p-6">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-600">
@@ -74,7 +77,7 @@ export default async function SupplierDetailPage({ params: { locale, id } }: Sup
   }
 
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
       <div className="p-6">
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           {/* ヘッダー */}

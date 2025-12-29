@@ -5,6 +5,7 @@ import { KintoneClient } from '@/lib/kintone/client';
 import { PORecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface PODetailPageProps {
   params: {
@@ -39,9 +40,11 @@ export default async function PODetailPage({ params: { locale, id } }: PODetailP
     console.error('Error fetching PO record:', error);
   }
 
+  const userInfo = await getCurrentUserInfo();
+
   if (!poRecord) {
     return (
-      <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+      <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
         <div className="p-6">
           <div className="text-center py-8">
             <p className="text-gray-500">
@@ -67,7 +70,7 @@ export default async function PODetailPage({ params: { locale, id } }: PODetailP
                     poRecord.ドロップダウン_1?.value === 'Arrived';
 
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
       <div className="p-4 h-full overflow-hidden">
         {/* ヘッダー部分 */}
         <div className="mb-4 flex justify-between items-center">

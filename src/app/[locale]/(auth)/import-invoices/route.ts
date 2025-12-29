@@ -50,9 +50,10 @@ export async function POST() {
           };
 
           // Supabaseにupsert（存在する場合は更新、存在しない場合は挿入）
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { error } = await supabase
             .from('invoices')
-            .upsert(data, {
+            .upsert(data as any, {
               onConflict: 'kintone_record_id'
             });
 

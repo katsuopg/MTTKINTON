@@ -3,9 +3,27 @@ import { WorkNoRecord } from '@/types/kintone';
 import { KINTONE_APPS } from '@/types/kintone';
 
 const APP_ID = KINTONE_APPS.WORK_NO.appId;
-const API_TOKEN = process.env.KINTONE_API_TOKEN_WORKNO || '';
+
+export async function getWorkNoById(workNo: string): Promise<WorkNoRecord | null> {
+  const API_TOKEN = process.env.KINTONE_API_TOKEN_WORKNO || '';
+  const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
+
+  const query = `WorkNo = "${workNo}"`;
+
+  try {
+    const records = await client.getRecords<WorkNoRecord>(query);
+    if (records.length === 0) {
+      return null;
+    }
+    return records[0];
+  } catch (error) {
+    console.error('Error fetching work no by ID:', error);
+    return null;
+  }
+}
 
 export async function getWorkNoRecordsByCustomer(customerId: string, fiscalPeriod?: string): Promise<WorkNoRecord[]> {
+  const API_TOKEN = process.env.KINTONE_API_TOKEN_WORKNO || '';
   const client = new KintoneClient(APP_ID.toString(), API_TOKEN);
   let query = `文字列__1行__8 = "${customerId}"`;
   

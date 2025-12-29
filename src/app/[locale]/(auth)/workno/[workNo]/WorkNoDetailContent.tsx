@@ -17,6 +17,7 @@ interface WorkNoDetailContentProps {
   invoiceRecords?: InvoiceRecord[];
   locale: string;
   userEmail: string;
+  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
 // アイコンコンポーネント
@@ -77,10 +78,12 @@ function ExclamationTriangleIcon({ className }: { className?: string }) {
   );
 }
 
-export function WorkNoDetailContent({ record, customer, poRecords = [], quotationRecords = [], costRecords = [], invoiceRecords = [], locale, userEmail }: WorkNoDetailContentProps) {
+export function WorkNoDetailContent({ record, customer, poRecords = [], quotationRecords = [], costRecords = [], invoiceRecords = [], locale, userEmail, userInfo }: WorkNoDetailContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const pageTitle = getFieldLabel('WorkNo', language);
   const [activeTab, setActiveTab] = useState('cost-sheet');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rec = record as any; // Type assertion for kintone dynamic fields
 
   // PO記録でArrived状態なのに必須フィールドが未入力の警告チェック
   const checkPOWarnings = (po: PORecord) => {
@@ -104,11 +107,11 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
   const hasPOTabWarning = poRecords.some(po => checkPOWarnings(po).hasWarning);
 
   // フィールド名を確認するためのデバッグ出力
-  console.log('WorkNo Record fields:', Object.keys(record).filter(key => key.includes('日付')));
-  console.log('WorkNo Record lookup fields:', Object.keys(record).filter(key => key.includes('ルックアップ')));
-  console.log('ルックアップ:', record.ルックアップ?.value);
-  console.log('ルックアップ_0:', record.ルックアップ_0?.value);
-  console.log('ルックアップ_1:', record.ルックアップ_1?.value);
+  console.log('WorkNo Record fields:', Object.keys(rec).filter((key: string) => key.includes('日付')));
+  console.log('WorkNo Record lookup fields:', Object.keys(rec).filter((key: string) => key.includes('ルックアップ')));
+  console.log('ルックアップ:', rec.ルックアップ?.value);
+  console.log('ルックアップ_0:', rec.ルックアップ_0?.value);
+  console.log('ルックアップ_1:', rec.ルックアップ_1?.value);
 
   // 日付フォーマット関数
   const formatDate = (dateString: string | undefined) => {
@@ -151,7 +154,7 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
 
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className="py-8 px-4 max-w-full w-full">
         {/* タイトルエリア */}
         <div className="mb-6">
@@ -207,24 +210,24 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                   </tr>
                   <tr>
                     <td className="py-1 whitespace-nowrap">終了日</td>
-                    <td className="py-1 text-right">{record.日付_5?.value?.replace(/-/g, '/') || 'TBD'}</td>
+                    <td className="py-1 text-right">{rec.日付_5?.value?.replace(/-/g, '/') || 'TBD'}</td>
                   </tr>
                   <tr>
                     <td className="py-1 whitespace-nowrap">注文書番号</td>
                     <td className="py-1 text-right">
-                      {record.ルックアップ?.value ? (
-                        <Link 
-                          href={`/${locale}/po-management?search=${record.ルックアップ.value}`}
+                      {rec.ルックアップ?.value ? (
+                        <Link
+                          href={`/${locale}/po-management?search=${rec.ルックアップ.value}`}
                           className="text-blue-600 hover:text-blue-800 underline"
                         >
-                          {record.ルックアップ.value}
+                          {rec.ルックアップ.value}
                         </Link>
                       ) : '-'}
                     </td>
                   </tr>
                   <tr>
                     <td className="py-1 whitespace-nowrap">注文書受取日</td>
-                    <td className="py-1 text-right">{record.日付_0?.value?.replace(/-/g, '/') || '-'}</td>
+                    <td className="py-1 text-right">{rec.日付_0?.value?.replace(/-/g, '/') || '-'}</td>
                   </tr>
                   <tr>
                     <td className="py-1 whitespace-nowrap">請求書番号</td>

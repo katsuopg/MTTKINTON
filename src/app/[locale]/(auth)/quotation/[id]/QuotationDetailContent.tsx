@@ -10,9 +10,10 @@ interface QuotationDetailContentProps {
   quotation: QuotationRecord;
   locale: string;
   userEmail: string;
+  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export default function QuotationDetailContent({ quotation, locale, userEmail }: QuotationDetailContentProps) {
+export default function QuotationDetailContent({ quotation, locale, userEmail, userInfo }: QuotationDetailContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const pageTitle = language === 'ja' ? '見積もり詳細' : language === 'th' ? 'รายละเอียดใบเสนอราคา' : 'Quotation Details';
 
@@ -54,7 +55,7 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
   };
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className="p-6">
         {/* ヘッダー部分 */}
         <div className="bg-white shadow-sm rounded-lg mb-6">
@@ -116,7 +117,7 @@ export default function QuotationDetailContent({ quotation, locale, userEmail }:
                 {language === 'ja' ? '営業担当' : 'Sales staff'}
               </label>
               <p className="mt-1 text-sm text-gray-900">
-                {quotation.sales_staff?.value?.[0]?.name || '-'}
+                {quotation.sales_staff?.value || '-'}
               </p>
             </div>
 

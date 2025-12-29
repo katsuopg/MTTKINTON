@@ -40,7 +40,7 @@ export class KintoneClient {
     // GETリクエストの場合はContent-Typeを送らない
     const headers: Record<string, string> = {
       'X-Cybozu-API-Token': this.apiToken,
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     };
     
     if (options.method && options.method !== 'GET') {
@@ -77,29 +77,31 @@ export class KintoneClient {
   }
 
   // 汎用的なレコード取得メソッド
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getRecords<T extends Record<string, any>>(query?: string, fields?: string[]): Promise<T[]> {
     let endpoint = `/k/v1/records.json?app=${this.appId}`;
-    
+
     if (query) {
       endpoint += `&query=${encodeURIComponent(query)}`;
     }
-    
+
     if (fields && fields.length > 0) {
       fields.forEach((field, index) => {
         endpoint += `&fields[${index}]=${encodeURIComponent(field)}`;
       });
     }
-    
-    const response = await this.request<KintoneRecordsResponse<T>>(endpoint);
-    
+
+    const response = await this.request<{ records: T[]; totalCount?: string }>(endpoint);
+
     return response.records;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getRecord<T extends Record<string, any>>(recordId: string): Promise<T> {
     const endpoint = `/k/v1/record.json?app=${this.appId}&id=${recordId}`;
-    
-    const response = await this.request<KintoneRecordResponse<T>>(endpoint);
-    
+
+    const response = await this.request<{ record: T }>(endpoint);
+
     return response.record;
   }
 

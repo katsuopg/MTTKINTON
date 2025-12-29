@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SettingsClient from './SettingsClient';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface SettingsPageProps {
   params: Promise<{
@@ -30,8 +31,15 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
       ? 'การตั้งค่าแอป'
       : 'App Settings';
 
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email || ''} title={title}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email || ''}
+      title={title}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <SettingsClient locale={locale} />
     </DashboardLayout>
   );

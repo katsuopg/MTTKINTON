@@ -1,8 +1,7 @@
-import { 
-  WorkNoRecord, 
-  ProjectRecord, 
+import {
+  WorkNoRecord,
+  ProjectRecord,
   PartsListRecord,
-  KintoneRecordsResponse,
   KintoneRecordResponse,
   KintoneErrorResponse,
   KINTONE_APPS
@@ -27,12 +26,19 @@ export class KintoneClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `https://${this.domain}${endpoint}`;
-    
+
     // GETリクエストの場合はContent-Typeを送らない
     const headers: Record<string, string> = {
       'X-Cybozu-API-Token': this.apiToken,
-      ...options.headers,
     };
+
+    // Merge additional headers if provided
+    if (options.headers) {
+      const additionalHeaders = options.headers instanceof Headers
+        ? Object.fromEntries(options.headers.entries())
+        : options.headers as Record<string, string>;
+      Object.assign(headers, additionalHeaders);
+    }
     
     if (options.method && options.method !== 'GET') {
       headers['Content-Type'] = 'application/json';
@@ -64,33 +70,36 @@ export class KintoneClient {
   }
 
   // 汎用的なレコード取得メソッド
-  async getRecords<T extends Record<string, any>>(query?: string, fields?: string[]): Promise<T[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getRecords<T = any>(query?: string, fields?: string[]): Promise<T[]> {
     let endpoint = `/k/v1/records.json?app=${this.appId}`;
-    
+
     if (query) {
       endpoint += `&query=${encodeURIComponent(query)}`;
     }
-    
+
     if (fields && fields.length > 0) {
       fields.forEach((field, index) => {
         endpoint += `&fields[${index}]=${encodeURIComponent(field)}`;
       });
     }
-    
-    const response = await this.request<KintoneRecordsResponse<T>>(endpoint);
-    
+
+    const response = await this.request<{ records: T[]; totalCount?: string }>(endpoint);
+
     return response.records;
   }
 
-  async getRecord<T extends Record<string, any>>(recordId: string): Promise<T> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async getRecord<T = any>(recordId: string): Promise<T> {
     const endpoint = `/k/v1/record.json?app=${this.appId}&id=${recordId}`;
-    
-    const response = await this.request<KintoneRecordResponse<T>>(endpoint);
-    
+
+    const response = await this.request<{ record: T }>(endpoint);
+
     return response.record;
   }
 
-  async createRecord<T extends Record<string, any>>(record: Partial<T>): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async createRecord<T = any>(record: Partial<T>): Promise<string> {
     const endpoint = `/k/v1/record.json`;
     
     const response = await this.request<{ id: string; revision: string }>(

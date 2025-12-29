@@ -6,6 +6,7 @@ import { KintoneClient } from '@/lib/kintone/client';
 import { PORecord, QuotationRecord, CostRecord, InvoiceRecord } from '@/types/kintone';
 import { getCostRecordsByWorkNo } from '@/lib/kintone/cost';
 import { getInvoiceRecordsByWorkNo } from '@/lib/kintone/invoice';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface WorkNoDetailPageProps {
   params: {
@@ -106,14 +107,17 @@ export default async function WorkNoDetailPage({ params }: WorkNoDetailPageProps
     console.error('Error fetching Invoice data:', error);
   }
 
-  return <WorkNoDetailContent 
-    record={record} 
-    customer={customer} 
+  const userInfo = await getCurrentUserInfo();
+
+  return <WorkNoDetailContent
+    record={record}
+    customer={customer}
     poRecords={poRecords}
     quotationRecords={quotationRecords}
     costRecords={costRecords}
     invoiceRecords={invoiceRecords}
-    locale={locale} 
-    userEmail={user.email || ''} 
+    locale={locale}
+    userEmail={user.email || ''}
+    userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
   />;
 }

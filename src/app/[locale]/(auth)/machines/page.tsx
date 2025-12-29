@@ -5,6 +5,7 @@ import { MachineRecord, QuotationRecord, WorkNoRecord, KINTONE_APPS } from '@/ty
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
 import MachineListContent from './MachineListContent';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface MachinesPageProps {
   params: Promise<{
@@ -131,9 +132,16 @@ export default async function MachinesPage({ params, searchParams }: MachinesPag
   }
 
   const pageTitle = language === 'ja' ? '機械管理' : language === 'th' ? 'การจัดการเครื่องจักร' : 'Machine Management';
-  
+
+  const userInfo = await getCurrentUserInfo();
+
   return (
-    <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle}>
+    <DashboardLayout
+      locale={locale}
+      userEmail={user.email}
+      title={pageTitle}
+      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
+    >
       <MachineListContent
         locale={locale}
         language={language}

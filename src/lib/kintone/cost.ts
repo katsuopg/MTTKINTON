@@ -3,6 +3,7 @@ import { KintoneClient } from '@/lib/kintone/client';
 
 const API_TOKEN = process.env.KINTONE_API_TOKEN_COST!;
 const APP_ID = KINTONE_APPS.COST_MANAGEMENT.appId;
+const KINTONE_DOMAIN = process.env.KINTONE_DOMAIN!;
 
 // KintoneClientインスタンスを作成
 const costClient = new KintoneClient(APP_ID.toString(), API_TOKEN);

@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+interface Organization {
+  id: string;
+  code: string;
+  name: string;
+  [key: string]: unknown;
+}
+
 // 組織更新
 export async function PUT(
   request: NextRequest,
@@ -26,7 +33,7 @@ export async function PUT(
         .from('organizations')
         .select('code')
         .eq('id', id)
-        .single();
+        .single() as { data: Organization | null; error: unknown };
 
       if (currentError) {
         console.error('Error fetching current organization:', currentError);
@@ -52,7 +59,7 @@ export async function PUT(
           .from('organizations')
           .select('id, code')
           .eq('code', newCode)
-          .neq('id', id);
+          .neq('id', id) as { data: Organization[] | null; error: unknown };
 
         if (checkError) {
           console.error('Error checking code uniqueness:', checkError);
@@ -121,7 +128,7 @@ export async function PUT(
 
     const { data, error } = await supabase
       .from('organizations')
-      .update(updateData)
+      .update(updateData as never)
       .eq('id', id)
       .select()
       .single();

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { fetchWorkNo } from '@/lib/kintone/api';
 import WorkNoEditContent from './WorkNoEditContent';
+import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface WorkNoEditPageProps {
   params: Promise<{
@@ -14,7 +15,7 @@ export default async function WorkNoEditPage({ params }: WorkNoEditPageProps) {
   const { locale, workNo } = await params;
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
-  
+
   if (error || !user) {
     redirect(`/${locale}/auth/login`);
   }
@@ -39,5 +40,7 @@ export default async function WorkNoEditPage({ params }: WorkNoEditPageProps) {
     );
   }
 
-  return <WorkNoEditContent record={record} locale={locale} userEmail={user.email || ''} />;
+  const userInfo = await getCurrentUserInfo();
+
+  return <WorkNoEditContent record={record} locale={locale} userEmail={user.email || ''} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined} />;
 }

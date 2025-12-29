@@ -28,9 +28,10 @@ interface OrderRecord {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const apiToken = process.env.KINTONE_API_TOKEN_ORDER
     if (!apiToken) {
       throw new Error('KINTONE_API_TOKEN_ORDER is not set')
@@ -38,9 +39,9 @@ export async function GET(
 
     const appId = process.env.KINTONE_APP_ORDER_MANAGEMENT! // ORDER_MANAGEMENT app ID
     const client = new KintoneClient(appId, apiToken)
-    
+
     // レコードIDで注文書を取得
-    const record = await client.getRecord<OrderRecord>(params.id)
+    const record = await client.getRecord<OrderRecord>(id)
     
     if (!record) {
       return NextResponse.json(

@@ -12,9 +12,10 @@ interface QuotationListContentProps {
   quotations: QuotationRecord[];
   locale: string;
   userEmail: string;
+  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export default function QuotationListContent({ quotations, locale, userEmail }: QuotationListContentProps) {
+export default function QuotationListContent({ quotations, locale, userEmail, userInfo }: QuotationListContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -55,11 +56,7 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
     const staff = new Set<string>();
     quotations.forEach(qt => {
       if (qt.sales_staff?.value) {
-        if (typeof qt.sales_staff.value === 'string') {
-          staff.add(qt.sales_staff.value);
-        } else if (Array.isArray(qt.sales_staff.value) && qt.sales_staff.value[0]?.name) {
-          staff.add(qt.sales_staff.value[0].name);
-        }
+        staff.add(qt.sales_staff.value);
       }
     });
     return Array.from(staff).sort();
@@ -91,10 +88,7 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
 
       // 営業担当者でフィルタリング
       if (selectedSalesStaff) {
-        const staffValue = typeof quotation.sales_staff?.value === 'string'
-          ? quotation.sales_staff.value
-          : quotation.sales_staff?.value?.[0]?.name;
-        if (staffValue !== selectedSalesStaff) {
+        if (quotation.sales_staff?.value !== selectedSalesStaff) {
           return false;
         }
       }
@@ -107,19 +101,19 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
 
   // ステータスの表示ラベルを取得
   const getStatusLabel = (status: string) => {
-    // ステータスに応じた色を返す
+    // TailAdmin badge style
     const statusColors: { [key: string]: string } = {
-      '見積中': 'bg-yellow-100 text-yellow-800',
-      '提出済': 'bg-blue-100 text-blue-800',
-      '受注': 'bg-green-100 text-green-800',
-      '失注': 'bg-red-100 text-red-800',
-      'キャンセル': 'bg-gray-100 text-gray-800'
+      '見積中': 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500',
+      '提出済': 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400',
+      '受注': 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500',
+      '失注': 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-500',
+      'キャンセル': 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400'
     };
-    
-    const colorClass = statusColors[status] || 'bg-gray-100 text-gray-800';
-    
+
+    const colorClass = statusColors[status] || 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400';
+
     return (
-      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${colorClass}`}>
+      <span className={`px-2.5 py-0.5 inline-flex text-theme-xs font-medium rounded-full ${colorClass}`}>
         {status}
       </span>
     );
@@ -128,21 +122,21 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
   // 確率の表示
   const getProbabilityLabel = (probability: string) => {
     const probColors: { [key: string]: string } = {
-      '90%': 'text-green-600',
-      '75%': 'text-green-500',
-      '50%': 'text-yellow-600',
-      '25%': 'text-orange-600',
-      '10%': 'text-red-600',
-      '0%': 'text-gray-600'
+      '90%': 'text-success-600 dark:text-success-500',
+      '75%': 'text-success-500 dark:text-success-400',
+      '50%': 'text-warning-600 dark:text-warning-500',
+      '25%': 'text-warning-700 dark:text-warning-400',
+      '10%': 'text-error-600 dark:text-error-500',
+      '0%': 'text-gray-600 dark:text-gray-400'
     };
-    
-    const colorClass = probColors[probability] || 'text-gray-600';
-    
+
+    const colorClass = probColors[probability] || 'text-gray-600 dark:text-gray-400';
+
     return <span className={`font-medium ${colorClass}`}>{probability}</span>;
   };
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle}>
+    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
         {/* 検索バー */}
         <div className={tableStyles.searchWrapper}>
@@ -167,7 +161,7 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
             >
               <option value="">
                 {language === 'ja' ? '全ステータス' : language === 'th' ? 'ทุกสถานะ' : 'All Status'}
@@ -183,7 +177,7 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
             <select
               value={selectedSalesStaff}
               onChange={(e) => setSelectedSalesStaff(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
             >
               <option value="">
                 {language === 'ja' ? '全営業担当' : language === 'th' ? 'ทุกผู้ขาย' : 'All Sales Staff'}
@@ -275,9 +269,7 @@ export default function QuotationListContent({ quotations, locale, userEmail }: 
                       {quotation.Drop_down?.value ? getProbabilityLabel(quotation.Drop_down.value) : '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {typeof quotation.sales_staff?.value === 'string' 
-                        ? quotation.sales_staff.value 
-                        : quotation.sales_staff?.value?.[0]?.name || '-'}
+                      {quotation.sales_staff?.value || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-right`}>
                       <Link
