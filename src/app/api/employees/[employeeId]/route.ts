@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 // 許可されたフィールドのリスト（SQLインジェクション防止）
 const ALLOWED_FIELDS = [
   'name',
+  'gender',
   'department',
   'position',
   'date_of_birth',

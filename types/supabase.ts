@@ -188,6 +188,115 @@ export interface Database {
           updated_at?: string
         }
       }
+      roles: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          name_en: string | null
+          name_th: string | null
+          description: string | null
+          can_manage_users: boolean
+          can_manage_organizations: boolean
+          can_manage_employees: boolean
+          can_manage_quotations: boolean
+          can_view_all_records: boolean
+          can_edit_all_records: boolean
+          can_delete_records: boolean
+          can_export_data: boolean
+          can_import_data: boolean
+          can_manage_settings: boolean
+          is_system_role: boolean
+          is_active: boolean
+          display_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          name_en?: string | null
+          name_th?: string | null
+          description?: string | null
+          can_manage_users?: boolean
+          can_manage_organizations?: boolean
+          can_manage_employees?: boolean
+          can_manage_quotations?: boolean
+          can_view_all_records?: boolean
+          can_edit_all_records?: boolean
+          can_delete_records?: boolean
+          can_export_data?: boolean
+          can_import_data?: boolean
+          can_manage_settings?: boolean
+          is_system_role?: boolean
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          name_en?: string | null
+          name_th?: string | null
+          description?: string | null
+          can_manage_users?: boolean
+          can_manage_organizations?: boolean
+          can_manage_employees?: boolean
+          can_manage_quotations?: boolean
+          can_view_all_records?: boolean
+          can_edit_all_records?: boolean
+          can_delete_records?: boolean
+          can_export_data?: boolean
+          can_import_data?: boolean
+          can_manage_settings?: boolean
+          is_system_role?: boolean
+          is_active?: boolean
+          display_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      user_roles: {
+        Row: {
+          id: string
+          employee_id: string
+          role_id: string
+          organization_id: string | null
+          granted_by: string | null
+          granted_at: string
+          expires_at: string | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          employee_id: string
+          role_id: string
+          organization_id?: string | null
+          granted_by?: string | null
+          granted_at?: string
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          employee_id?: string
+          role_id?: string
+          organization_id?: string | null
+          granted_by?: string | null
+          granted_at?: string
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
       employees: {
         Row: {
           id: string

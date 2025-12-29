@@ -202,10 +202,10 @@ export default function EmployeesClient({ locale, language, employees, currentUs
                       </td>
                       <td className={tableStyles.td}>
                         <div className="flex items-center gap-3">
-                          {/* アバター：現在のユーザーなら設定したプロフ画像を表示、それ以外は従業員データのavatar_url */}
+                          {/* アバター：現在のユーザーなら設定したプロフ画像を表示、それ以外は従業員データのprofile_image_url */}
                           {(() => {
                             const isCurrentUser = emp.employee_number?.toLowerCase() === currentUserEmployeeNumber?.toLowerCase();
-                            const avatarUrl = isCurrentUser ? currentUserAvatarUrl : emp.avatar_url;
+                            const avatarUrl = isCurrentUser ? currentUserAvatarUrl : emp.profile_image_url;
                             return avatarUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img

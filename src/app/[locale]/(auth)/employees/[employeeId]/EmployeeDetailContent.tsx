@@ -34,6 +34,7 @@ export default function EmployeeDetailContent({
   // Form state
   const [formData, setFormData] = useState({
     name: employee.name || '',
+    gender: employee.gender || '',
     department: employee.department || '',
     position: employee.position || '',
     date_of_birth: employee.date_of_birth || '',
@@ -110,6 +111,9 @@ export default function EmployeeDetailContent({
       documents: '書類アップロード',
       employeeNo: '社員番号',
       idNo: '国民ID番号',
+      gender: '性別',
+      genderMale: '男性',
+      genderFemale: '女性',
       department: '配属',
       position: '役職',
       birthDate: '生年月日',
@@ -163,6 +167,9 @@ export default function EmployeeDetailContent({
       documents: 'Document Upload',
       employeeNo: 'Employee No.',
       idNo: 'National ID No.',
+      gender: 'Gender',
+      genderMale: 'Male',
+      genderFemale: 'Female',
       department: 'Department',
       position: 'Position',
       birthDate: 'Date of Birth',
@@ -216,6 +223,9 @@ export default function EmployeeDetailContent({
       documents: 'อัปโหลดเอกสาร',
       employeeNo: 'รหัสพนักงาน',
       idNo: 'เลขบัตรประชาชน',
+      gender: 'เพศ',
+      genderMale: 'ชาย',
+      genderFemale: 'หญิง',
       department: 'แผนก',
       position: 'ตำแหน่ง',
       birthDate: 'วันเกิด',
@@ -311,6 +321,7 @@ export default function EmployeeDetailContent({
   const handleCancel = () => {
     setFormData({
       name: employee.name || '',
+      gender: employee.gender || '',
       department: employee.department || '',
       position: employee.position || '',
       date_of_birth: employee.date_of_birth || '',
@@ -471,10 +482,10 @@ export default function EmployeeDetailContent({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
             {/* Left: Avatar and Info */}
             <div className="flex items-center gap-4">
-              {employee.avatar_url ? (
+              {employee.profile_image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={employee.avatar_url}
+                  src={employee.profile_image_url}
                   alt={formData.name || ''}
                   className="w-20 h-20 rounded-full object-cover"
                 />
@@ -581,6 +592,26 @@ export default function EmployeeDetailContent({
         </div>
         <div className="p-5 lg:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Gender Select */}
+            <div>
+              <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.gender}</p>
+              {isEditing ? (
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className={inputClass}
+                >
+                  <option value="">-</option>
+                  <option value="男性">{t.genderMale}</option>
+                  <option value="女性">{t.genderFemale}</option>
+                </select>
+              ) : (
+                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                  {formData.gender === '男性' ? t.genderMale : formData.gender === '女性' ? t.genderFemale : formData.gender || '-'}
+                </p>
+              )}
+            </div>
             {renderField(t.department, 'department', formData.department)}
             {renderField(t.position, 'position', formData.position)}
             {renderField(t.birthDate, 'date_of_birth', formData.date_of_birth, 'date')}

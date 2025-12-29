@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import OrganizationManagement from './OrganizationManagement';
 import UserManagement from './UserManagement';
+import PermissionManagement from './PermissionManagement';
 
 interface SettingsClientProps {
   locale: string;
@@ -85,29 +86,7 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
         <div className="p-5 lg:p-6">
           {activeTab === 'organizations' && <OrganizationManagement locale={locale} />}
           {activeTab === 'users' && <UserManagement locale={locale} />}
-          {activeTab === 'permissions' && (
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800/50">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
-                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
-                    {locale === 'ja' ? '準備中' : locale === 'th' ? 'กำลังเตรียมการ' : 'Coming Soon'}
-                  </p>
-                  <p className="text-theme-xs text-gray-500 dark:text-gray-400">
-                    {locale === 'ja'
-                      ? '権限管理機能は今後実装予定です。'
-                      : locale === 'th'
-                      ? 'ฟังก์ชันการจัดการสิทธิ์จะถูกนำไปใช้ในอนาคต'
-                      : 'Permission management feature will be implemented in the future.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+          {activeTab === 'permissions' && <PermissionManagement locale={locale} />}
         </div>
       </div>
     </div>

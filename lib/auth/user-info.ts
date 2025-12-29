@@ -4,10 +4,11 @@ import { emailToEmployeeNumber } from '@/lib/auth/utils';
 interface EmployeeData {
   id: string;
   name: string | null;
+  nickname: string | null;
   position: string | null;
   employee_number: string;
   department: string | null;
-  avatar_url: string | null;
+  profile_image_url: string | null;
 }
 
 export interface UserInfo {
@@ -44,6 +45,7 @@ export async function getCurrentUserInfo(): Promise<UserInfo | null> {
 
   // デフォルト値
   let employeeName = '';
+  let employeeNickname = '';
   let employeeRole = '';
   let employeeNumber = loginEmployeeNumber || '';
   let department = '';
@@ -54,17 +56,18 @@ export async function getCurrentUserInfo(): Promise<UserInfo | null> {
   if (loginEmployeeNumber) {
     const { data: employee } = await supabase
       .from('employees')
-      .select('id, name, position, employee_number, department, avatar_url')
+      .select('id, name, nickname, position, employee_number, department, profile_image_url')
       .eq('employee_number', loginEmployeeNumber)
       .single<EmployeeData>();
 
     if (employee) {
       employeeId = employee.id;
       employeeName = employee.name || '';
+      employeeNickname = employee.nickname || '';
       employeeRole = employee.position || '';
       employeeNumber = employee.employee_number || loginEmployeeNumber;
       department = employee.department || '';
-      employeeAvatarUrl = employee.avatar_url || '';
+      employeeAvatarUrl = employee.profile_image_url || '';
     }
   }
 
@@ -72,17 +75,18 @@ export async function getCurrentUserInfo(): Promise<UserInfo | null> {
   if (!employeeName && employeeNumberFromMeta && employeeNumberFromMeta !== loginEmployeeNumber) {
     const { data: employee } = await supabase
       .from('employees')
-      .select('id, name, position, employee_number, department, avatar_url')
+      .select('id, name, nickname, position, employee_number, department, profile_image_url')
       .eq('employee_number', employeeNumberFromMeta)
       .single<EmployeeData>();
 
     if (employee) {
       employeeId = employee.id;
       employeeName = employee.name || '';
+      employeeNickname = employee.nickname || '';
       employeeRole = employee.position || '';
       employeeNumber = employee.employee_number || employeeNumberFromMeta;
       department = employee.department || '';
-      employeeAvatarUrl = employee.avatar_url || '';
+      employeeAvatarUrl = employee.profile_image_url || '';
     }
   }
 
@@ -90,17 +94,18 @@ export async function getCurrentUserInfo(): Promise<UserInfo | null> {
   if (!employeeName && userEmail) {
     const { data: employee } = await supabase
       .from('employees')
-      .select('id, name, position, employee_number, department, avatar_url')
+      .select('id, name, nickname, position, employee_number, department, profile_image_url')
       .eq('company_email', userEmail)
       .single<EmployeeData>();
 
     if (employee) {
       employeeId = employee.id;
       employeeName = employee.name || '';
+      employeeNickname = employee.nickname || '';
       employeeRole = employee.position || '';
       employeeNumber = employee.employee_number;
       department = employee.department || '';
-      employeeAvatarUrl = employee.avatar_url || '';
+      employeeAvatarUrl = employee.profile_image_url || '';
     }
   }
 
@@ -109,17 +114,18 @@ export async function getCurrentUserInfo(): Promise<UserInfo | null> {
     ? employeeNumber
     : userEmail;
 
-  // 表示名：ニックネーム優先、なければ従業員名
-  const displayName = nickname || employeeName || displayEmail;
+  // 表示名：ユーザーメタデータのニックネーム > 従業員ニックネーム > 従業員名 > メール
+  const finalNickname = nickname || employeeNickname;
+  const displayName = finalNickname || employeeName || displayEmail;
 
-  // アバターURL：ユーザーメタデータ優先、なければ従業員データ
-  const finalAvatarUrl = avatarUrl || employeeAvatarUrl;
+  // アバターURL：従業員データ優先、なければユーザーメタデータ
+  const finalAvatarUrl = employeeAvatarUrl || avatarUrl;
 
   return {
     email: displayEmail,
     name: displayName,
     avatarUrl: finalAvatarUrl,
-    nickname,
+    nickname: finalNickname,
     employeeNumber,
     employeeId,
     employeeRole,
