@@ -1,0 +1,38 @@
+{
+  "common": {
+    "appName": "kintone Integration System",
+    "japanese": "Japanese",
+    "thai": "Thai",
+    "logout": "Logout"
+  },
+  "auth": {
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "loginTitle": "Login",
+    "loginNote": "Please login to your account",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Enter your password",
+    "loggingIn": "Logging in...",
+    "logout": "Logout",
+    "error": {
+      "invalidCredentials": "Invalid email or password",
+      "generic": "An error occurred during login"
+    }
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "projects": "Projects",
+    "projectManagement": "Project Management",
+    "recentProjects": "Recent Projects"
+  },
+  "kintone": {
+    "workNo": "Work No.",
+    "cases": "Cases",
+    "project": "Project"
+  },
+  "messages": {
+    "alerts": "Alerts",
+    "noData": "No data available"
+  }
+}
