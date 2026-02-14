@@ -24,6 +24,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # local env files
 .env*.local
@@ -37,3 +38,26 @@ next-env.d.ts
 
 # MCP configuration (contains sensitive tokens)
 .mcp.json
+
+# AI tool artifacts
+.serena/
+.playwright-mcp/
+memory.md
+cookies.txt
+
+# Supabase temp files
+supabase/.temp/
+
+# Temporary files
+*.tmp
+*.new
+
+# Test screenshots (root level)
+/employee-page-screenshot.png
+/employees-page-fixed.png
+/po-detail-error-final.png
+/server-status.png
+/screenshots/
+
+# Claude MCP config (example is kept)
+claude_mcp_config.json
