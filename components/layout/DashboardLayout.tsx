@@ -7,6 +7,7 @@ import { getFieldLabel, type Language } from '@/lib/kintone/field-mappings';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { logout } from '@/lib/auth/actions';
 import TransitionLink from '@/components/ui/TransitionLink';
+import CommandPalette from '@/components/ui/CommandPalette';
 import { useSidebar } from '@/context/SidebarContext';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -33,11 +34,24 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
   const { isExpanded, isMobileOpen, toggleSidebar, toggleMobileSidebar, setIsHovered } = useSidebar();
   const { theme, toggleTheme } = useTheme();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   // 内部メールの場合は従業員番号を表示
   const displayUserIdentifier = userEmail?.endsWith('@mtt.internal')
     ? userEmail.replace('@mtt.internal', '')
     : userEmail;
+
+  // ⌘K / Ctrl+K でコマンドパレット開閉
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -57,6 +71,7 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
     { name: language === 'ja' ? '仕入業者管理' : language === 'th' ? 'จัดการซัพพลายเออร์' : 'Supplier Management', href: `/${actualLocale}/suppliers`, icon: 'truck' },
     { name: language === 'ja' ? '従業員管理' : language === 'th' ? 'จัดการพนักงาน' : 'Employee Management', href: `/${actualLocale}/employees`, icon: 'user' },
     { name: language === 'ja' ? 'パーツリスト' : language === 'th' ? 'รายการชิ้นส่วน' : 'Parts List', href: `/${actualLocale}/parts-list`, icon: 'list' },
+    { name: language === 'ja' ? '見積依頼' : language === 'th' ? 'ใบขอใบเสนอราคา' : 'Quote Requests', href: `/${actualLocale}/quote-requests`, icon: 'fileQuestion' },
     { name: language === 'ja' ? '購買依頼' : language === 'th' ? 'คำขอจัดซื้อ' : 'Purchase Request', href: `/${actualLocale}/purchase-request`, icon: 'cart' },
     { name: language === 'ja' ? '見積もり管理' : language === 'th' ? 'จัดการใบเสนอราคา' : 'Quotation Management', href: `/${actualLocale}/quotation`, icon: 'calculator' },
     { name: language === 'ja' ? '注文書管理' : language === 'th' ? 'จัดการใบสั่งซื้อ' : 'Order Management', href: `/${actualLocale}/order-management`, icon: 'clipboardDoc' },
@@ -78,6 +93,7 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
       truck: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />,
       user: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
       list: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 10h16M4 14h16M4 18h16" />,
+      fileQuestion: <><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /><circle cx="12" cy="10" r="3" strokeWidth={1.5} /></>,
       cart: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />,
       calculator: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />,
       clipboardDoc: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />,
@@ -172,24 +188,19 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
               </svg>
             </button>
 
-            {/* Search Bar */}
-            <div className="hidden md:flex items-center">
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  placeholder={language === 'ja' ? '検索またはコマンド入力...' : 'Search or type command...'}
-                  className="w-64 py-2.5 pl-10 pr-4 text-theme-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-                />
-                <span className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <span className="px-2 py-0.5 text-theme-xs text-gray-400 bg-gray-100 rounded dark:bg-gray-700">⌘K</span>
-                </span>
-              </div>
-            </div>
+            {/* Search Bar (Command Palette trigger) */}
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="hidden md:flex items-center w-64 py-2.5 pl-3 pr-3 text-theme-sm bg-gray-50 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            >
+              <svg className="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span className="flex-1 text-left text-gray-400 dark:text-gray-500">
+                {language === 'ja' ? '検索...' : language === 'th' ? 'ค้นหา...' : 'Search...'}
+              </span>
+              <kbd className="px-2 py-0.5 text-theme-xs text-gray-400 bg-gray-100 rounded dark:bg-gray-700">⌘K</kbd>
+            </button>
           </div>
 
           {/* Right: Actions */}
@@ -315,6 +326,13 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
           {children}
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        locale={actualLocale}
+      />
     </div>
   );
 }
