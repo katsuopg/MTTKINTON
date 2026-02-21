@@ -353,6 +353,7 @@ export interface InvoiceRecord extends KintoneRecord {
 // Customer List (顧客管理)
 export interface CustomerRecord extends KintoneRecord {
   文字列__1行_: { type: "SINGLE_LINE_TEXT"; value: string }; // CS ID
+  Cs_Name: { type: "SINGLE_LINE_TEXT"; value: string }; // Customer Short Name (略称: SKT, MGT等)
   会社名: { type: "SINGLE_LINE_TEXT"; value: string }; // Company Name
   文字列__1行__4: { type: "SINGLE_LINE_TEXT"; value: string }; // Country
   ランク: { type: "DROP_DOWN"; value: string }; // Rank

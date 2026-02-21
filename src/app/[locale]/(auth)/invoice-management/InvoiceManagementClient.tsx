@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type Language } from '@/lib/kintone/field-mappings';
-import SearchFilter from '@/components/ui/SearchFilter';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { InvoiceRecord } from '@/types/kintone';
 
@@ -131,18 +131,31 @@ export default function InvoiceManagementClient({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      {/* 検索フィルターコンポーネント */}
-      <SearchFilter
+      <ListPageHeader
         searchValue={searchQuery}
         onSearchChange={handleSearchChange}
         searchPlaceholder={searchPlaceholder}
         totalCount={filteredInvoices.length}
         countLabel={countLabel}
-        showPeriodFilter={true}
-        selectedPeriod={selectedPeriod}
-        onPeriodChange={handlePeriodChange}
-        availablePeriods={availablePeriods()}
-        language={language}
+        filters={
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
+            </label>
+            <select
+              value={selectedPeriod}
+              onChange={(e) => handlePeriodChange(e.target.value)}
+              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+            >
+              <option value="">{language === 'ja' ? '全期間' : 'All Periods'}</option>
+              {availablePeriods().map((period) => (
+                <option key={period} value={period}>
+                  {period}
+                </option>
+              ))}
+            </select>
+          </div>
+        }
       />
 
       {/* テーブル表示 */}

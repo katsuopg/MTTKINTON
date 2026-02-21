@@ -3,9 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { Language } from '@/lib/kintone/field-mappings'
-import { ArrowLeft, Download, FileText, Calendar, Calculator } from 'lucide-react'
+import { FileText, Calendar, Calculator } from 'lucide-react'
 import FileViewerModal from '../FileViewerModal'
 import DashboardLayout from '@/components/layout/DashboardLayout'
+import { detailStyles } from '@/components/ui/DetailStyles'
+import { DetailPageHeader } from '@/components/ui/DetailPageHeader'
+import { extractCsName } from '@/lib/utils/customer-name'
 
 // 注文書レコードの型定義
 interface OrderRecord {
@@ -76,7 +79,7 @@ export default function OrderDetailContent({ userInfo }: OrderDetailContentProps
     return (
       <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo}>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-lg">読み込み中...</div>
+          <div className="text-lg text-gray-600 dark:text-gray-400">読み込み中...</div>
         </div>
       </DashboardLayout>
     )
@@ -85,15 +88,17 @@ export default function OrderDetailContent({ userInfo }: OrderDetailContentProps
   if (error || !order) {
     return (
       <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo}>
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-600">{error || '注文書が見つかりません'}</p>
-            <button
-              onClick={() => router.push(`/${locale}/order-management`)}
-              className="mt-4 text-blue-600 hover:text-blue-800 underline"
-            >
-              一覧に戻る
-            </button>
+        <div className={detailStyles.pageWrapper}>
+          <div className={`${detailStyles.card} ${detailStyles.cardContent}`}>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <p className="text-red-600 dark:text-red-400">{error || '注文書が見つかりません'}</p>
+              <button
+                onClick={() => router.push(`/${locale}/order-management`)}
+                className={`mt-4 ${detailStyles.link}`}
+              >
+                一覧に戻る
+              </button>
+            </div>
           </div>
         </div>
       </DashboardLayout>
@@ -112,191 +117,183 @@ export default function OrderDetailContent({ userInfo }: OrderDetailContentProps
 
   return (
     <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo}>
-      <div className="p-6">
-        {/* ヘッダー */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push(`/${locale}/order-management`)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4"
-          >
-            <ArrowLeft size={20} />
-            <span>注文書一覧に戻る</span>
-          </button>
-
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">
-              注文書詳細 - {order.文字列__1行_.value}
-            </h1>
-            {order.添付ファイル?.value?.length > 0 && (
+      <div className={detailStyles.pageWrapper}>
+        <DetailPageHeader
+          backHref={`/${locale}/order-management`}
+          backLabel="注文書一覧に戻る"
+          title={`注文書詳細 - ${order.文字列__1行_.value}`}
+          actions={
+            order.添付ファイル?.value?.length > 0 ? (
               <FileViewerModal
                 files={order.添付ファイル.value}
                 language={locale as Language}
               />
-            )}
-          </div>
-        </div>
+            ) : undefined
+          }
+        />
 
         {/* 基本情報カード */}
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden mb-6">
-          <div className="bg-gray-50 px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+        <div className={detailStyles.card}>
+          <div className={detailStyles.cardHeaderWithBg}>
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
               <FileText size={20} />
               基本情報
             </h2>
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  PO番号
-                </label>
-                <p className="text-base font-semibold text-gray-900">
-                  {order.文字列__1行_.value}
-                </p>
-              </div>
+          <div className={`${detailStyles.cardContent} ${detailStyles.grid3}`}>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                PO番号
+              </label>
+              <p className={`mt-1 text-base font-semibold ${detailStyles.fieldValue}`}>
+                {order.文字列__1行_.value}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  工事番号
-                </label>
-                <p className="text-base">
-                  {order.文字列__1行__2.value || '-'}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                工事番号
+              </label>
+              <p className={`mt-1 ${detailStyles.fieldValue}`}>
+                {order.文字列__1行__2.value || '-'}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  CS ID
-                </label>
-                <p className="text-base">
-                  {order.文字列__1行__0.value || '-'}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                顧客名
+              </label>
+              <p className={`mt-1 ${detailStyles.fieldValue}`}>
+                {order.文字列__1行__0?.value ? (
+                  <a
+                    href={`/${locale}/customers/${order.文字列__1行__0.value}`}
+                    className={detailStyles.link}
+                  >
+                    {extractCsName(order.文字列__1行__0.value)}
+                  </a>
+                ) : '-'}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  顧客名
-                </label>
-                <p className="text-base">
-                  {order.文字列__1行__4.value || '-'}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                会社名
+              </label>
+              <p className={`mt-1 ${detailStyles.fieldValue} text-gray-500 dark:text-gray-400`}>
+                {order.文字列__1行__4?.value || '-'}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  見積番号
-                </label>
-                <p className="text-base">
-                  {order.ルックアップ.value || '-'}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                見積番号
+              </label>
+              <p className={`mt-1 ${detailStyles.fieldValue}`}>
+                {order.ルックアップ.value || '-'}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  レコード番号
-                </label>
-                <p className="text-base text-gray-500">
-                  {order.レコード番号.value}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                レコード番号
+              </label>
+              <p className="mt-1 text-base text-gray-500 dark:text-gray-400">
+                {order.レコード番号.value}
+              </p>
             </div>
           </div>
         </div>
 
         {/* 日付情報カード */}
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden mb-6">
-          <div className="bg-gray-50 px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+        <div className={detailStyles.card}>
+          <div className={detailStyles.cardHeaderWithBg}>
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
               <Calendar size={20} />
               日付情報
             </h2>
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  注文日
-                </label>
-                <p className="text-base">
-                  {formatDate(order.日付.value)}
-                </p>
-              </div>
+          <div className={`${detailStyles.cardContent} ${detailStyles.grid3}`}>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                注文日
+              </label>
+              <p className={`mt-1 ${detailStyles.fieldValue}`}>
+                {formatDate(order.日付.value)}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  見積日
-                </label>
-                <p className="text-base">
-                  {formatDate(order.日付_0.value)}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                見積日
+              </label>
+              <p className={`mt-1 ${detailStyles.fieldValue}`}>
+                {formatDate(order.日付_0.value)}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  更新日時
-                </label>
-                <p className="text-base text-gray-500">
-                  {new Date(order.更新日時.value).toLocaleString('ja-JP')}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                更新日時
+              </label>
+              <p className="mt-1 text-base text-gray-500 dark:text-gray-400">
+                {new Date(order.更新日時.value).toLocaleString('ja-JP')}
+              </p>
             </div>
           </div>
         </div>
 
         {/* 金額情報カード */}
-        <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-          <div className="bg-gray-50 px-6 py-4 border-b">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
+        <div className={detailStyles.card}>
+          <div className={detailStyles.cardHeaderWithBg}>
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-800 dark:text-white">
               <Calculator size={20} />
               金額情報
             </h2>
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  値引前
-                </label>
-                <p className="text-lg font-semibold">
-                  ¥{formatCurrency(order.数値_3.value)}
-                </p>
-              </div>
+          <div className={`${detailStyles.cardContent} ${detailStyles.grid3}`}>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                値引前
+              </label>
+              <p className={`mt-1 text-lg font-semibold text-gray-900 dark:text-white`}>
+                ¥{formatCurrency(order.数値_3.value)}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  値引額
-                </label>
-                <p className="text-lg text-red-600">
-                  -¥{formatCurrency(order.数値_4.value)}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                値引額
+              </label>
+              <p className={`mt-1 ${detailStyles.amountRed}`}>
+                -¥{formatCurrency(order.数値_4.value)}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  値引き後金額
-                </label>
-                <p className="text-lg font-semibold">
-                  ¥{formatCurrency(order.AF.value)}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                値引き後金額
+              </label>
+              <p className={`mt-1 text-lg font-semibold text-gray-900 dark:text-white`}>
+                ¥{formatCurrency(order.AF.value)}
+              </p>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  消費税額
-                </label>
-                <p className="text-lg">
-                  ¥{formatCurrency(order.vat.value)}
-                </p>
-              </div>
+            <div>
+              <label className={detailStyles.fieldLabel}>
+                消費税額
+              </label>
+              <p className={`mt-1 text-lg text-gray-900 dark:text-white`}>
+                ¥{formatCurrency(order.vat.value)}
+              </p>
+            </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  合計金額（税込）
-                </label>
-                <p className="text-2xl font-bold text-blue-600">
-                  ¥{formatCurrency(order.amount.value)}
-                </p>
-              </div>
+            <div className="md:col-span-2">
+              <label className={detailStyles.fieldLabel}>
+                合計金額（税込）
+              </label>
+              <p className={`mt-1 ${detailStyles.amountHighlight}`}>
+                ¥{formatCurrency(order.amount.value)}
+              </p>
             </div>
           </div>
         </div>

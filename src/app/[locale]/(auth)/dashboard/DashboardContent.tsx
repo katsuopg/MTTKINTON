@@ -5,6 +5,7 @@ import { WorkNoRecord } from '@/types/kintone';
 import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
 import { getStatusColor } from '@/lib/kintone/utils';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { extractCsName } from '@/lib/utils/customer-name';
 
 interface DashboardContentProps {
   locale: string;
@@ -47,7 +48,7 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
     if (!value) return '-';
     const num = parseFloat(value);
     if (isNaN(num)) return value;
-    return num.toLocaleString() + 'B';
+    return num.toLocaleString();
   };
 
   // フィルタリングされたデータ
@@ -252,8 +253,8 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
                     {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่มาถึง' : 'Arrival'}
                   </th>
                   <th className={tableStyles.th}>Description</th>
-                  <th className={tableStyles.th}>
-                    {language === 'ja' ? '合計金額' : language === 'th' ? 'ราคา' : 'Price'}
+                  <th className={`${tableStyles.th} text-right`}>
+                    {language === 'ja' ? '合計金額（THB）' : language === 'th' ? 'ราคา (THB)' : 'Price (THB)'}
                   </th>
                   <th className={tableStyles.th}>
                     {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
@@ -269,7 +270,7 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
                           href={`/${locale}/projects/${record.WorkNo?.value}`}
                           className="font-medium text-gray-800 text-theme-sm hover:text-brand-500 dark:text-white/90 dark:hover:text-brand-400"
                         >
-                          #{record.WorkNo?.value}
+                          {record.WorkNo?.value}
                         </a>
                         {record.Salesdate?.value &&
                          new Date(record.Salesdate.value) < new Date() &&
@@ -283,7 +284,7 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
                       {record.文字列__1行__1?.value || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__8?.value || '-'}
+                      {extractCsName(record.文字列__1行__8?.value) || '-'}
                     </td>
                     <td className={tableStyles.td}>
                       <span className={
@@ -300,7 +301,7 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
                     <td className={`${tableStyles.td} max-w-[200px] truncate`}>
                       {record.文字列__1行__2?.value || '-'}
                     </td>
-                    <td className={`${tableStyles.td} font-medium`}>
+                    <td className={`${tableStyles.td} font-medium text-right`}>
                       {formatNumber(record.grand_total?.value)}
                     </td>
                     <td className={tableStyles.td}>

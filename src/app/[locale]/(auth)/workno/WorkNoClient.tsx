@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { WorkNoRecord, InvoiceRecord } from '@/types/kintone';
 import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
-import SearchFilter from '@/components/ui/SearchFilter';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { extractCsName } from '@/lib/utils/customer-name';
 
 interface WorkNoClientProps {
   locale: string;
@@ -271,18 +272,30 @@ export default function WorkNoClient({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      {/* 検索フィルターコンポーネント */}
-      <SearchFilter
+      <ListPageHeader
         searchValue={searchQuery}
         onSearchChange={handleSearchChange}
         searchPlaceholder={searchPlaceholder}
-        periodOptions={periodOptions}
-        selectedPeriod={fiscalYear.toString()}
-        onPeriodChange={handlePeriodChange}
-        periodLabel={language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
         totalCount={filteredRecords.length}
         countLabel={countLabel}
-        language={language}
+        filters={
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
+            </label>
+            <select
+              value={fiscalYear.toString()}
+              onChange={(e) => handlePeriodChange(e.target.value)}
+              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+            >
+              {periodOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        }
       />
 
       {/* テーブル表示 - TailAdminスタイル */}
@@ -309,7 +322,7 @@ export default function WorkNoClient({
                     INV
                   </th>
                   <th className={tableStyles.th}>
-                    CS ID
+                    {language === 'ja' ? '顧客名' : language === 'th' ? 'ชื่อลูกค้า' : 'Customer'}
                   </th>
                   <th className={tableStyles.th}>
                     Category
@@ -335,7 +348,8 @@ export default function WorkNoClient({
               {filteredRecords.filter(item => item?.record?.$id?.value).map((item) => (
                 <tr
                   key={item.record.$id.value}
-                  className={`${tableStyles.tr} ${item.record.Status?.value === 'Finished' ? 'bg-success-50 dark:bg-success-500/10' : ''}`}
+                  className={`${tableStyles.trClickable} ${item.record.Status?.value === 'Finished' ? 'bg-success-50 dark:bg-success-500/10' : ''}`}
+                  onClick={() => router.push(`/${locale}/workno/${encodeURIComponent(item.record.WorkNo?.value || '')}`)}
                 >
                   <td className={tableStyles.td}>
                     <div className="flex items-center">
@@ -343,8 +357,9 @@ export default function WorkNoClient({
                         <span className="mr-2 text-gray-400 dark:text-gray-500">└</span>
                       )}
                       <a
-                        href={`/${locale}/projects/${item.record.WorkNo?.value}`}
+                        href={`/${locale}/workno/${encodeURIComponent(item.record.WorkNo?.value || '')}`}
                         className={tableStyles.tdLink}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {item.record.WorkNo?.value}
                       </a>
@@ -405,8 +420,9 @@ export default function WorkNoClient({
                       <a
                         href={`/${locale}/customers/${item.record.文字列__1行__8.value}`}
                         className={tableStyles.tdLink}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {item.record.文字列__1行__8.value}
+                        {extractCsName(item.record.文字列__1行__8.value)}
                       </a>
                     ) : '-'}
                   </td>

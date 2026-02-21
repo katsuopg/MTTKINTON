@@ -54,22 +54,15 @@ export default function TransitionLink({
     console.log('Loading state:', { isPending, isNavigating });
   }, [isPending, isNavigating]);
 
-  // ローディングオーバーレイ
+  // ローディングオーバーレイ（画面中央にスピナー、背景なし）
   const loadingOverlay = (isPending || isNavigating) && mounted && (
-    <div 
-      className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-      style={{ 
-        zIndex: 99999, // 最大値に設定
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      }}
+    <div
+      className="fixed inset-0 flex items-center justify-center pointer-events-none"
+      style={{ zIndex: 99999 }}
     >
-      <div className="bg-white rounded-lg shadow-2xl p-8 flex flex-col items-center space-y-4 transform scale-110">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 border-solid"></div>
-        <p className="text-lg font-semibold text-gray-800">読み込み中...</p>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 flex items-center space-x-4 border border-gray-200 dark:border-gray-700">
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
+        <p className="text-base font-medium text-gray-700 dark:text-gray-200">読み込み中...</p>
       </div>
     </div>
   );

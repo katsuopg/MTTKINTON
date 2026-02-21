@@ -9,6 +9,9 @@ import TransitionLink from '@/components/ui/TransitionLink';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SalesChart from '@/components/charts/SalesChart';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { detailStyles } from '@/components/ui/DetailStyles';
+import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
+import { Pencil } from 'lucide-react';
 import { getStatusColor } from '@/lib/kintone/utils';
 
 interface CustomerDetailContentProps {
@@ -246,66 +249,40 @@ export function CustomerDetailContent({
           </div>
         )}
 
-        {/* Profile Card - TailAdmin Style */}
-        <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="p-5 lg:p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              {/* Left: Info */}
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-                  {customerRecord.会社名?.value || '-'}
-                </h2>
-                <div className="flex items-center gap-2 mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
-                  <span className="font-medium text-gray-700 dark:text-gray-300">{customerRecord.文字列__1行_?.value}</span>
-                  <span className="text-gray-300 dark:text-gray-600">|</span>
-                  <span>{customerRecord.文字列__1行__4?.value || '-'}</span>
-                </div>
-                {/* Rank Badge */}
-                {customerRecord.顧客ランク?.value && (
-                  <span className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    customerRecord.顧客ランク.value === 'VIP'
-                      ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400'
-                      : customerRecord.顧客ランク.value === 'A'
-                      ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
-                      : customerRecord.顧客ランク.value === 'B'
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400'
-                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                  }`}>
-                    Rank: {customerRecord.顧客ランク.value}
-                  </span>
-                )}
-              </div>
-              {/* Right: Actions */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleEdit}
-                  disabled={isPending || isNavigating}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-theme-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-theme-xs hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  {language === 'ja' ? '編集' : 'Edit'}
-                </button>
-                <button
-                  onClick={handleBack}
-                  disabled={isPending || isNavigating}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-theme-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  {language === 'ja' ? '一覧へ戻る' : 'Back'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DetailPageHeader
+          backHref={`/${locale}/customers`}
+          backLabel={language === 'ja' ? '一覧へ戻る' : 'Back'}
+          title={customerRecord.会社名?.value || '-'}
+          subtitle={[customerRecord.文字列__1行_?.value, customerRecord.文字列__1行__4?.value].filter(Boolean).join(' | ')}
+          statusBadge={customerRecord.顧客ランク?.value ? (
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              customerRecord.顧客ランク.value === 'VIP'
+                ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400'
+                : customerRecord.顧客ランク.value === 'A'
+                ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
+                : customerRecord.顧客ランク.value === 'B'
+                ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400'
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+            }`}>
+              Rank: {customerRecord.顧客ランク.value}
+            </span>
+          ) : undefined}
+          actions={
+            <button
+              onClick={handleEdit}
+              disabled={isPending || isNavigating}
+              className={detailStyles.secondaryButton}
+            >
+              <Pencil size={16} className="mr-1.5" />
+              {language === 'ja' ? '編集' : 'Edit'}
+            </button>
+          }
+        />
 
         {/* Basic Information Card - TailAdmin Style */}
         <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
               {language === 'ja' ? '基本情報' : 'Basic Information'}
             </h3>
           </div>
@@ -313,35 +290,35 @@ export function CustomerDetailContent({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Address */}
               <div>
-                <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {language === 'ja' ? '住所' : 'Address'}
                 </p>
-                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                <p className="text-sm text-gray-800 dark:text-white/90">
                   {customerRecord.住所?.value || '-'}
                 </p>
               </div>
               {/* Country */}
               <div>
-                <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {language === 'ja' ? '国' : 'Country'}
                 </p>
-                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                <p className="text-sm text-gray-800 dark:text-white/90">
                   {customerRecord.文字列__1行__4?.value || '-'}
                 </p>
               </div>
               {/* Postal Code */}
               <div>
-                <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {language === 'ja' ? '郵便番号' : 'Postal Code'}
                 </p>
-                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                <p className="text-sm text-gray-800 dark:text-white/90">
                   {customerRecord.郵便番号?.value || '-'}
                 </p>
               </div>
               {/* TAX ID */}
               <div>
-                <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">TAX ID</p>
-                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">TAX ID</p>
+                <p className="text-sm text-gray-800 dark:text-white/90">
                   {customerRecord.文字列__1行__6?.value || '-'}
                 </p>
               </div>
@@ -352,7 +329,7 @@ export function CustomerDetailContent({
         {/* Contact Information Card */}
         <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
               {language === 'ja' ? '連絡先情報' : 'Contact Information'}
             </h3>
           </div>
@@ -360,7 +337,7 @@ export function CustomerDetailContent({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Phone */}
               <div>
-                <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   {language === 'ja' ? '電話番号' : 'Phone'}
                 </p>
                 {customerRecord.TEL?.value ? (
@@ -368,13 +345,13 @@ export function CustomerDetailContent({
                     {customerRecord.TEL.value}
                   </a>
                 ) : (
-                  <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">-</p>
+                  <p className="text-sm text-gray-800 dark:text-white/90">-</p>
                 )}
               </div>
               {/* FAX */}
               <div>
-                <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">FAX</p>
-                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">FAX</p>
+                <p className="text-sm text-gray-800 dark:text-white/90">
                   {customerRecord.FAX?.value || '-'}
                 </p>
               </div>
@@ -386,7 +363,7 @@ export function CustomerDetailContent({
         {allInvoiceRecords && allInvoiceRecords.length > 0 && (
           <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
                 {language === 'ja' ? '売上推移' : 'Sales Trend'}
               </h3>
             </div>

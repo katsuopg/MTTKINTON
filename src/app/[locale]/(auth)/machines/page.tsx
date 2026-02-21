@@ -69,6 +69,13 @@ export default async function MachinesPage({ params, searchParams }: MachinesPag
     
     machineRecords = await machineClient.getRecords<MachineRecord>(query);
     console.log(`Found ${machineRecords.length} machine records`);
+    // デバッグ: CsNameフィールドの確認
+    if (machineRecords.length > 0) {
+      console.log('First 3 records CsId_db/CsName:', machineRecords.slice(0, 3).map(r => ({
+        CsId_db: r.CsId_db?.value,
+        CsName: r.CsName?.value
+      })));
+    }
     
     // 見積管理アプリからQT（見積回数）を取得
     try {

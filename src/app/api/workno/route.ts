@@ -1,13 +1,21 @@
 import { KintoneClient } from '@/lib/kintone/client';
 import { WorkNoRecord } from '@/types/kintone';
+import { createClient } from '@/lib/supabase/server';
 
 const workNoClient = new KintoneClient(
-  '115', // Work No.アプリID
+  process.env.KINTONE_APP_WORK_NO || '21',
   process.env.KINTONE_API_TOKEN_WORKNO!
 );
 
 export async function GET(request: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     
@@ -22,6 +30,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     const record: any = {

@@ -15,7 +15,7 @@ export const tableStyles = {
   trClickable: "hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors duration-150 cursor-pointer",
   td: "px-4 py-3 whitespace-nowrap text-theme-sm text-gray-500 dark:text-gray-400",
   tdPrimary: "text-gray-800 dark:text-white/90 font-medium",
-  tdLink: "text-brand-500 hover:text-brand-600 font-medium",
+  tdLink: "text-gray-800 dark:text-white/90 hover:text-brand-500 dark:hover:text-brand-400 font-medium",
   emptyRow: "px-4 py-6 text-center text-theme-sm text-gray-500 dark:text-gray-400",
 
   // 検索バー - TailAdminスタイル

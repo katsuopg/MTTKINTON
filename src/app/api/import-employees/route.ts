@@ -50,8 +50,9 @@ async function downloadKintoneFile(fileKey: string): Promise<Buffer | null> {
 }
 
 // Supabase Storageにファイルをアップロード
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function uploadToSupabaseStorage(
-  supabaseAdmin: ReturnType<typeof createAdminClient>,
+  supabaseAdmin: any,
   buffer: Buffer,
   bucket: string,
   path: string,
@@ -252,8 +253,9 @@ export async function POST() {
           }
 
           // Supabaseにupsert（employee_numberで一意性を確保）
-          const { error } = await supabase
-            .from('employees')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error } = await (supabase
+            .from('employees') as any)
             .upsert(data, {
               onConflict: 'employee_number'
             });

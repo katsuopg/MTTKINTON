@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useRouter } from 'next/navigation';
 import { Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
-import TransitionLink from '@/components/ui/TransitionLink';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import dynamic from 'next/dynamic';
 
 const MiniSalesChart = dynamic(() => import('@/components/charts/MiniSalesChart'), {
@@ -40,6 +40,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
         const searchLower = searchTerm.toLowerCase();
         return (
           customer.文字列__1行_.value.toLowerCase().includes(searchLower) ||
+          (customer.Cs_Name?.value || '').toLowerCase().includes(searchLower) ||
           customer.会社名.value.toLowerCase().includes(searchLower) ||
           (customer.文字列__1行__4?.value || '').toLowerCase().includes(searchLower) ||
           (customer.TEL?.value || '').toLowerCase().includes(searchLower)
@@ -92,40 +93,17 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
-        {/* 検索バー */}
-        <div className={tableStyles.searchWrapper}>
-          <form className={tableStyles.searchForm} onSubmit={(e) => e.preventDefault()}>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={
-                language === 'ja' ? 'CS ID、会社名、国、電話番号で検索...' : 
-                language === 'th' ? 'ค้นหาด้วย CS ID, ชื่อบริษัท, ประเทศ, เบอร์โทร...' : 
-                'Search by CS ID, Company Name, Country, Phone...'
-              }
-              className={tableStyles.searchInput}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className={tableStyles.clearButton}
-              >
-                {language === 'ja' ? 'クリア' : language === 'th' ? 'ล้าง' : 'Clear'}
-              </button>
-            )}
-          </form>
-        </div>
-
-        {/* レコード数表示 */}
-        <div className={tableStyles.filterBar}>
-          <p className={tableStyles.recordCount}>
-            {language === 'ja' ? `${filteredAndSortedCustomers.length} 件の顧客` : 
-             language === 'th' ? `ลูกค้า ${filteredAndSortedCustomers.length} ราย` : 
-             `${filteredAndSortedCustomers.length} customers`}
-          </p>
-        </div>
+        <ListPageHeader
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder={
+            language === 'ja' ? '顧客名、会社名、国、電話番号で検索...' :
+            language === 'th' ? 'ค้นหาด้วยชื่อลูกค้า, ชื่อบริษัท, ประเทศ, เบอร์โทร...' :
+            'Search by Customer Name, Company Name, Country, Phone...'
+          }
+          totalCount={filteredAndSortedCustomers.length}
+          countLabel={language === 'ja' ? '件の顧客' : language === 'th' ? ' ราย' : ' customers'}
+        />
 
         {/* テーブル - TailAdminスタイル */}
         <div className={tableStyles.tableContainer}>
@@ -138,7 +116,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                     onClick={() => handleSort('csId')}
                   >
                     <div className="flex items-center gap-1">
-                      CS ID
+                      {language === 'ja' ? '顧客名' : language === 'th' ? 'ชื่อลูกค้า' : 'Customer'}
                       {sortField === 'csId' && (
                         <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                       )}
@@ -177,14 +155,13 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
               </thead>
               <tbody className={tableStyles.tbody}>
                 {filteredAndSortedCustomers.map((customer) => (
-                  <tr key={customer.$id.value} className={tableStyles.tr}>
-                    <td className={tableStyles.td}>
-                      <TransitionLink
-                        href={`/${locale}/customers/${customer.文字列__1行_.value}`}
-                        className={tableStyles.tdLink}
-                      >
-                        {customer.文字列__1行_.value}
-                      </TransitionLink>
+                  <tr
+                    key={customer.$id.value}
+                    className={tableStyles.trClickable}
+                    onClick={() => router.push(`/${locale}/customers/${customer.文字列__1行_.value}`)}
+                  >
+                    <td className={`${tableStyles.td} ${tableStyles.tdPrimary}`}>
+                      {customer.Cs_Name?.value || customer.文字列__1行_.value.replace(/^\d{2}-\d{3}-/, '')}
                     </td>
                     <td className={`${tableStyles.td} text-gray-800 dark:text-white/90`}>
                       {customer.会社名.value}
@@ -208,12 +185,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                       {customer.TEL?.value || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-end`}>
-                      <TransitionLink
-                        href={`/${locale}/customers/${customer.文字列__1行_.value}`}
-                        className={tableStyles.tdLink}
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </TransitionLink>
+                      <span className="text-sm text-gray-400">›</span>
                     </td>
                   </tr>
                 ))}

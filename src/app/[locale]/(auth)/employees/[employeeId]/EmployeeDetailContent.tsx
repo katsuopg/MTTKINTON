@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Database } from '@/types/supabase';
 import { type Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
+import { detailStyles } from '@/components/ui/DetailStyles';
 
 type Employee = Database['public']['Tables']['employees']['Row'];
 
@@ -381,7 +382,7 @@ export default function EmployeeDetailContent({
   // Render field - either display or input based on edit mode
   const renderField = (label: string, fieldName: string, value: string, type: 'text' | 'date' | 'email' | 'tel' = 'text') => (
     <div>
-      <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{label}</p>
+      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{label}</p>
       {isEditing ? (
         <input
           type={type}
@@ -391,7 +392,7 @@ export default function EmployeeDetailContent({
           className={inputClass}
         />
       ) : (
-        <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+        <p className="text-sm text-gray-800 dark:text-white/90">
           {type === 'date' ? formatDate(value) : (value || '-')}
         </p>
       )}
@@ -412,7 +413,7 @@ export default function EmployeeDetailContent({
   }) => (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{label}</h4>
+        <h4 className="text-sm text-gray-800 dark:text-white/90">{label}</h4>
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
@@ -501,10 +502,10 @@ export default function EmployeeDetailContent({
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="text-xl font-semibold text-gray-800 dark:text-white/90 bg-transparent border-b border-brand-500 focus:outline-none"
+                    className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-b border-brand-500 focus:outline-none"
                   />
                 ) : (
-                  <h1 className="text-xl font-semibold text-gray-800 dark:text-white/90">
+                  <h1 className={detailStyles.pageTitle}>
                     {formData.name || '-'}
                     {employee.name_th && (
                       <span className="ml-2 text-lg font-normal text-gray-500 dark:text-gray-400">
@@ -588,13 +589,13 @@ export default function EmployeeDetailContent({
       {/* Basic Information Card */}
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">{t.basicInfo}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.basicInfo}</h2>
         </div>
         <div className="p-5 lg:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Gender Select */}
             <div>
-              <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.gender}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.gender}</p>
               {isEditing ? (
                 <select
                   name="gender"
@@ -607,7 +608,7 @@ export default function EmployeeDetailContent({
                   <option value="女性">{t.genderFemale}</option>
                 </select>
               ) : (
-                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                <p className="text-sm text-gray-800 dark:text-white/90">
                   {formData.gender === '男性' ? t.genderMale : formData.gender === '女性' ? t.genderFemale : formData.gender || '-'}
                 </p>
               )}
@@ -626,14 +627,14 @@ export default function EmployeeDetailContent({
       {/* Contact Information Card */}
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">{t.contactInfo}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.contactInfo}</h2>
         </div>
         <div className="p-5 lg:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {renderField(t.phone, 'tel', formData.tel, 'tel')}
             {renderField(t.email, 'email', formData.email, 'email')}
             <div className="md:col-span-2">
-              <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.address}</p>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.address}</p>
               {isEditing ? (
                 <textarea
                   name="address"
@@ -643,7 +644,7 @@ export default function EmployeeDetailContent({
                   className={inputClass}
                 />
               ) : (
-                <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formData.address || '-'}</p>
+                <p className="text-sm text-gray-800 dark:text-white/90">{formData.address || '-'}</p>
               )}
             </div>
           </div>
@@ -653,7 +654,7 @@ export default function EmployeeDetailContent({
       {/* Identity Documents Card with Tabs */}
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">{language === 'ja' ? '身分証明書類' : language === 'th' ? 'เอกสารประจำตัว' : 'Identity Documents'}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{language === 'ja' ? '身分証明書類' : language === 'th' ? 'เอกสารประจำตัว' : 'Identity Documents'}</h2>
         </div>
         <div className="p-5 lg:p-6 space-y-4">
           {/* Tabs */}
@@ -707,16 +708,16 @@ export default function EmployeeDetailContent({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.idNo}</p>
-                    <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90 font-mono">{employee.id_number || '-'}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.idNo}</p>
+                    <p className="text-sm text-gray-800 dark:text-white/90 font-mono">{employee.id_number || '-'}</p>
                   </div>
                   <div>
-                    <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.idExpiry}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.idExpiry}</p>
                     {isEditing ? (
                       <input type="date" name="id_expiry" value={formData.id_expiry} onChange={handleChange} className={inputClass} />
                     ) : (
                       <div className="flex items-center gap-2">
-                        <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formatDate(formData.id_expiry)}</p>
+                        <p className="text-sm text-gray-800 dark:text-white/90">{formatDate(formData.id_expiry)}</p>
                         {isExpiringSoon(formData.id_expiry) && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500">
                             {t.expiresWithin6Months}
@@ -736,22 +737,22 @@ export default function EmployeeDetailContent({
                 <div className="space-y-4">
                   {isEditing ? (
                     <div>
-                      <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.licenseNo}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.licenseNo}</p>
                       <input type="text" name="license_number" value={formData.license_number} onChange={handleChange} className={inputClass} />
                     </div>
                   ) : (
                     <div>
-                      <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.licenseNo}</p>
-                      <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formData.license_number || '-'}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.licenseNo}</p>
+                      <p className="text-sm text-gray-800 dark:text-white/90">{formData.license_number || '-'}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.licenseExpiry}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.licenseExpiry}</p>
                     {isEditing ? (
                       <input type="date" name="license_expiry" value={formData.license_expiry} onChange={handleChange} className={inputClass} />
                     ) : (
                       <div className="flex items-center gap-2">
-                        <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formatDate(formData.license_expiry)}</p>
+                        <p className="text-sm text-gray-800 dark:text-white/90">{formatDate(formData.license_expiry)}</p>
                         {isExpiringSoon(formData.license_expiry) && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500">
                             {t.expiresWithin6Months}
@@ -771,22 +772,22 @@ export default function EmployeeDetailContent({
                 <div className="space-y-4">
                   {isEditing ? (
                     <div>
-                      <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.passportNo}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.passportNo}</p>
                       <input type="text" name="passport_number" value={formData.passport_number} onChange={handleChange} className={inputClass} />
                     </div>
                   ) : (
                     <div>
-                      <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.passportNo}</p>
-                      <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formData.passport_number || '-'}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.passportNo}</p>
+                      <p className="text-sm text-gray-800 dark:text-white/90">{formData.passport_number || '-'}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.passportExpiry}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.passportExpiry}</p>
                     {isEditing ? (
                       <input type="date" name="passport_expiry" value={formData.passport_expiry} onChange={handleChange} className={inputClass} />
                     ) : (
                       <div className="flex items-center gap-2">
-                        <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formatDate(formData.passport_expiry)}</p>
+                        <p className="text-sm text-gray-800 dark:text-white/90">{formatDate(formData.passport_expiry)}</p>
                         {isExpiringSoon(formData.passport_expiry) && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500">
                             {t.expiresWithin6Months}
@@ -807,33 +808,33 @@ export default function EmployeeDetailContent({
                   {isEditing ? (
                     <>
                       <div>
-                        <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.visaNo}</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.visaNo}</p>
                         <input type="text" name="visa_number" value={formData.visa_number} onChange={handleChange} className={inputClass} />
                       </div>
                       <div>
-                        <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.visaType}</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.visaType}</p>
                         <input type="text" name="visa_type" value={formData.visa_type} onChange={handleChange} className={inputClass} />
                       </div>
                     </>
                   ) : (
                     <>
                       <div>
-                        <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.visaNo}</p>
-                        <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formData.visa_number || '-'}</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.visaNo}</p>
+                        <p className="text-sm text-gray-800 dark:text-white/90">{formData.visa_number || '-'}</p>
                       </div>
                       <div>
-                        <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.visaType}</p>
-                        <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formData.visa_type || '-'}</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.visaType}</p>
+                        <p className="text-sm text-gray-800 dark:text-white/90">{formData.visa_type || '-'}</p>
                       </div>
                     </>
                   )}
                   <div>
-                    <p className="text-theme-xs text-gray-500 dark:text-gray-400 mb-1">{t.visaExpiry}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.visaExpiry}</p>
                     {isEditing ? (
                       <input type="date" name="visa_expiry" value={formData.visa_expiry} onChange={handleChange} className={inputClass} />
                     ) : (
                       <div className="flex items-center gap-2">
-                        <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">{formatDate(formData.visa_expiry)}</p>
+                        <p className="text-sm text-gray-800 dark:text-white/90">{formatDate(formData.visa_expiry)}</p>
                         {isExpiringSoon(formData.visa_expiry) && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500">
                             {t.expiresWithin6Months}
@@ -853,7 +854,7 @@ export default function EmployeeDetailContent({
       {/* Documents Upload Card */}
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">{t.documents}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.documents}</h2>
         </div>
         <div className="p-5 lg:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -866,7 +867,7 @@ export default function EmployeeDetailContent({
       {/* Emergency Contact Card */}
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">{t.emergencyContact}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.emergencyContact}</h2>
         </div>
         <div className="p-5 lg:p-6">
           <div className="p-4 rounded-lg bg-error-50 dark:bg-error-500/10">

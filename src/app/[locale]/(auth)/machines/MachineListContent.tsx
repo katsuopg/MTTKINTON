@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { MachineRecord } from '@/types/kintone';
 import { type Language } from '@/lib/kintone/field-mappings';
-import SearchFilter from '@/components/ui/SearchFilter';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
 import TransitionLink from '@/components/ui/TransitionLink';
+import { extractCsName } from '@/lib/utils/customer-name';
 
 interface MachineListContentProps {
   locale: string;
@@ -132,24 +133,18 @@ export default function MachineListContent({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      {/* 検索フィルター */}
-      <div className="mb-4 space-y-4">
-        <SearchFilter
-          searchValue={searchQuery}
-          onSearchChange={handleSearchChange}
-          searchPlaceholder={searchPlaceholder}
-          totalCount={filteredRecords.length}
-          countLabel={countLabel}
-          language={language}
-        />
-        
-        {/* カテゴリとベンダーフィルター */}
-        <div className="flex gap-4">
-          <div>
+      <ListPageHeader
+        searchValue={searchQuery}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder={searchPlaceholder}
+        totalCount={filteredRecords.length}
+        countLabel={countLabel}
+        filters={
+          <>
             <select
               value={selectedCategory}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
+              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
             >
               <option value="all">
                 {language === 'ja' ? '全カテゴリ' : language === 'th' ? 'ทุกหมวดหมู่' : 'All Categories'}
@@ -160,13 +155,10 @@ export default function MachineListContent({
                 </option>
               ))}
             </select>
-          </div>
-
-          <div>
             <select
               value={selectedVendor}
               onChange={(e) => handleVendorChange(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
+              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
             >
               <option value="all">
                 {language === 'ja' ? '全メーカー' : language === 'th' ? 'ทุกผู้ผลิต' : 'All Vendors'}
@@ -177,9 +169,9 @@ export default function MachineListContent({
                 </option>
               ))}
             </select>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* テーブル表示 */}
       <div className={tableStyles.tableContainer}>
@@ -233,7 +225,7 @@ export default function MachineListContent({
                       }}>
                     <td className={tableStyles.td}>
                       <div>
-                        <div className="font-medium text-gray-800 dark:text-white/90">{record.CsId_db?.value || '-'}</div>
+                        <div className="font-medium text-gray-800 dark:text-white/90">{extractCsName(record.CsId_db?.value) || '-'}</div>
                         <div className="text-theme-xs text-gray-500 dark:text-gray-400">{record.CsName?.value || '-'}</div>
                       </div>
                     </td>

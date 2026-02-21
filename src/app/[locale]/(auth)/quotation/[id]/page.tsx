@@ -6,13 +6,14 @@ import QuotationDetailContent from './QuotationDetailContent';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 interface QuotationDetailPageProps {
-  params: {
+  params: Promise<{
     locale: string;
     id: string;
-  };
+  }>;
 }
 
-export default async function QuotationDetailPage({ params: { locale, id } }: QuotationDetailPageProps) {
+export default async function QuotationDetailPage({ params }: QuotationDetailPageProps) {
+  const { locale, id } = await params;
   const supabase = await createClient();
 
   // 認証チェック

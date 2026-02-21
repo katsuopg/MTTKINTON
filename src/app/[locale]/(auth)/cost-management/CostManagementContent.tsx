@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { CostRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
 import { Language } from '@/lib/kintone/field-mappings';
 import { getStatusColor } from '@/lib/kintone/utils';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { extractCsName } from '@/lib/utils/customer-name';
 
 interface CostManagementContentProps {
   costRecords: CostRecord[];
@@ -18,6 +21,7 @@ interface CostManagementContentProps {
 export function CostManagementContent({ costRecords, locale, userEmail, userInfo }: CostManagementContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchTerm, setSearchTerm] = useState('');
+  const router = useRouter();
   const pageTitle = language === 'ja' ? 'コスト管理' : language === 'th' ? 'จัดการต้นทุน' : 'Cost Management';
 
   // フィルタリング
@@ -82,40 +86,17 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
-        {/* 検索バー */}
-        <div className={tableStyles.searchWrapper}>
-          <div className={tableStyles.searchForm}>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={
-                language === 'ja' ? '工事番号、PO番号、サプライヤー名で検索...' : 
-                language === 'th' ? 'ค้นหาตามหมายเลขงาน, PO, ชื่อซัพพลายเออร์...' : 
-                'Search by Work No., PO No., Supplier name...'
-              }
-              className={tableStyles.searchInput}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className={tableStyles.clearButton}
-              >
-                {language === 'ja' ? 'クリア' : language === 'th' ? 'ล้าง' : 'Clear'}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* レコード数表示 */}
-        <div className={tableStyles.filterBar}>
-          <p className={tableStyles.recordCount}>
-            {language === 'ja' ? `${filteredCosts.length} 件のコストレコード` : 
-             language === 'th' ? `${filteredCosts.length} รายการต้นทุน` : 
-             `${filteredCosts.length} cost records`}
-          </p>
-        </div>
+        <ListPageHeader
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder={
+            language === 'ja' ? '工事番号、PO番号、サプライヤー名で検索...' :
+            language === 'th' ? 'ค้นหาตามหมายเลขงาน, PO, ชื่อซัพพลายเออร์...' :
+            'Search by Work No., PO No., Supplier name...'
+          }
+          totalCount={filteredCosts.length}
+          countLabel={language === 'ja' ? '件のコストレコード' : language === 'th' ? ' รายการต้นทุน' : ' cost records'}
+        />
 
         {/* テーブル */}
         <div className={tableStyles.tableContainer}>
@@ -133,93 +114,97 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
               )}
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className={tableStyles.table}>
+              <thead className={tableStyles.thead}>
                 <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-16">
                     ID
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-28">
                     {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? 'WNステータス' : language === 'th' ? 'สถานะ WN' : 'WN Status'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '開始日' : language === 'th' ? 'วันเริ่ม' : 'Start Date'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '完了日' : language === 'th' ? 'วันเสร็จ' : 'Finish Date'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-28">
                     PO No.
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? 'PO日付' : language === 'th' ? 'วันที่ PO' : 'PO Date'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                    CS ID
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
+                    {language === 'ja' ? '顧客名' : language === 'th' ? 'ลูกค้า' : 'Customer'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '到着日' : language === 'th' ? 'วันที่มาถึง' : 'Arrival Date'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '請求日' : language === 'th' ? 'วันที่ใบแจ้งหนี้' : 'INV DATE'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '支払日' : language === 'th' ? 'วันที่ชำระ' : 'Payment Date'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '支払条件' : language === 'th' ? 'เงื่อนไขการชำระ' : 'Payment Term'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-32">
                     ITEM
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-40">
                     {language === 'ja' ? '説明' : language === 'th' ? 'คำอธิบาย' : 'Description'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-40">
                     {language === 'ja' ? 'サプライヤー' : language === 'th' ? 'ซัพพลายเออร์' : 'Supplier'}
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-32">
                     {language === 'ja' ? 'モデル/タイプ' : language === 'th' ? 'รุ่น/ประเภท' : 'Model/Type'}
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '単価' : language === 'th' ? 'ราคาต่อหน่วย' : 'Unit Price'}
                   </th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-16">
                     UNIT
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-16">
                     QTY
                   </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-24">
                     {language === 'ja' ? '合計' : language === 'th' ? 'ยอดรวม' : 'Total'}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className={tableStyles.tbody}>
                 {filteredCosts.map((record) => (
-                  <tr key={record.$id.value} className={`hover:bg-gray-50 ${getRowColorClass(record.ドロップダウン_5?.value)}`}>
-                    <td className="px-3 py-3 text-sm">
+                  <tr
+                    key={record.$id.value}
+                    className={`${tableStyles.trClickable} ${getRowColorClass(record.ドロップダウン_5?.value)}`}
+                    onClick={() => {
+                      const workNo = record.文字列__1行__15?.value;
+                      if (workNo) router.push(`/${locale}/workno/${encodeURIComponent(workNo)}`);
+                    }}
+                  >
+                    <td className={tableStyles.td}>
                       {record.数値_0?.value || record.$id?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       {record.文字列__1行__15?.value ? (
-                        <Link
-                          href={`/${locale}/workno/${encodeURIComponent(record.文字列__1行__15.value)}`}
-                          className="text-indigo-600 hover:text-indigo-900 font-medium"
-                        >
+                        <span className="font-medium text-gray-800 dark:text-white/90">
                           {record.文字列__1行__15.value}
-                        </Link>
+                        </span>
                       ) : (
                         '-'
                       )}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       <span 
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium min-w-[60px] justify-center ${
                           getStatusColor(record.ドロップダウン?.value || '')
@@ -228,22 +213,22 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
                         {record.ドロップダウン?.value || '-'}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {formatDate(record.日付?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {formatDate(record.日付_0?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm font-medium">
+                    <td className={`${tableStyles.td} font-medium`}>
                       {record.文字列__1行__1?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {formatDate(record.日付_1?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm">
-                      {record.文字列__1行__2?.value || '-'}
+                    <td className={tableStyles.td}>
+                      {extractCsName(record.文字列__1行__2?.value) || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       <span 
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium min-w-[70px] justify-center ${
                           getStatusColor(record.ドロップダウン_5?.value || '')
@@ -252,40 +237,40 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
                         {record.ドロップダウン_5?.value || '-'}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {formatDate(record.日付_2?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {formatDate(record.日付_3?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {formatDate(record.日付_4?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       {record.ドロップダウン_0?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       {record.文字列__1行__3?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       {record.文字列__1行__7?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       {record.ルックアップ_1?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm">
+                    <td className={tableStyles.td}>
                       {record.文字列__1行__9?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm text-right font-mono">
+                    <td className={`${tableStyles.td} text-right font-mono`}>
                       {formatNumber(record.unit_price_0?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-center">
+                    <td className={`${tableStyles.td} text-center`}>
                       {record.ドロップダウン_3?.value || '-'}
                     </td>
-                    <td className="px-3 py-3 text-sm text-right font-mono">
+                    <td className={`${tableStyles.td} text-right font-mono`}>
                       {formatNumber(record.数値?.value)}
                     </td>
-                    <td className="px-3 py-3 text-sm text-right font-mono font-bold">
+                    <td className={`${tableStyles.td} text-right font-mono font-bold`}>
                       {formatNumber(record.total_0?.value)}
                     </td>
                   </tr>

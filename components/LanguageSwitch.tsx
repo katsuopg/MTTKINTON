@@ -18,7 +18,9 @@ export default function LanguageSwitch() {
   const handleLanguageChange = (newLocale: string) => {
     // パスから現在のロケールを置き換える
     const newPath = pathname.replace(`/${currentLocale}`, `/${newLocale}`);
-    router.push(newPath);
+    // URLハッシュ（タブ状態等）を保持
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
+    router.push(newPath + hash);
   };
 
   return (

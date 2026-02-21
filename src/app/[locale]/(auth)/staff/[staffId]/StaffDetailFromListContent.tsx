@@ -2,6 +2,7 @@
 
 import { CustomerStaffRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { detailStyles } from '@/components/ui/DetailStyles';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
 
@@ -45,7 +46,7 @@ export function StaffDetailFromListContent({ staff, locale, userEmail, userInfo 
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-semibold text-gray-800 dark:text-white/90 mb-2">
+                <h1 className={`${detailStyles.pageTitle} mb-2`}>
                   {staff.担当者名?.value}
                 </h1>
                 <div className="text-theme-sm text-gray-500 dark:text-gray-400">
@@ -59,39 +60,39 @@ export function StaffDetailFromListContent({ staff, locale, userEmail, userInfo 
         {/* 詳細情報 */}
         <div className="bg-white dark:bg-white/[0.03] shadow-theme-xs rounded-xl border border-gray-200 dark:border-white/[0.05]">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-white/[0.05]">
-            <h2 className="text-lg font-medium text-gray-800 dark:text-white/90">
+            <h2 className={detailStyles.cardTitle}>
               {language === 'ja' ? '担当者情報' : language === 'th' ? 'ข้อมูลผู้ติดต่อ' : 'Contact Information'}
             </h2>
           </div>
           <div className="px-6 py-4 space-y-4">
             <div className="grid grid-cols-3 gap-2">
-              <div className="text-sm text-gray-500">
+              <div className={detailStyles.fieldLabel}>
                 {language === 'ja' ? '会社名' : language === 'th' ? 'บริษัท' : 'Company'}
               </div>
-              <div className="col-span-2 text-sm font-medium">{staff.ルックアップ?.value || '-'}</div>
+              <div className={`col-span-2 ${detailStyles.fieldValue}`}>{staff.ルックアップ?.value || '-'}</div>
             </div>
             {staff.Position?.value && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-sm text-gray-500">
+                <div className={detailStyles.fieldLabel}>
                   {language === 'ja' ? '役職' : language === 'th' ? 'ตำแหน่ง' : 'Position'}
                 </div>
-                <div className="col-span-2 text-sm font-medium">{staff.Position.value}</div>
+                <div className={`col-span-2 ${detailStyles.fieldValue}`}>{staff.Position.value}</div>
               </div>
             )}
             {staff.Divison?.value && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-sm text-gray-500">
+                <div className={detailStyles.fieldLabel}>
                   {language === 'ja' ? '部署' : language === 'th' ? 'แผนก' : 'Division'}
                 </div>
-                <div className="col-span-2 text-sm font-medium">{staff.Divison.value}</div>
+                <div className={`col-span-2 ${detailStyles.fieldValue}`}>{staff.Divison.value}</div>
               </div>
             )}
             {staff.メールアドレス?.value && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-sm text-gray-500">
+                <div className={detailStyles.fieldLabel}>
                   {language === 'ja' ? 'メールアドレス' : language === 'th' ? 'อีเมล' : 'Email'}
                 </div>
-                <div className="col-span-2 text-theme-sm font-medium">
+                <div className={`col-span-2 ${detailStyles.fieldValue}`}>
                   <a href={`mailto:${staff.メールアドレス.value}`} className="text-brand-500 hover:text-brand-600 dark:text-brand-400">
                     {staff.メールアドレス.value}
                   </a>
@@ -100,10 +101,10 @@ export function StaffDetailFromListContent({ staff, locale, userEmail, userInfo 
             )}
             {staff.文字列__1行__7?.value && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-sm text-gray-500">
+                <div className={detailStyles.fieldLabel}>
                   {language === 'ja' ? '携帯電話' : language === 'th' ? 'โทรศัพท์มือถือ' : 'Mobile'}
                 </div>
-                <div className="col-span-2 text-theme-sm font-medium">
+                <div className={`col-span-2 ${detailStyles.fieldValue}`}>
                   <a href={`tel:${staff.文字列__1行__7.value}`} className="text-brand-500 hover:text-brand-600 dark:text-brand-400">
                     {staff.文字列__1行__7.value}
                   </a>
@@ -112,18 +113,18 @@ export function StaffDetailFromListContent({ staff, locale, userEmail, userInfo 
             )}
             {staff.Text?.value && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-sm text-gray-500">
+                <div className={detailStyles.fieldLabel}>
                   {language === 'ja' ? '住所' : language === 'th' ? 'ที่อยู่' : 'Address'}
                 </div>
-                <div className="col-span-2 text-sm font-medium">{staff.Text.value}</div>
+                <div className={`col-span-2 ${detailStyles.fieldValue}`}>{staff.Text.value}</div>
               </div>
             )}
             {staff.備考?.value && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="text-sm text-gray-500 pt-1">
+                <div className={`${detailStyles.fieldLabel} pt-1`}>
                   {language === 'ja' ? '備考' : language === 'th' ? 'หมายเหตุ' : 'Notes'}
                 </div>
-                <div className="col-span-2 text-sm font-medium whitespace-pre-wrap">{staff.備考.value}</div>
+                <div className={`col-span-2 ${detailStyles.fieldValue} whitespace-pre-wrap`}>{staff.備考.value}</div>
               </div>
             )}
           </div>

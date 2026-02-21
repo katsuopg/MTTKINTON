@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { QuotationRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
-import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { extractCsName } from '@/lib/utils/customer-name';
 
 interface QuotationListContentProps {
   quotations: QuotationRecord[];
@@ -20,6 +22,7 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSalesStaff, setSelectedSalesStaff] = useState('');
+  const router = useRouter();
   
   // 日付フォーマット関数
   const formatDate = (dateString: string | undefined) => {
@@ -51,12 +54,23 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
     return Array.from(statuses).sort();
   }, [quotations]);
 
+  // sales_staffのvalueから表示名を抽出（string or {code, name}対応）
+  const getSalesStaffName = (value: unknown): string => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'object' && value !== null && 'name' in value) {
+      return String((value as { name: string }).name);
+    }
+    return String(value);
+  };
+
   // 営業担当者の選択肢を取得（重複を排除）
   const salesStaffOptions = useMemo(() => {
     const staff = new Set<string>();
     quotations.forEach(qt => {
-      if (qt.sales_staff?.value) {
-        staff.add(qt.sales_staff.value);
+      const name = getSalesStaffName(qt.sales_staff?.value);
+      if (name) {
+        staff.add(name);
       }
     });
     return Array.from(staff).sort();
@@ -70,11 +84,13 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
         const searchLower = searchQuery.toLowerCase();
         const qtNo = quotation.qtno2?.value?.toLowerCase() || '';
         const csId = quotation.文字列__1行__10?.value?.toLowerCase() || '';
+        const customerName = quotation.name?.value?.toLowerCase() || '';
         const title = quotation.文字列__1行__4?.value?.toLowerCase() || '';
         const projectName = quotation.ドロップダウン_0?.value?.toLowerCase() || '';
-        
-        if (!qtNo.includes(searchLower) && 
+
+        if (!qtNo.includes(searchLower) &&
             !csId.includes(searchLower) &&
+            !customerName.includes(searchLower) &&
             !title.includes(searchLower) &&
             !projectName.includes(searchLower)) {
           return false;
@@ -88,7 +104,7 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
 
       // 営業担当者でフィルタリング
       if (selectedSalesStaff) {
-        if (quotation.sales_staff?.value !== selectedSalesStaff) {
+        if (getSalesStaffName(quotation.sales_staff?.value) !== selectedSalesStaff) {
           return false;
         }
       }
@@ -138,67 +154,49 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
-        {/* 検索バー */}
-        <div className={tableStyles.searchWrapper}>
-          <div className={tableStyles.searchForm}>
-            {/* 検索ボックス */}
-            <div className="flex-1 relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  language === 'ja' ? '見積もり番号、CS ID、タイトルで検索...' : 
-                  language === 'th' ? 'ค้นหาด้วยเลขที่ใบเสนอราคา, CS ID, หัวข้อ...' :
-                  'Search by quotation no, CS ID, title...'
-                }
-                className={`${tableStyles.searchInput} pl-10`}
-              />
-            </div>
-
-            {/* ステータスフィルター */}
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
-            >
-              <option value="">
-                {language === 'ja' ? '全ステータス' : language === 'th' ? 'ทุกสถานะ' : 'All Status'}
-              </option>
-              {statusOptions.map((status) => (
-                <option key={status} value={status}>
-                  {status}
+        <ListPageHeader
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={
+            language === 'ja' ? '見積もり番号、顧客名、タイトルで検索...' :
+            language === 'th' ? 'ค้นหาด้วยเลขที่ใบเสนอราคา, ลูกค้า, หัวข้อ...' :
+            'Search by quotation no, customer, title...'
+          }
+          totalCount={filteredQuotations.length}
+          countLabel={language === 'ja' ? '件の見積もり' : language === 'th' ? ' ใบเสนอราคา' : ' quotations'}
+          filters={
+            <>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+              >
+                <option value="">
+                  {language === 'ja' ? '全ステータス' : language === 'th' ? 'ทุกสถานะ' : 'All Status'}
                 </option>
-              ))}
-            </select>
-
-            {/* 営業担当者フィルター */}
-            <select
-              value={selectedSalesStaff}
-              onChange={(e) => setSelectedSalesStaff(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
-            >
-              <option value="">
-                {language === 'ja' ? '全営業担当' : language === 'th' ? 'ทุกผู้ขาย' : 'All Sales Staff'}
-              </option>
-              {salesStaffOptions.map((staff) => (
-                <option key={staff} value={staff}>
-                  {staff}
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedSalesStaff}
+                onChange={(e) => setSelectedSalesStaff(e.target.value)}
+                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+              >
+                <option value="">
+                  {language === 'ja' ? '全営業担当' : language === 'th' ? 'ทุกผู้ขาย' : 'All Sales Staff'}
                 </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* フィルターバー */}
-        <div className={tableStyles.filterBar}>
-          <p className={tableStyles.recordCount}>
-            {language === 'ja' ? `${filteredQuotations.length}件の見積もり` : 
-             language === 'th' ? `${filteredQuotations.length} ใบเสนอราคา` : 
-             `${filteredQuotations.length} quotations`}
-          </p>
-        </div>
+                {salesStaffOptions.map((staff) => (
+                  <option key={staff} value={staff}>
+                    {staff}
+                  </option>
+                ))}
+              </select>
+            </>
+          }
+        />
 
         {/* 見積もりリスト */}
         <div className={tableStyles.tableContainer}>
@@ -221,7 +219,7 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
                     {language === 'ja' ? '見積番号' : language === 'th' ? 'เลขที่ใบเสนอราคา' : 'Quotation No.'}
                   </th>
                   <th className={tableStyles.th}>
-                    CS ID
+                    {language === 'ja' ? '顧客名' : language === 'th' ? 'ลูกค้า' : 'Customer'}
                   </th>
                   <th className={tableStyles.th}>
                     {language === 'ja' ? 'タイトル' : language === 'th' ? 'หัวข้อ' : 'Title'}
@@ -242,7 +240,11 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
               </thead>
               <tbody className={tableStyles.tbody}>
                 {filteredQuotations.map((quotation) => (
-                  <tr key={quotation.$id.value} className={tableStyles.tr}>
+                  <tr
+                    key={quotation.$id.value}
+                    className={tableStyles.trClickable}
+                    onClick={() => router.push(`/${locale}/quotation/${quotation.$id.value}`)}
+                  >
                     <td className={tableStyles.td}>
                       {formatDate(quotation.日付?.value)}
                     </td>
@@ -250,7 +252,15 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
                       {quotation.qtno2?.value || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {quotation.文字列__1行__10?.value || '-'}
+                      {quotation.文字列__1行__10?.value ? (
+                        <Link
+                          href={`/${locale}/customers/${quotation.文字列__1行__10.value}`}
+                          className={tableStyles.tdLink}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {extractCsName(quotation.文字列__1行__10.value)}
+                        </Link>
+                      ) : '-'}
                     </td>
                     <td className={tableStyles.td}>
                       <div>
@@ -269,15 +279,10 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
                       {quotation.Drop_down?.value ? getProbabilityLabel(quotation.Drop_down.value) : '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {quotation.sales_staff?.value || '-'}
+                      {getSalesStaffName(quotation.sales_staff?.value) || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-right`}>
-                      <Link
-                        href={`/${locale}/quotation/${quotation.$id.value}`}
-                        className={tableStyles.tdLink}
-                      >
-                        {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
-                      </Link>
+                      <span className="text-sm text-gray-400">›</span>
                     </td>
                   </tr>
                 ))}
