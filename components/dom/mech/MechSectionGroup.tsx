@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import MechItemRow from './MechItemRow';
-import type { DomSection, DomMechItem, DomMasters } from '@/types/dom';
+import type { DomSection, DomMechItem, DomMasters, DomItemCategory } from '@/types/dom';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 type Language = 'ja' | 'en' | 'th';
 
@@ -14,28 +15,43 @@ interface MechSectionGroupProps {
   masters: DomMasters;
   language: Language;
   editing: boolean;
+  domHeaderId: string;
   selectedItems: Set<string>;
   onToggleSelect: (id: string) => void;
   onItemChange: (id: string, field: string, value: string | number | null) => void;
   onNewItemChange: (index: number, field: string, value: string | number | null) => void;
-  onAddRow: (sectionId: string) => void;
+  onAddRow: (sectionId: string, category?: DomItemCategory) => void;
   onSectionNameChange: (sectionId: string, name: string) => void;
   onDeleteSection?: (sectionId: string) => void;
+  onReorder?: (sectionId: string, category: DomItemCategory, fromIndex: number, toIndex: number) => void;
+  onFileNotify?: (type: 'success' | 'error', message: string) => void;
 }
 
-const COLUMN_HEADERS: Record<Language, string[]> = {
-  ja: ['', 'No', '区分', '品名', '図番/型式', '履歴', 'メーカー', '材質', '熱処理', '表面処理', '数量', '単位', '単価', '金額', 'LT', 'ステータス', '備考'],
-  en: ['', 'No', 'Cat', 'Name', 'Dwg/Model', 'Rev', 'Maker', 'Material', 'Heat Treat.', 'Surface', 'Qty', 'Unit', 'Price', 'Amount', 'LT', 'Status', 'Notes'],
-  th: ['', 'No', 'ประเภท', 'ชื่อ', 'แบบ/รุ่น', 'Rev', 'ผู้ผลิต', 'วัสดุ', 'ความร้อน', 'ผิว', 'จำนวน', 'หน่วย', 'ราคา', 'รวม', 'LT', 'สถานะ', 'หมายเหตุ'],
+// 製作品カラム定義                  ☐+⠿  No  品名   図番   Rev  図面  材質   熱処理  表面処理 数量  単位  単価   金額   LT   ステータス 備考
+const MAKE_COLUMNS: Record<Language, string[]> = {
+  ja: ['', 'No', '品名', '図番', 'Rev', '図面', '材質', '熱処理', '表面処理', '数量', '単位', '単価', '金額', 'LT', 'ステータス', '備考'],
+  en: ['', 'No', 'Name', 'Dwg No.', 'Rev', 'File', 'Material', 'Heat Treat.', 'Surface', 'Qty', 'Unit', 'Price', 'Amount', 'LT', 'Status', 'Notes'],
+  th: ['', 'No', 'ชื่อ', 'แบบ', 'Rev', 'ไฟล์', 'วัสดุ', 'ความร้อน', 'ผิว', 'จำนวน', 'หน่วย', 'ราคา', 'รวม', 'LT', 'สถานะ', 'หมายเหตุ'],
 };
+const MAKE_ALIGNS = ['', 'text-center', '', '', 'text-center', 'text-center', '', '', '', 'text-center', '', 'text-right', 'text-right', 'text-center', '', ''];
+//                    ☐⠿  No  品名   図番  Rev 図面 材質  熱処理       表面処理    数量 単位  単価  金額  LT  ステータス 備考
+const MAKE_WIDTHS = [30, 36, 120, 80, 36, 36, 88, 148, 116, 44, 36, 72, 76, 52, 96, 72];
 
-// ヘッダー配置: No=center, 区分=center, 履歴=center, 数量=center, 単価=right, 金額=right, LT=center
-const COLUMN_ALIGNS: string[] = [
-  '', 'text-center', 'text-center', '', '', 'text-center', '', '', '', '', 'text-center', '', 'text-right', 'text-right', 'text-center', '', '',
-];
+// 購入品カラム定義                  ☐+⠿  No  品名   型式   メーカー  数量  単位  単価   金額   LT   ステータス 備考
+const BUY_COLUMNS: Record<Language, string[]> = {
+  ja: ['', 'No', '品名', '型式', 'メーカー', '数量', '単位', '単価', '金額', 'LT', 'ステータス', '備考'],
+  en: ['', 'No', 'Name', 'Model', 'Maker', 'Qty', 'Unit', 'Price', 'Amount', 'LT', 'Status', 'Notes'],
+  th: ['', 'No', 'ชื่อ', 'รุ่น', 'ผู้ผลิต', 'จำนวน', 'หน่วย', 'ราคา', 'รวม', 'LT', 'สถานะ', 'หมายเหตุ'],
+};
+const BUY_ALIGNS = ['', 'text-center', '', '', '', 'text-center', '', 'text-right', 'text-right', 'text-center', '', ''];
+//                    ☐⠿  No  品名   型式   メーカー 数量 単位  単価  金額  LT  ステータス 備考
+const BUY_WIDTHS = [30, 36, 160, 200, 148, 44, 36, 76, 76, 60, 96, 88];
 
-// table-fixed用カラム幅(px): checkbox,No,区分,品名,図番/型式,履歴,メーカー,材質,熱処理,表面処理,数量,単位,単価,金額,LT,ステータス,備考
-const COLUMN_WIDTHS = [28, 40, 38, 92, 146, 34, 66, 56, 56, 100, 38, 34, 60, 60, 44, 104, 56];
+const GROUP_LABELS: Record<Language, { make: string; buy: string; add: string; noData: string }> = {
+  ja: { make: '製作品', buy: '購入品', add: '追加', noData: 'データなし' },
+  en: { make: 'Fabricated', buy: 'Purchased', add: 'Add', noData: 'No data' },
+  th: { make: 'ผลิต', buy: 'ซื้อ', add: 'เพิ่ม', noData: 'ไม่มีข้อมูล' },
+};
 
 export default function MechSectionGroup({
   section,
@@ -44,6 +60,7 @@ export default function MechSectionGroup({
   masters,
   language,
   editing,
+  domHeaderId,
   selectedItems,
   onToggleSelect,
   onItemChange,
@@ -51,13 +68,65 @@ export default function MechSectionGroup({
   onAddRow,
   onSectionNameChange,
   onDeleteSection,
+  onReorder,
+  onFileNotify,
 }: MechSectionGroupProps) {
+  const { confirmDialog } = useConfirmDialog();
   const [collapsed, setCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<DomItemCategory>('make');
 
-  const sectionSubtotal = items.reduce(
-    (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
-    0
-  );
+  // DnD state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragCounterRef = useRef(0);
+
+  // カテゴリ別に分離
+  const makeItems = items.filter((i) => i.category !== 'buy');
+  const buyItems = items.filter((i) => i.category === 'buy');
+  const newMakeItems = newItems.filter((i) => i.category !== 'buy');
+  const newBuyItems = newItems.filter((i) => i.category === 'buy');
+
+  const calcSubtotal = (list: Partial<DomMechItem>[]) =>
+    list.reduce((sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unit_price) || 0), 0);
+
+  const sectionSubtotal = calcSubtotal(items);
+  const makeSubtotal = calcSubtotal(makeItems);
+  const buySubtotal = calcSubtotal(buyItems);
+  const makeCount = makeItems.length + newMakeItems.length;
+  const buyCount = buyItems.length + newBuyItems.length;
+
+  // 現在のタブのデータ
+  const currentItems = activeTab === 'make' ? makeItems : buyItems;
+  const currentNewItems = activeTab === 'make' ? newMakeItems : newBuyItems;
+  const columns = activeTab === 'make' ? MAKE_COLUMNS : BUY_COLUMNS;
+  const aligns = activeTab === 'make' ? MAKE_ALIGNS : BUY_ALIGNS;
+  const widths = activeTab === 'make' ? MAKE_WIDTHS : BUY_WIDTHS;
+  const colCount = columns[language].length;
+
+  // DnD handlers（既存アイテムのみ。新規行はDnD対象外）
+  const handleDragStart = (index: number) => { setDragIndex(index); };
+  const handleDragEnter = (index: number) => {
+    dragCounterRef.current++;
+    if (dragIndex !== null && index !== dragIndex) setDragOverIndex(index);
+  };
+  const handleDragLeave = () => {
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) setDragOverIndex(null);
+  };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
+  const handleDrop = (dropIndex: number) => {
+    if (dragIndex !== null && dragIndex !== dropIndex && onReorder) {
+      onReorder(section.id, activeTab, dragIndex, dropIndex);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+    dragCounterRef.current = 0;
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+    dragCounterRef.current = 0;
+  };
 
   return (
     <div className="border border-gray-200 dark:border-gray-700 rounded-lg mb-4 overflow-hidden">
@@ -90,85 +159,152 @@ export default function MechSectionGroup({
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {sectionSubtotal.toLocaleString()}
         </span>
-        {editing && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddRow(section.id);
-              }}
-              className="ml-2 p-1 text-brand-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded"
-              title={language === 'ja' ? '行追加' : 'Add Row'}
-            >
-              <Plus size={16} />
-            </button>
-            {onDeleteSection && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const msg = language === 'ja'
-                    ? `セクション「${section.section_code}」を削除しますか？\nセクション内の部品もすべて削除されます。`
-                    : `Delete section "${section.section_code}"?\nAll items in this section will also be deleted.`;
-                  if (confirm(msg)) {
-                    onDeleteSection(section.id);
-                  }
-                }}
-                className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                title={language === 'ja' ? 'セクション削除' : 'Delete Section'}
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-          </>
+        {editing && onDeleteSection && (
+          <button
+            onClick={async (e) => {
+              e.stopPropagation();
+              const msg = language === 'ja'
+                ? `セクション「${section.section_code}」を削除しますか？\nセクション内の部品もすべて削除されます。`
+                : `Delete section "${section.section_code}"?\nAll items in this section will also be deleted.`;
+              const confirmed = await confirmDialog({
+                title: language === 'ja' ? 'セクション削除' : 'Delete Section',
+                message: msg,
+                variant: 'danger',
+                confirmLabel: language === 'ja' ? '削除' : 'Delete',
+                cancelLabel: language === 'ja' ? 'キャンセル' : 'Cancel',
+              });
+              if (confirmed) {
+                onDeleteSection(section.id);
+              }
+            }}
+            className="ml-2 p-1 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+            title={language === 'ja' ? 'セクション削除' : 'Delete Section'}
+          >
+            <Trash2 size={16} />
+          </button>
         )}
       </div>
 
-      {/* テーブル */}
+      {/* コンテンツ */}
       {!collapsed && (
-        <div className="overflow-x-auto">
-          <table className="text-sm table-fixed" style={{ width: COLUMN_WIDTHS.reduce((a, b) => a + b, 0) }}>
-            <thead className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300">
-              <tr>
-                {COLUMN_HEADERS[language].map((header, i) => (
-                  <th key={i} style={{ width: COLUMN_WIDTHS[i] }} className={`px-1 py-1.5 font-medium text-xs whitespace-nowrap ${COLUMN_ALIGNS[i] || 'text-left'}`}>
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item, idx) => (
-                <MechItemRow
-                  key={item.id || `item-${idx}`}
-                  item={item}
-                  masters={masters}
-                  language={language}
-                  readOnly={!editing}
-                  selected={selectedItems.has(item.id!)}
-                  onToggleSelect={() => onToggleSelect(item.id!)}
-                  onChange={(field, value) => onItemChange(item.id!, field, value)}
-                />
-              ))}
-              {newItems.map((item, idx) => (
-                <MechItemRow
-                  key={`new-${idx}`}
-                  item={item}
-                  isNew
-                  masters={masters}
-                  language={language}
-                  onChange={(field, value) => onNewItemChange(idx, field, value)}
-                />
-              ))}
-              {items.length === 0 && newItems.length === 0 && (
+        <div className="p-3">
+          {/* 製作品/購入品 タブ */}
+          <div className="flex items-center gap-1 mb-2 border-b border-gray-200 dark:border-gray-700">
+            {(['make', 'buy'] as const).map((tab) => {
+              const isActive = activeTab === tab;
+              const isMake = tab === 'make';
+              const label = GROUP_LABELS[language][tab];
+              const count = isMake ? makeCount : buyCount;
+              const subtotal = isMake ? makeSubtotal : buySubtotal;
+              const activeColor = isMake
+                ? 'text-blue-600 dark:text-blue-400 border-blue-500'
+                : 'text-amber-600 dark:text-amber-400 border-amber-500';
+
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors -mb-px ${
+                    isActive
+                      ? activeColor
+                      : 'text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  {label}
+                  <span className={`text-[10px] px-1 py-0.5 rounded-full ${
+                    isActive
+                      ? (isMake ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-amber-100 dark:bg-amber-900/30')
+                      : 'bg-gray-100 dark:bg-gray-800'
+                  }`}>
+                    {count}
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                    {subtotal.toLocaleString()}
+                  </span>
+                </button>
+              );
+            })}
+
+            {/* 追加ボタン（編集モード時） */}
+            {editing && (
+              <button
+                onClick={() => onAddRow(section.id, activeTab)}
+                className="inline-flex items-center gap-0.5 ml-auto px-2 py-1 text-xs font-medium text-brand-500 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded"
+              >
+                <Plus size={12} />
+                {GROUP_LABELS[language].add}
+              </button>
+            )}
+          </div>
+
+          {/* テーブル */}
+          <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded">
+            <table className="text-sm table-fixed" style={{ width: widths.reduce((a, b) => a + b, 0) }}>
+              <thead className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300">
                 <tr>
-                  <td colSpan={17} className="px-4 py-4 text-center text-gray-400 text-sm">
-                    {language === 'ja' ? 'データがありません。' : 'No data.'}
-                    {editing && (language === 'ja' ? '「+」で行を追加してください。' : ' Click "+" to add a row.')}
-                  </td>
+                  {columns[language].map((header, i) => (
+                    <th
+                      key={i}
+                      style={{ width: widths[i] }}
+                      className={`px-1 py-1.5 font-medium text-xs whitespace-nowrap ${aligns[i] || 'text-left'}`}
+                    >
+                      {header}
+                    </th>
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {currentItems.map((item, idx) => (
+                  <MechItemRow
+                    key={item.id || `${activeTab}-${idx}`}
+                    item={item}
+                    mode={activeTab}
+                    displayNo={idx + 1}
+                    domHeaderId={domHeaderId}
+                    masters={masters}
+                    language={language}
+                    readOnly={!editing}
+                    selected={selectedItems.has(item.id!)}
+                    onToggleSelect={() => onToggleSelect(item.id!)}
+                    onChange={(field, value) => onItemChange(item.id!, field, value)}
+                    onFileNotify={onFileNotify}
+                    draggable={editing}
+                    onDragStart={() => handleDragStart(idx)}
+                    onDragEnter={() => handleDragEnter(idx)}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(idx)}
+                    onDragEnd={handleDragEnd}
+                    isDragging={dragIndex === idx}
+                    isDragOver={dragOverIndex === idx}
+                  />
+                ))}
+                {currentNewItems.map((item, newIdx) => {
+                  const globalIdx = newItems.indexOf(item);
+                  return (
+                    <MechItemRow
+                      key={`new-${activeTab}-${globalIdx}`}
+                      item={item}
+                      mode={activeTab}
+                      displayNo={currentItems.length + newIdx + 1}
+                      domHeaderId={domHeaderId}
+                      isNew
+                      masters={masters}
+                      language={language}
+                      onChange={(field, value) => onNewItemChange(globalIdx, field, value)}
+                    />
+                  );
+                })}
+                {currentItems.length === 0 && currentNewItems.length === 0 && (
+                  <tr>
+                    <td colSpan={colCount} className="px-4 py-6 text-center text-gray-400 text-xs">
+                      {GROUP_LABELS[language].noData}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

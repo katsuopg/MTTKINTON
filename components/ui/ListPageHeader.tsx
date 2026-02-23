@@ -53,9 +53,9 @@ export function ListPageHeader({
   }, [onSearchChange]);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-4">
+    <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-200 dark:border-white/[0.05] overflow-x-auto">
       {/* 検索BOX */}
-      <div className="relative flex-1 min-w-[200px] max-w-md">
+      <div className="relative min-w-[180px] w-64 flex-shrink-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <input
           type="text"
@@ -87,15 +87,12 @@ export function ListPageHeader({
         </span>
       )}
 
-      {/* 右寄せスペーサー */}
-      <div className="flex-1" />
-
-      {/* 追加ボタン */}
+      {/* 追加ボタン（右端寄せ） */}
       {addButton && (
         <button
           type="button"
           onClick={addButton.onClick}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 whitespace-nowrap"
+          className="ml-auto inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 whitespace-nowrap flex-shrink-0"
         >
           {addButton.icon}
           {addButton.label}

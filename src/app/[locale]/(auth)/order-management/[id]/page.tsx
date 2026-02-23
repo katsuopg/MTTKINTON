@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
 import OrderDetailContent from './OrderDetailContent';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 interface OrderDetailPageProps {
   params: Promise<{
@@ -20,11 +21,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
     redirect(`/${locale}/auth/login`);
   }
 
+  const pageTitle = locale === 'ja' ? '注文書詳細' : 'Order Detail';
   const userInfo = await getCurrentUserInfo();
 
   return (
-    <OrderDetailContent
-      userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
-    />
+    <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
+      <OrderDetailContent />
+    </DashboardLayout>
   );
 }

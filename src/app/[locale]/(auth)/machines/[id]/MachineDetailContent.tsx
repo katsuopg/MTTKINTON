@@ -9,7 +9,7 @@ import Tabs, { TabPanel } from '@/components/ui/Tabs';
 import { detailStyles, getStatusBadgeClass } from '@/components/ui/DetailStyles';
 import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { FileText, List, ClipboardList } from 'lucide-react';
+import { FileText, List, ClipboardList, ChevronRight } from 'lucide-react';
 import { extractCsName } from '@/lib/utils/customer-name';
 
 interface MachineDetailContentProps {
@@ -75,7 +75,6 @@ export default function MachineDetailContent({
     <div className={detailStyles.pageWrapper}>
       <DetailPageHeader
         backHref={`/${locale}/machines`}
-        backLabel={language === 'ja' ? '一覧へ戻る' : language === 'th' ? 'กลับไปที่รายการ' : 'Back to List'}
         title={`${machineRecord.McItem?.value ? `${machineRecord.McItem.value} ` : ''}${machineRecord.Moldel?.value || 'Machine Details'}`}
       />
 
@@ -275,9 +274,7 @@ export default function MachineDetailContent({
                               )}
                             </div>
                           </div>
-                          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                          <ChevronRight className="h-5 w-5 text-gray-400" />
                         </div>
                       </TransitionLink>
                     ))}

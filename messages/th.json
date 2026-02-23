@@ -9,15 +9,19 @@
     "login": "เข้าสู่ระบบ",
     "email": "อีเมล",
     "password": "รหัสผ่าน",
+    "employeeNumber": "หมายเลขพนักงาน",
+    "employeeNumberPlaceholder": "MTT00000",
+    "passwordPlaceholder": "รหัสผ่าน",
     "loginTitle": "เข้าสู่ระบบ",
     "loginNote": "กรุณาเข้าสู่ระบบบัญชีของคุณ",
     "emailPlaceholder": "ป้อนอีเมล",
-    "passwordPlaceholder": "ป้อนรหัสผ่าน",
     "loggingIn": "กำลังเข้าสู่ระบบ...",
     "logout": "ออกจากระบบ",
     "error": {
+      "employeeNumberRequired": "กรุณากรอกหมายเลขพนักงาน",
+      "passwordMin": "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
       "invalidCredentials": "อีเมลหรือรหัสผ่านไม่ถูกต้อง",
-      "generic": "เกิดข้อผิดพลาดขณะเข้าสู่ระบบ"
+      "generic": "เข้าสู่ระบบล้มเหลว กรุณาลองอีกครั้ง"
     }
   },
   "navigation": {

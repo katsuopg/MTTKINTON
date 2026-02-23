@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { MachineRecord } from '@/types/kintone';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { tableStyles } from '@/components/ui/TableStyles';
 import TransitionLink from '@/components/ui/TransitionLink';
 import { extractCsName } from '@/lib/utils/customer-name';
@@ -102,6 +104,8 @@ export default function MachineListContent({
     setFilteredRecords(filtered);
   }, [records, searchQuery, selectedCategory, selectedVendor]);
 
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredRecords);
+
   // 日付フォーマット関数
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
@@ -133,48 +137,47 @@ export default function MachineListContent({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      <ListPageHeader
-        searchValue={searchQuery}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder={searchPlaceholder}
-        totalCount={filteredRecords.length}
-        countLabel={countLabel}
-        filters={
-          <>
-            <select
-              value={selectedCategory}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-            >
-              <option value="all">
-                {language === 'ja' ? '全カテゴリ' : language === 'th' ? 'ทุกหมวดหมู่' : 'All Categories'}
-              </option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedVendor}
-              onChange={(e) => handleVendorChange(e.target.value)}
-              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-            >
-              <option value="all">
-                {language === 'ja' ? '全メーカー' : language === 'th' ? 'ทุกผู้ผลิต' : 'All Vendors'}
-              </option>
-              {vendors.map((vendor) => (
-                <option key={vendor} value={vendor}>
-                  {vendor}
-                </option>
-              ))}
-            </select>
-          </>
-        }
-      />
-
       {/* テーブル表示 */}
       <div className={tableStyles.tableContainer}>
+        <ListPageHeader
+          searchValue={searchQuery}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder={searchPlaceholder}
+          totalCount={filteredRecords.length}
+          countLabel={countLabel}
+          filters={
+            <>
+              <select
+                value={selectedCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+              >
+                <option value="all">
+                  {language === 'ja' ? '全カテゴリ' : language === 'th' ? 'ทุกหมวดหมู่' : 'All Categories'}
+                </option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedVendor}
+                onChange={(e) => handleVendorChange(e.target.value)}
+                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+              >
+                <option value="all">
+                  {language === 'ja' ? '全メーカー' : language === 'th' ? 'ทุกผู้ผลิต' : 'All Vendors'}
+                </option>
+                {vendors.map((vendor) => (
+                  <option key={vendor} value={vendor}>
+                    {vendor}
+                  </option>
+                ))}
+              </select>
+            </>
+          }
+        />
         <div className="max-w-full overflow-x-auto">
           {filteredRecords.length === 0 ? (
             <div className={tableStyles.emptyRow}>
@@ -214,7 +217,7 @@ export default function MachineListContent({
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {filteredRecords.map((record) => (
+                {paginatedItems.map((record) => (
                   <tr key={record.$id.value}
                       className={`${tableStyles.tr} cursor-pointer ${navigatingId === record.$id.value ? 'opacity-50' : ''}`}
                       onClick={() => {
@@ -272,9 +275,17 @@ export default function MachineListContent({
               </tbody>
             </table>
           )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+            locale={locale}
+          />
         </div>
       </div>
-      
+
       {/* ローディングオーバーレイ */}
       {(isPending || navigatingId) && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 dark:bg-black/50">

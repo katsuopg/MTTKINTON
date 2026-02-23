@@ -84,7 +84,6 @@ export default async function SupplierDetailPage({ params }: SupplierDetailPageP
       <div className={detailStyles.pageWrapper}>
         <DetailPageHeader
           backHref={`/${locale}/suppliers`}
-          backLabel={language === 'ja' ? '仕入業者一覧に戻る' : language === 'th' ? 'กลับไปที่รายการ' : 'Back to Supplier List'}
           title={displayName}
         />
 

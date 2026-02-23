@@ -157,6 +157,8 @@ export async function POST(request: Request) {
 
 /**
  * フィールド権限を更新
+ * 単一更新: { id, ...updateData }
+ * バッチ更新: { items: [{ id, priority }] }
  */
 export async function PATCH(request: Request) {
   try {
@@ -168,6 +170,31 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fieldPermissionsTable = supabase.from('field_permissions') as any;
+
+    // バッチ更新: { items: [{ id, priority }] }
+    if (Array.isArray(body.items)) {
+      const now = new Date().toISOString();
+      const results = await Promise.all(
+        body.items.map((item: { id: string; priority: number }) =>
+          fieldPermissionsTable
+            .update({ priority: item.priority, updated_at: now } as never)
+            .eq('id', item.id)
+        )
+      );
+
+      const failed = results.filter((r: { error: unknown }) => r.error);
+      if (failed.length > 0) {
+        console.error('Error batch updating field permissions:', failed[0].error);
+        return NextResponse.json({ error: 'Failed to update some permissions' }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, updated: body.items.length });
+    }
+
+    // 単一更新: { id, ...updateData }
     const { id, ...updateData } = body;
 
     if (!id) {
@@ -183,9 +210,6 @@ export async function PATCH(request: Request) {
         }, { status: 400 });
       }
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fieldPermissionsTable = supabase.from('field_permissions') as any;
 
     const { data: permission, error } = await fieldPermissionsTable
       .update({
@@ -209,9 +233,10 @@ export async function PATCH(request: Request) {
 }
 
 /**
- * フィールド権限を削除
+ * フィールド権限を削除（論理削除）
+ * DELETE /api/field-permissions?id=xxx
  */
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -220,8 +245,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { id } = body;
+    const id = request.nextUrl.searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });

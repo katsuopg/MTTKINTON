@@ -66,7 +66,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ members: data });
+    // employee_id(kintone_record_id) → employees.id(UUID)のマッピングを追加
+    const kintoneIds = (data || []).map((m: { employee_id: string }) => m.employee_id);
+    const uniqueKintoneIds = [...new Set(kintoneIds)];
+
+    let employeeMap: Record<string, string> = {};
+    if (uniqueKintoneIds.length > 0) {
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id, kintone_record_id')
+        .in('kintone_record_id', uniqueKintoneIds);
+
+      if (employees) {
+        employeeMap = Object.fromEntries(
+          employees.map((e: { id: string; kintone_record_id: string }) => [e.kintone_record_id, e.id])
+        );
+      }
+    }
+
+    // レスポンスにemployee_uuid（employees.id）を追加
+    const membersWithUuid = (data || []).map((m: { employee_id: string; [key: string]: unknown }) => ({
+      ...m,
+      employee_uuid: employeeMap[m.employee_id] || null,
+    }));
+
+    return NextResponse.json({ members: membersWithUuid });
   } catch (error) {
     console.error('Error in organization-members API:', error);
     return NextResponse.json(
@@ -92,9 +116,27 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { employee_id, organization_ids } = body;
+    const { employee_id, employee_uuid, organization_ids } = body;
 
-    if (!employee_id) {
+    // employee_uuid（employees.id）が渡された場合、kintone_record_idに変換
+    let resolvedEmployeeId = employee_id;
+    if (!resolvedEmployeeId && employee_uuid) {
+      const { data: emp, error: empError } = await supabase
+        .from('employees')
+        .select('kintone_record_id')
+        .eq('id', employee_uuid)
+        .single();
+
+      if (empError || !emp) {
+        return NextResponse.json(
+          { error: '従業員が見つかりません' },
+          { status: 404 }
+        );
+      }
+      resolvedEmployeeId = (emp as { kintone_record_id: string }).kintone_record_id;
+    }
+
+    if (!resolvedEmployeeId) {
       return NextResponse.json(
         { error: '従業員IDが必要です' },
         { status: 400 }
@@ -113,7 +155,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabase
       .from('organization_members')
       .update(updateData as never)
-      .eq('employee_id', employee_id)
+      .eq('employee_id', resolvedEmployeeId)
       .eq('is_active', true);
 
     if (updateError) {
@@ -128,7 +170,7 @@ export async function POST(request: NextRequest) {
     if (organization_ids.length > 0) {
       const newMembers: OrganizationMemberInsert[] = organization_ids.map((org_id: string) => ({
         organization_id: org_id,
-        employee_id,
+        employee_id: resolvedEmployeeId,
         role: 'member',
         is_active: true,
         joined_at: new Date().toISOString(),

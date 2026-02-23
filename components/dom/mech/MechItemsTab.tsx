@@ -3,6 +3,8 @@
 import React, { useState, useCallback } from 'react';
 import { Plus, Trash2, Save, X, FolderPlus, Pencil } from 'lucide-react';
 import MechSectionGroup from './MechSectionGroup';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type {
   DomHeaderWithRelations,
   DomSectionWithItems,
@@ -52,6 +54,8 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
 };
 
 export default function MechItemsTab({ dom, masters, language, onRefresh }: MechItemsTabProps) {
+  const { toast } = useToast();
+  const { confirmDialog } = useConfirmDialog();
   const [editing, setEditing] = useState(false);
   const [editingItems, setEditingItems] = useState<Map<string, Record<string, unknown>>>(new Map());
   const [newItemsBySection, setNewItemsBySection] = useState<Map<string, Partial<DomMechItem>[]>>(new Map());
@@ -59,6 +63,8 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  // DnDによる並び替え結果を保持: sectionId -> category -> reordered item ids
+  const [reorderMap, setReorderMap] = useState<Map<string, Map<DomItemCategory, string[]>>>(new Map());
 
   const sections = dom.sections || [];
 
@@ -75,8 +81,10 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
       });
       if (!res.ok) throw new Error('Failed to delete section');
       onRefresh();
+      toast({ type: 'success', title: language === 'ja' ? 'セクションを削除しました' : language === 'th' ? 'ลบส่วนสำเร็จ' : 'Section deleted' });
     } catch (error) {
       console.error('Error deleting section:', error);
+      toast({ type: 'error', title: language === 'ja' ? 'セクション削除に失敗しました' : language === 'th' ? 'ลบส่วนไม่สำเร็จ' : 'Failed to delete section' });
     }
   };
 
@@ -95,25 +103,25 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
     }
   };
 
-  // 行追加
-  const handleAddRow = (sectionId: string) => {
+  // 行追加（カテゴリ指定可能）
+  const handleAddRow = (sectionId: string, category: DomItemCategory = 'make') => {
     const current = newItemsBySection.get(sectionId) || [];
     const sectionItems = sections.find((s) => s.id === sectionId)?.mech_items || [];
-    // 製作品(make)の既存最大番号を取得
-    const existingMakeNos = sectionItems
-      .filter((i) => i.category !== 'buy')
-      .map((i) => i.item_number || 0);
-    const newMakeNos = current
-      .filter((i) => i.category !== 'buy')
-      .map((i) => i.item_number || 0);
-    const nextMakeNo = Math.max(0, ...existingMakeNos, ...newMakeNos) + 1;
+
+    // 同カテゴリの既存最大番号を取得
+    const isSameCategory = (i: Partial<DomMechItem>) =>
+      category === 'buy' ? i.category === 'buy' : i.category !== 'buy';
+
+    const existingNos = sectionItems.filter(isSameCategory).map((i) => i.item_number || 0);
+    const newNos = current.filter(isSameCategory).map((i) => i.item_number || 0);
+    const nextNo = Math.max(0, ...existingNos, ...newNos) + 1;
 
     const existingCount = sectionItems.length;
 
     const newItem: Partial<DomMechItem> = {
       dom_section_id: sectionId,
-      category: 'make' as DomItemCategory,
-      item_number: nextMakeNo,
+      category,
+      item_number: nextNo,
       part_code: '',
       part_name: '',
       model_number: '',
@@ -156,6 +164,32 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
     const updated = new Map(sectionEdits);
     updated.set(sectionId, { section_name: name });
     setSectionEdits(updated);
+    setHasChanges(true);
+  };
+
+  // DnDによる行並び替え
+  const handleReorder = (sectionId: string, category: DomItemCategory, fromIndex: number, toIndex: number) => {
+    const section = sections.find((s) => s.id === sectionId);
+    if (!section) return;
+
+    const merged = getMergedItems(section as DomSectionWithItems);
+    const categoryItems = category === 'buy'
+      ? merged.filter((i) => i.category === 'buy')
+      : merged.filter((i) => i.category !== 'buy');
+
+    const reordered = [...categoryItems];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+
+    // sort_orderをeditingItemsに反映
+    const updated = new Map(editingItems);
+    reordered.forEach((item, idx) => {
+      if (item.id) {
+        const existing = updated.get(item.id) || {};
+        updated.set(item.id, { ...existing, sort_order: idx + 1 });
+      }
+    });
+    setEditingItems(updated);
     setHasChanges(true);
   };
 
@@ -236,10 +270,13 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
       setNewItemsBySection(new Map());
       setSectionEdits(new Map());
       setSelectedItems(new Set());
+      setReorderMap(new Map());
       setHasChanges(false);
       setEditing(false);
+      toast({ type: 'success', title: UI_LABELS[language].save + ' OK' });
     } catch (error) {
       console.error('Error saving:', error);
+      toast({ type: 'error', title: language === 'ja' ? '保存に失敗しました' : language === 'th' ? 'บันทึกไม่สำเร็จ' : 'Failed to save' });
     } finally {
       setSaving(false);
     }
@@ -248,15 +285,24 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
   // 削除
   const handleDelete = async () => {
     if (selectedItems.size === 0) return;
-    if (!confirm(UI_LABELS[language].confirmDelete)) return;
+    const confirmed = await confirmDialog({
+      title: language === 'ja' ? '削除確認' : language === 'th' ? 'ยืนยันการลบ' : 'Confirm Delete',
+      message: UI_LABELS[language].confirmDelete,
+      variant: 'danger',
+      confirmLabel: language === 'ja' ? '削除' : language === 'th' ? 'ลบ' : 'Delete',
+      cancelLabel: language === 'ja' ? 'キャンセル' : language === 'th' ? 'ยกเลิก' : 'Cancel',
+    });
+    if (!confirmed) return;
 
     try {
       const ids = Array.from(selectedItems).join(',');
       await fetch(`/api/dom/${dom.id}/mech-items?ids=${ids}`, { method: 'DELETE' });
       setSelectedItems(new Set());
       onRefresh();
+      toast({ type: 'success', title: language === 'ja' ? '削除しました' : language === 'th' ? 'ลบสำเร็จ' : 'Deleted' });
     } catch (error) {
       console.error('Error deleting:', error);
+      toast({ type: 'error', title: language === 'ja' ? '削除に失敗しました' : language === 'th' ? 'ลบไม่สำเร็จ' : 'Failed to delete' });
     }
   };
 
@@ -266,18 +312,21 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
     setNewItemsBySection(new Map());
     setSectionEdits(new Map());
     setSelectedItems(new Set());
+    setReorderMap(new Map());
     setHasChanges(false);
     setEditing(false);
     onRefresh();
   };
 
-  // セクションごとのアイテムを取得（編集中の値をマージ）
+  // セクションごとのアイテムを取得（編集中の値をマージ、sort_orderでソート）
   const getMergedItems = (section: DomSectionWithItems) => {
     const items = section.mech_items || [];
-    return items.map((item: DomMechItem) => {
-      const edits = editingItems.get(item.id);
-      return edits ? { ...item, ...edits } : item;
-    });
+    return items
+      .map((item: DomMechItem) => {
+        const edits = editingItems.get(item.id);
+        return edits ? { ...item, ...edits } : item;
+      })
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   };
 
   // セクション名を取得（編集中の値をマージ）
@@ -346,6 +395,7 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
           masters={masters}
           language={language}
           editing={editing}
+          domHeaderId={dom.id}
           selectedItems={selectedItems}
           onToggleSelect={handleToggleSelect}
           onItemChange={handleItemChange}
@@ -355,6 +405,8 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
           onAddRow={handleAddRow}
           onSectionNameChange={handleSectionNameChange}
           onDeleteSection={handleDeleteSection}
+          onReorder={handleReorder}
+          onFileNotify={(type, message) => toast({ type, title: message })}
         />
       ))}
 

@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface AppPermissionSettingsProps {
   locale: string;
@@ -61,6 +63,8 @@ interface Employee {
 }
 
 export default function AppPermissionSettings({ locale }: AppPermissionSettingsProps) {
+  const { toast } = useToast();
+  const { confirmDialog } = useConfirmDialog();
   const [apps, setApps] = useState<App[]>([]);
   const [permissions, setPermissions] = useState<AppPermission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -69,6 +73,12 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
   const [loading, setLoading] = useState(true);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // ドラッグ&ドロップ state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragCounterRef = useRef(0);
+
   const [formData, setFormData] = useState({
     target_type: 'role' as 'user' | 'organization' | 'role' | 'everyone',
     target_id: '',
@@ -79,7 +89,6 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
     can_manage: false,
     can_export: false,
     can_import: false,
-    priority: 0,
     include_sub_organizations: true,
   });
 
@@ -139,7 +148,9 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
   const fetchPermissions = useCallback(async () => {
     if (!selectedApp) return;
     try {
-      const res = await fetch(`/api/app-permissions?app_id=${selectedApp.id}`);
+      const res = await fetch(`/api/app-permissions?app_id=${selectedApp.id}`, {
+        cache: 'no-store',
+      });
       const data = await res.json();
       setPermissions(data.permissions || []);
     } catch (err) {
@@ -157,8 +168,82 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
     }
   }, [selectedApp, fetchPermissions]);
 
+  // priority再計算 & API一括保存
+  const savePriorities = async (reorderedPerms: AppPermission[]) => {
+    const items = reorderedPerms.map((p, i) => ({
+      id: p.id,
+      priority: reorderedPerms.length - 1 - i,
+    }));
+
+    try {
+      const res = await fetch('/api/app-permissions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+
+      if (!res.ok) throw new Error('Failed to save priorities');
+      toast({ type: 'success', title: label('並び順を保存しました', 'บันทึกลำดับสำเร็จ', 'Order saved') });
+    } catch (err) {
+      console.error('Error saving priorities:', err);
+      toast({ type: 'error', title: label('並び順の保存に失敗しました', 'บันทึกลำดับไม่สำเร็จ', 'Failed to save order') });
+      fetchPermissions(); // 失敗時はサーバーの状態に戻す
+    }
+  };
+
+  // DnDイベントハンドラー
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragEnter = (index: number) => {
+    dragCounterRef.current++;
+    if (dragIndex !== null && index !== dragIndex) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setDragOverIndex(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (dropIndex: number) => {
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      dragCounterRef.current = 0;
+      return;
+    }
+
+    const reordered = [...permissions];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+
+    setPermissions(reordered);
+    setDragIndex(null);
+    setDragOverIndex(null);
+    dragCounterRef.current = 0;
+    savePriorities(reordered);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+    dragCounterRef.current = 0;
+  };
+
   const handleAddPermission = async () => {
     if (!selectedApp) return;
+
+    // 新規追加は最高優先度（現在の件数）
+    const newPriority = permissions.length;
 
     try {
       const res = await fetch('/api/app-permissions', {
@@ -167,6 +252,7 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
         body: JSON.stringify({
           app_id: selectedApp.id,
           ...formData,
+          priority: newPriority,
           target_id: formData.target_type === 'everyone' ? null : formData.target_id || null,
         }),
       });
@@ -183,30 +269,49 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
           can_manage: false,
           can_export: false,
           can_import: false,
-          priority: 0,
           include_sub_organizations: true,
         });
         fetchPermissions();
+        toast({ type: 'success', title: label('権限を追加しました', 'เพิ่มสิทธิ์สำเร็จ', 'Permission added') });
+      } else {
+        toast({ type: 'error', title: label('権限の追加に失敗しました', 'เพิ่มสิทธิ์ไม่สำเร็จ', 'Failed to add permission') });
       }
     } catch (err) {
       console.error('Error adding permission:', err);
+      toast({ type: 'error', title: label('権限の追加に失敗しました', 'เพิ่มสิทธิ์ไม่สำเร็จ', 'Failed to add permission') });
     }
   };
 
   const handleDeletePermission = async (id: string) => {
-    if (!confirm(label('この権限設定を削除しますか？', 'ลบการตั้งค่าสิทธิ์นี้?', 'Delete this permission setting?'))) {
-      return;
-    }
+    const confirmed = await confirmDialog({
+      title: label('権限削除', 'ลบสิทธิ์', 'Delete Permission'),
+      message: label('この権限設定を削除しますか？', 'ลบการตั้งค่าสิทธิ์นี้?', 'Delete this permission setting?'),
+      variant: 'danger',
+      confirmLabel: label('削除', 'ลบ', 'Delete'),
+      cancelLabel: label('キャンセル', 'ยกเลิก', 'Cancel'),
+    });
+    if (!confirmed) return;
+
+    // 楽観的更新: 先にUIから削除
+    const previousPermissions = permissions;
+    setPermissions((prev) => prev.filter((p) => p.id !== id));
 
     try {
-      await fetch('/api/app-permissions', {
+      const res = await fetch(`/api/app-permissions?id=${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
       });
-      fetchPermissions();
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete permission');
+      }
+
+      toast({ type: 'success', title: label('権限を削除しました', 'ลบสิทธิ์สำเร็จ', 'Permission deleted') });
     } catch (err) {
       console.error('Error deleting permission:', err);
+      // 失敗時はUIを元に戻す
+      setPermissions(previousPermissions);
+      toast({ type: 'error', title: label('権限の削除に失敗しました', 'ลบสิทธิ์ไม่สำเร็จ', 'Failed to delete permission') });
     }
   };
 
@@ -293,16 +398,33 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
             <table className={tableStyles.table}>
               <thead className={tableStyles.thead}>
                 <tr>
+                  <th className={tableStyles.th} style={{ width: '44px' }}></th>
                   <th className={tableStyles.th}>{label('対象種別', 'ประเภท', 'Target Type')}</th>
                   <th className={tableStyles.th}>{label('対象', 'เป้าหมาย', 'Target')}</th>
                   <th className={tableStyles.th}>{label('権限', 'สิทธิ์', 'Permissions')}</th>
-                  <th className={tableStyles.th}>{label('優先度', 'ลำดับ', 'Priority')}</th>
                   <th className={tableStyles.th} style={{ width: '80px' }}></th>
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {permissions.map((perm) => (
-                  <tr key={perm.id} className={tableStyles.tr}>
+                {permissions.map((perm, index) => (
+                  <tr
+                    key={perm.id}
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragEnter={() => handleDragEnter(index)}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={() => handleDrop(index)}
+                    onDragEnd={handleDragEnd}
+                    className={`${tableStyles.tr} ${
+                      dragIndex === index ? 'opacity-50' : ''
+                    } ${
+                      dragOverIndex === index ? 'border-t-2 border-brand-500' : ''
+                    }`}
+                  >
+                    <td className={`${tableStyles.td} cursor-grab active:cursor-grabbing`}>
+                      <span className="text-gray-400 text-lg select-none">⠿</span>
+                    </td>
                     <td className={tableStyles.td}>
                       <span className={tableStyles.tag}>
                         {perm.target_type === 'everyone' && label('全員', 'ทุกคน', 'Everyone')}
@@ -324,9 +446,6 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
                         <PermissionBadge enabled={perm.can_export} text={label('出力', 'ส่งออก', 'Export')} />
                         <PermissionBadge enabled={perm.can_import} text={label('入力', 'นำเข้า', 'Import')} />
                       </div>
-                    </td>
-                    <td className={tableStyles.td}>
-                      <span className="text-gray-500">{perm.priority}</span>
                     </td>
                     <td className={tableStyles.td}>
                       <button
@@ -425,19 +544,6 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
                     </label>
                   ))}
                 </div>
-              </div>
-
-              {/* Priority */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {label('優先度（高いほど優先）', 'ลำดับความสำคัญ', 'Priority (higher = more priority)')}
-                </label>
-                <input
-                  type="number"
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm"
-                />
               </div>
 
               {/* Include Sub Organizations */}

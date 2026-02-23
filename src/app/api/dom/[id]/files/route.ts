@@ -17,6 +17,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action');
+
+    // ファイルダウンロード
+    if (action === 'download') {
+      const filePath = searchParams.get('file_path');
+      if (!filePath) {
+        return NextResponse.json({ error: 'file_path required' }, { status: 400 });
+      }
+      const { data: blob, error: dlError } = await supabase.storage
+        .from('dom-files')
+        .download(filePath);
+      if (dlError || !blob) {
+        return NextResponse.json({ error: 'Download failed' }, { status: 500 });
+      }
+      const arrayBuffer = await blob.arrayBuffer();
+      const fileName = filePath.split('/').pop() || 'file';
+      return new NextResponse(arrayBuffer, {
+        headers: {
+          'Content-Type': blob.type || 'application/octet-stream',
+          'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+        },
+      });
+    }
+
+    // ファイル一覧
     const itemType = searchParams.get('item_type');
     const itemId = searchParams.get('item_id');
 
@@ -66,8 +91,8 @@ export async function POST(request: NextRequest) {
       ? (ext === 'jpg' ? 'jpeg' : ext) as string
       : 'other';
 
-    // Supabase Storageにアップロード
-    const filePath = `${itemType}/${itemId}/${Date.now()}_${file.name}`;
+    // Storageキーはtimestamp+拡張子のみ（日本語・特殊文字を回避）。元ファイル名はDBに保持
+    const filePath = `${itemType}/${itemId}/${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from('dom-files')
       .upload(filePath, file);

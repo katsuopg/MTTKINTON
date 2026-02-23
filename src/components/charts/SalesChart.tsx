@@ -8,7 +8,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer
 } from 'recharts';
 import { InvoiceRecord, WorkNoRecord, QuotationRecord } from '@/types/kintone';
@@ -31,6 +30,14 @@ const fiscalPeriods = [
   { period: '14', label: '第14期', startDate: '2025-07-01', endDate: '2026-06-30' },
 ];
 
+// バーの色定義
+const BAR_COLORS = {
+  sales: '#465fff',     // brand-500
+  work: '#22c55e',      // success-500
+  quotation: '#f59e0b', // amber-500
+  invoice: '#ec4899',   // pink-500
+};
+
 export default function SalesChart({ invoiceRecords, workNoRecords = [], quotationRecords = [], language }: SalesChartProps) {
   // 配列でない場合は空配列として扱う
   const validInvoiceRecords = Array.isArray(invoiceRecords) ? invoiceRecords : [];
@@ -42,7 +49,6 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
     const getFiscalPeriodFromWorkNo = (workNo: string): string | null => {
       const match = workNo?.match(/^(\d+)-/);
       if (match) {
-        // 前ゼロを除去（09 → 9）
         return parseInt(match[1], 10).toString();
       }
       return null;
@@ -61,49 +67,23 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
       return acc;
     }, {} as Record<string, { period: string; label: string; sales: number; invoiceCount: number; workNoCount: number; quotationCount: number }>);
 
-    // 請求書データを会計期間ごとに集計（重複を考慮）
-    const periodCount: Record<string, number> = {};
-    const uniqueWorkNos = new Set<string>();
-    const duplicateCounts: Record<string, number> = {};
-    
-    validInvoiceRecords.forEach((invoice, index) => {
+    // 請求書データを会計期間ごとに集計
+    validInvoiceRecords.forEach((invoice) => {
       const workNo = invoice.文字列__1行_?.value || '';
       const fiscalPeriod = getFiscalPeriodFromWorkNo(workNo);
       const amount = parseFloat(invoice.計算?.value || '0');
-      
-      // 最初の数件をデバッグ
-      if (index < 10) {
-        console.log(`請求書[${index}] 工事番号: ${workNo}, 会計期間: ${fiscalPeriod}`);
-      }
-      
-      if (fiscalPeriod) {
-        periodCount[fiscalPeriod] = (periodCount[fiscalPeriod] || 0) + 1;
-        
-        // 重複チェック
-        if (!uniqueWorkNos.has(workNo)) {
-          uniqueWorkNos.add(workNo);
-        } else {
-          duplicateCounts[fiscalPeriod] = (duplicateCounts[fiscalPeriod] || 0) + 1;
-        }
-        
-        if (dataByPeriod[fiscalPeriod]) {
-          dataByPeriod[fiscalPeriod].sales += amount;
-          dataByPeriod[fiscalPeriod].invoiceCount += 1;
-        }
+
+      if (fiscalPeriod && dataByPeriod[fiscalPeriod]) {
+        dataByPeriod[fiscalPeriod].sales += amount;
+        dataByPeriod[fiscalPeriod].invoiceCount += 1;
       }
     });
-    
-    console.log('=== 会計期間別の請求書件数 ===');
-    console.log('レコード数（重複含む）:', periodCount);
-    console.log('重複数:', duplicateCounts);
-    console.log('全請求書件数:', validInvoiceRecords.length);
-    console.log('ユニーク工事番号数:', uniqueWorkNos.size);
 
     // 工事番号データを会計期間ごとに集計
     validWorkNoRecords.forEach((workNo) => {
       const workNoValue = workNo.WorkNo?.value || '';
       const fiscalPeriod = getFiscalPeriodFromWorkNo(workNoValue);
-      
+
       if (fiscalPeriod && dataByPeriod[fiscalPeriod]) {
         dataByPeriod[fiscalPeriod].workNoCount += 1;
       }
@@ -114,15 +94,12 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
       if (!dateString) return null;
       const date = new Date(dateString);
       const year = date.getFullYear();
-      const month = date.getMonth() + 1; // 0-based
+      const month = date.getMonth() + 1;
 
-      // 会計期間は7月開始
       if (month >= 7) {
-        // 7月〜12月は同年度
         const fiscalYear = year - 2011;
         return fiscalYear.toString();
       } else {
-        // 1月〜6月は前年度
         const fiscalYear = year - 2012;
         return fiscalYear.toString();
       }
@@ -131,13 +108,12 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
     validQuotationRecords.forEach((quote) => {
       const dateValue = quote.日付?.value;
       const fiscalPeriod = getFiscalPeriodFromDate(dateValue);
-      
+
       if (fiscalPeriod && dataByPeriod[fiscalPeriod]) {
         dataByPeriod[fiscalPeriod].quotationCount += 1;
       }
     });
 
-    // グラフ用のデータ配列に変換（第9期から第14期まですべて表示）
     return fiscalPeriods.map(period => ({
       name: period.label,
       売上高: Math.round(dataByPeriod[period.period].sales),
@@ -147,118 +123,131 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
     }));
   }, [validInvoiceRecords, validWorkNoRecords, validQuotationRecords]);
 
-  // 金額をフォーマット（Y軸用の短縮表記）
-  const formatAxisCurrency = (value: number) => {
-    if (value >= 1000000) {
-      return (value / 1000000).toFixed(0) + 'M';
-    } else if (value >= 1000) {
-      return (value / 1000).toFixed(0) + 'K';
-    }
+  // 金額フォーマット（Y軸用短縮表記）
+  const fmtAxis = (value: number) => {
+    if (value >= 1000000) return (value / 1000000).toFixed(0) + 'M';
+    if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
     return value.toString();
   };
 
-  // 金額をフォーマット（ツールチップ用の完全表記）
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value) + ' B';
+  // 金額フォーマット（ツールチップ用完全表記）
+  const fmt = (value: number) =>
+    new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }).format(value);
+
+  // 多言語ラベル
+  const t = {
+    title: language === 'ja' ? '会計期間別売上高' : language === 'th' ? 'ยอดขายตามรอบบัญชี' : 'Sales by Fiscal Period',
+    subtitle: language === 'ja' ? '第9期〜第14期' : language === 'th' ? 'ปีที่ 9 – 14' : 'FY9 – FY14',
+    sales: language === 'ja' ? '売上高' : language === 'th' ? 'ยอดขาย' : 'Sales',
+    work: language === 'ja' ? '工事' : language === 'th' ? 'โครงการ' : 'Projects',
+    quotation: language === 'ja' ? '見積' : language === 'th' ? 'ใบเสนอราคา' : 'Quotations',
+    invoice: language === 'ja' ? '請求書' : language === 'th' ? 'ใบแจ้งหนี้' : 'Invoices',
+    noData: language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available',
   };
 
   // カスタムツールチップ
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-2.5 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-sm mb-1.5">{label}</p>
-          <div className="space-y-1 text-xs">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-indigo-500 rounded-sm"></div>
-              <span>売上高: {formatCurrency(data.売上高)}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-emerald-500 rounded-sm"></div>
-              <span>工事: {data.工事}件</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-amber-500 rounded-sm"></div>
-              <span>見積: {data.見積}件</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-pink-500 rounded-sm"></div>
-              <span>請求書: {data.請求書}件</span>
-            </div>
+    if (!active || !payload?.length) return null;
+    const data = payload[0].payload;
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <p className="mb-1.5 text-sm font-medium text-gray-800 dark:text-white/90">{label}</p>
+        <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-3 w-3 rounded-sm bg-brand-500" />
+            <span>{t.sales}: {fmt(data.売上高)} THB</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-3 w-3 rounded-sm bg-success-500" />
+            <span>{t.work}: {data.工事}{language === 'ja' ? '件' : ''}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-3 w-3 rounded-sm bg-amber-500" />
+            <span>{t.quotation}: {data.見積}{language === 'ja' ? '件' : ''}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-3 w-3 rounded-sm bg-pink-500" />
+            <span>{t.invoice}: {data.請求書}{language === 'ja' ? '件' : ''}</span>
           </div>
         </div>
-      );
-    }
-    return null;
-  };
-
-  const getTitle = () => {
-    switch (language) {
-      case 'ja':
-        return '会計期間別売上高';
-      case 'th':
-        return 'ยอดขายตามรอบบัญชี';
-      case 'en':
-        return 'Sales by Fiscal Period';
-      default:
-        return 'Sales by Fiscal Period';
-    }
+      </div>
+    );
   };
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{getTitle()}</h3>
-        <p className="text-gray-500 text-center py-8">
-          {language === 'ja' ? 'データがありません' : 
-           language === 'th' ? 'ไม่มีข้อมูล' : 
-           'No data available'}
-        </p>
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">{t.title}</h3>
+        <p className="mt-8 text-center text-gray-500 dark:text-gray-400 py-8">{t.noData}</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-base font-semibold text-gray-900 mb-4">{getTitle()}</h3>
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+      {/* ヘッダー */}
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">{t.title}</h3>
+        <p className="text-theme-sm text-gray-500 dark:text-gray-400">{t.subtitle}</p>
+      </div>
+
+      {/* チャート */}
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData} margin={{ top: 20, right: 60, left: 40, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-          <XAxis 
-            dataKey="name" 
+        <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-gray-700" />
+          <XAxis
+            dataKey="name"
             tick={{ fontSize: 12 }}
-            tickLine={{ stroke: '#E5E7EB' }}
+            tickLine={false}
+            axisLine={false}
+            className="text-gray-500 dark:text-gray-400"
           />
-          <YAxis 
-            yAxisId="left" 
-            tickFormatter={formatAxisCurrency}
-            tick={{ fontSize: 12 }}
-            tickLine={{ stroke: '#E5E7EB' }}
-            label={{ value: '売上高 (THB)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: 12 } }}
+          <YAxis
+            yAxisId="left"
+            tickFormatter={fmtAxis}
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+            width={50}
+            className="text-gray-500 dark:text-gray-400"
           />
-          <YAxis 
-            yAxisId="right" 
+          <YAxis
+            yAxisId="right"
             orientation="right"
-            tick={{ fontSize: 12 }}
-            tickLine={{ stroke: '#E5E7EB' }}
-            label={{ value: '件数', angle: 90, position: 'insideRight', style: { textAnchor: 'middle', fontSize: 12 } }}
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+            width={30}
+            allowDecimals={false}
+            className="text-gray-500 dark:text-gray-400"
           />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar yAxisId="left" dataKey="売上高" fill="#6366F1" name="売上高" />
-          <Bar yAxisId="right" dataKey="工事" fill="#10B981" name="工事件数" />
-          <Bar yAxisId="right" dataKey="見積" fill="#F59E0B" name="見積件数" />
-          <Bar yAxisId="right" dataKey="請求書" fill="#EC4899" name="請求書件数" />
-          <Legend 
-            wrapperStyle={{ fontSize: '12px' }}
-            iconType="rect"
-          />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+          <Bar yAxisId="left" dataKey="売上高" fill={BAR_COLORS.sales} radius={[4, 4, 0, 0]} />
+          <Bar yAxisId="right" dataKey="工事" fill={BAR_COLORS.work} radius={[4, 4, 0, 0]} />
+          <Bar yAxisId="right" dataKey="見積" fill={BAR_COLORS.quotation} radius={[4, 4, 0, 0]} />
+          <Bar yAxisId="right" dataKey="請求書" fill={BAR_COLORS.invoice} radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
+
+      {/* 凡例 */}
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-theme-sm">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-brand-500" />
+          <span className="text-gray-500 dark:text-gray-400">{t.sales} (THB)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-success-500" />
+          <span className="text-gray-500 dark:text-gray-400">{t.work}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-amber-500" />
+          <span className="text-gray-500 dark:text-gray-400">{t.quotation}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-pink-500" />
+          <span className="text-gray-500 dark:text-gray-400">{t.invoice}</span>
+        </div>
+      </div>
     </div>
   );
 }

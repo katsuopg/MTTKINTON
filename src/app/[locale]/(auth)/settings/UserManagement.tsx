@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface UserManagementProps {
   locale: string;
@@ -10,11 +12,12 @@ interface UserManagementProps {
 
 interface EmployeeUser {
   id: string;
-  employeeNumber: string;
+  employee_number: string;
   name: string;
-  email: string;
+  company_email: string;
   department: string;
   status: string;
+  profile_image_url: string | null;
 }
 
 interface Organization {
@@ -28,6 +31,7 @@ interface Organization {
 interface OrganizationMember {
   organization_id: string;
   employee_id: string;
+  employee_uuid: string | null;
 }
 
 interface Role {
@@ -48,6 +52,8 @@ interface UserRole {
 
 export default function UserManagement({ locale }: UserManagementProps) {
   const router = useRouter();
+  const { toast } = useToast();
+  const { confirmDialog } = useConfirmDialog();
   const [users, setUsers] = useState<EmployeeUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,13 +62,19 @@ export default function UserManagement({ locale }: UserManagementProps) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [userRolesMap, setUserRolesMap] = useState<Record<string, UserRole[]>>({});
 
-  // モーダル関連
+  // ロールモーダル関連
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<EmployeeUser | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<string>('');
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
+
+  // 組織モーダル関連
+  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [orgModalUser, setOrgModalUser] = useState<EmployeeUser | null>(null);
+  const [selectedOrgIds, setSelectedOrgIds] = useState<Set<string>>(new Set());
+  const [savingOrgs, setSavingOrgs] = useState(false);
 
   const label = (ja: string, th: string, en: string) =>
     locale === 'ja' ? ja : locale === 'th' ? th : en;
@@ -96,10 +108,12 @@ export default function UserManagement({ locale }: UserManagementProps) {
       if (data.members) {
         const map: Record<string, string[]> = {};
         data.members.forEach((m: OrganizationMember) => {
-          if (!map[m.employee_id]) {
-            map[m.employee_id] = [];
+          // employee_uuid（employees.id）をキーに使用
+          const key = m.employee_uuid || m.employee_id;
+          if (!map[key]) {
+            map[key] = [];
           }
-          map[m.employee_id].push(m.organization_id);
+          map[key].push(m.organization_id);
         });
         setMembershipMap(map);
       }
@@ -193,6 +207,64 @@ export default function UserManagement({ locale }: UserManagementProps) {
     router.push(`/${locale}/employees/${employeeId}`);
   };
 
+  // 組織編集モーダルを開く
+  const openOrgModal = (user: EmployeeUser, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOrgModalUser(user);
+    const currentOrgIds = membershipMap[user.id] || [];
+    setSelectedOrgIds(new Set(currentOrgIds));
+    setShowOrgModal(true);
+  };
+
+  // 組織の所属を保存
+  const handleSaveOrgs = async () => {
+    if (!orgModalUser) return;
+
+    setSavingOrgs(true);
+    try {
+      const res = await fetch('/api/organization-members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_uuid: orgModalUser.id,
+          organization_ids: Array.from(selectedOrgIds),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to update organizations');
+      }
+
+      await fetchAllMemberships();
+      setShowOrgModal(false);
+      toast({ type: 'success', title: label('所属組織を更新しました', 'อัปเดตองค์กรสำเร็จ', 'Organizations updated successfully') });
+    } catch (err) {
+      console.error('Error updating organizations:', err);
+      toast({
+        type: 'error',
+        title: err instanceof Error
+          ? err.message
+          : label('所属組織の更新に失敗しました', 'ไม่สามารถอัปเดตองค์กรได้', 'Failed to update organizations'),
+      });
+    } finally {
+      setSavingOrgs(false);
+    }
+  };
+
+  // 組織チェックボックスのトグル
+  const toggleOrgSelection = (orgId: string) => {
+    setSelectedOrgIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orgId)) {
+        next.delete(orgId);
+      } else {
+        next.add(orgId);
+      }
+      return next;
+    });
+  };
+
   // ロール割り当てモーダルを開く
   const openRoleModal = (user: EmployeeUser, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -229,6 +301,7 @@ export default function UserManagement({ locale }: UserManagementProps) {
       // 成功したらリロード
       await fetchUserRoles();
       setShowRoleModal(false);
+      toast({ type: 'success', title: label('ロールを割り当てました', 'กำหนด Role สำเร็จ', 'Role assigned successfully') });
     } catch (err) {
       console.error('Error assigning role:', err);
       setAssignError(
@@ -245,9 +318,14 @@ export default function UserManagement({ locale }: UserManagementProps) {
   const handleRemoveRole = async (userRoleId: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (!confirm(label('このロールを削除しますか？', 'ลบ Role นี้หรือไม่?', 'Remove this role?'))) {
-      return;
-    }
+    const confirmed = await confirmDialog({
+      title: label('ロール削除', 'ลบ Role', 'Remove Role'),
+      message: label('このロールを削除しますか？', 'ลบ Role นี้หรือไม่?', 'Remove this role?'),
+      variant: 'danger',
+      confirmLabel: label('削除', 'ลบ', 'Remove'),
+      cancelLabel: label('キャンセル', 'ยกเลิก', 'Cancel'),
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/user-roles?id=${userRoleId}`, {
@@ -259,9 +337,10 @@ export default function UserManagement({ locale }: UserManagementProps) {
       }
 
       await fetchUserRoles();
+      toast({ type: 'success', title: label('ロールを削除しました', 'ลบ Role สำเร็จ', 'Role removed successfully') });
     } catch (err) {
       console.error('Error removing role:', err);
-      alert(label('ロールの削除に失敗しました', 'ไม่สามารถลบ Role ได้', 'Failed to remove role'));
+      toast({ type: 'error', title: label('ロールの削除に失敗しました', 'ไม่สามารถลบ Role ได้', 'Failed to remove role') });
     }
   };
 
@@ -322,7 +401,7 @@ export default function UserManagement({ locale }: UserManagementProps) {
               <th className={tableStyles.th}>
                 {label('ロール', 'Role', 'Roles')}
               </th>
-              <th className={tableStyles.th} style={{ width: '100px' }}>
+              <th className={tableStyles.th} style={{ width: '160px' }}>
                 {label('操作', 'การดำเนินการ', 'Actions')}
               </th>
             </tr>
@@ -353,13 +432,18 @@ export default function UserManagement({ locale }: UserManagementProps) {
                   }}
                 >
                   <td className={`${tableStyles.td} ${tableStyles.tdPrimary}`}>
-                    <span className="font-mono">{user.employeeNumber || '-'}</span>
+                    <span className="font-mono">{user.employee_number || '-'}</span>
                   </td>
                   <td className={tableStyles.td}>
                     <div className="flex items-center gap-3">
-                      <div className={tableStyles.avatar}>
-                        {user.name?.charAt(0) || '?'}
-                      </div>
+                      {user.profile_image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={user.profile_image_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className={tableStyles.avatar}>
+                          {user.name?.charAt(0) || '?'}
+                        </div>
+                      )}
                       <span className={tableStyles.tdPrimary}>{user.name || '-'}</span>
                     </div>
                   </td>
@@ -401,15 +485,26 @@ export default function UserManagement({ locale }: UserManagementProps) {
                     )}
                   </td>
                   <td className={tableStyles.td}>
-                    <button
-                      onClick={(e) => openRoleModal(user, e)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      {label('ロール', 'Role', 'Role')}
-                    </button>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={(e) => openOrgModal(user, e)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        {label('組織', 'องค์กร', 'Org')}
+                      </button>
+                      <button
+                        onClick={(e) => openRoleModal(user, e)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:hover:bg-brand-500/20"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        {label('ロール', 'Role', 'Role')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -417,6 +512,67 @@ export default function UserManagement({ locale }: UserManagementProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Organization Edit Modal */}
+      {showOrgModal && orgModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md mx-4">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+                {label('所属組織の編集', 'แก้ไของค์กรที่สังกัด', 'Edit Organizations')}
+              </h3>
+              <p className="mt-1 text-theme-sm text-gray-500">
+                {orgModalUser.name} ({orgModalUser.employee_number})
+              </p>
+            </div>
+
+            <div className="p-6">
+              {organizations.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  {label('組織が登録されていません', 'ไม่มีองค์กรที่ลงทะเบียน', 'No organizations registered')}
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {organizations.map((org) => (
+                    <label
+                      key={org.id}
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedOrgIds.has(org.id)}
+                        onChange={() => toggleOrgSelection(org.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-700"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {getOrgName(org.id)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <button
+                onClick={() => setShowOrgModal(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              >
+                {label('キャンセル', 'ยกเลิก', 'Cancel')}
+              </button>
+              <button
+                onClick={handleSaveOrgs}
+                disabled={savingOrgs}
+                className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingOrgs
+                  ? label('保存中...', 'กำลังบันทึก...', 'Saving...')
+                  : label('保存', 'บันทึก', 'Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Role Assignment Modal */}
       {showRoleModal && selectedUser && (
@@ -427,7 +583,7 @@ export default function UserManagement({ locale }: UserManagementProps) {
                 {label('ロール割り当て', 'กำหนด Role', 'Assign Role')}
               </h3>
               <p className="mt-1 text-theme-sm text-gray-500">
-                {selectedUser.name} ({selectedUser.employeeNumber})
+                {selectedUser.name} ({selectedUser.employee_number})
               </p>
             </div>
 

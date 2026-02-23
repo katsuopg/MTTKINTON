@@ -87,14 +87,14 @@ export default function ElecItemRow({
       </td>
 
       {/* 区分 */}
-      <td className="px-1 py-1 w-10 text-center">
+      <td className="px-1 py-1 w-12 text-center">
         {readOnly ? (
           <span className="block py-1 text-sm text-center text-gray-800 dark:text-gray-200">{categoryLabel}</span>
         ) : (
           <select
             value={item.category || 'buy'}
             onChange={(e) => onChange('category', e.target.value)}
-            className="w-full py-1 text-sm text-center border-0 bg-transparent focus:ring-1 focus:ring-brand-500 dark:text-white"
+            className="w-full py-1 text-sm text-center rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:text-white"
           >
             {CATEGORY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.labels[language]}</option>
@@ -191,14 +191,14 @@ export default function ElecItemRow({
       </td>
 
       {/* ステータス */}
-      <td className="px-1 py-1 w-24">
+      <td className="px-1 py-1 w-28">
         {readOnly ? (
           <StatusBadge status={(item.status as DomItemStatus) || 'designing'} language={language} />
         ) : (
           <select
             value={item.status || 'designing'}
             onChange={(e) => onChange('status', e.target.value)}
-            className="w-full py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 dark:text-white"
+            className="w-full py-1 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:text-white"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>{STATUS_LABELS[s][language]}</option>

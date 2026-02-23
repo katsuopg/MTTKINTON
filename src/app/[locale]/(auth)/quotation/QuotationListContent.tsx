@@ -3,21 +3,20 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { QuotationRecord } from '@/types/kintone';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { extractCsName } from '@/lib/utils/customer-name';
 
 interface QuotationListContentProps {
   quotations: QuotationRecord[];
   locale: string;
-  userEmail: string;
-  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export default function QuotationListContent({ quotations, locale, userEmail, userInfo }: QuotationListContentProps) {
+export default function QuotationListContent({ quotations, locale }: QuotationListContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -113,7 +112,7 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
     });
   }, [quotations, searchQuery, selectedStatus, selectedSalesStaff]);
 
-  const pageTitle = language === 'ja' ? '見積もり管理' : language === 'th' ? 'จัดการใบเสนอราคา' : 'Quotation Management';
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredQuotations);
 
   // ステータスの表示ラベルを取得
   const getStatusLabel = (status: string) => {
@@ -152,54 +151,52 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
   };
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
-        <ListPageHeader
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
-          searchPlaceholder={
-            language === 'ja' ? '見積もり番号、顧客名、タイトルで検索...' :
-            language === 'th' ? 'ค้นหาด้วยเลขที่ใบเสนอราคา, ลูกค้า, หัวข้อ...' :
-            'Search by quotation no, customer, title...'
-          }
-          totalCount={filteredQuotations.length}
-          countLabel={language === 'ja' ? '件の見積もり' : language === 'th' ? ' ใบเสนอราคา' : ' quotations'}
-          filters={
-            <>
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-              >
-                <option value="">
-                  {language === 'ja' ? '全ステータス' : language === 'th' ? 'ทุกสถานะ' : 'All Status'}
-                </option>
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedSalesStaff}
-                onChange={(e) => setSelectedSalesStaff(e.target.value)}
-                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-              >
-                <option value="">
-                  {language === 'ja' ? '全営業担当' : language === 'th' ? 'ทุกผู้ขาย' : 'All Sales Staff'}
-                </option>
-                {salesStaffOptions.map((staff) => (
-                  <option key={staff} value={staff}>
-                    {staff}
-                  </option>
-                ))}
-              </select>
-            </>
-          }
-        />
-
         {/* 見積もりリスト */}
         <div className={tableStyles.tableContainer}>
+          <ListPageHeader
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder={
+              language === 'ja' ? '見積もり番号、顧客名、タイトルで検索...' :
+              language === 'th' ? 'ค้นหาด้วยเลขที่ใบเสนอราคา, ลูกค้า, หัวข้อ...' :
+              'Search by quotation no, customer, title...'
+            }
+            totalCount={filteredQuotations.length}
+            countLabel={language === 'ja' ? '件の見積もり' : language === 'th' ? ' ใบเสนอราคา' : ' quotations'}
+            filters={
+              <>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+                >
+                  <option value="">
+                    {language === 'ja' ? '全ステータス' : language === 'th' ? 'ทุกสถานะ' : 'All Status'}
+                  </option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={selectedSalesStaff}
+                  onChange={(e) => setSelectedSalesStaff(e.target.value)}
+                  className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+                >
+                  <option value="">
+                    {language === 'ja' ? '全営業担当' : language === 'th' ? 'ทุกผู้ขาย' : 'All Sales Staff'}
+                  </option>
+                  {salesStaffOptions.map((staff) => (
+                    <option key={staff} value={staff}>
+                      {staff}
+                    </option>
+                  ))}
+                </select>
+              </>
+            }
+          />
           {filteredQuotations.length === 0 ? (
             <div className={tableStyles.emptyRow}>
               <p>
@@ -239,7 +236,7 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {filteredQuotations.map((quotation) => (
+                {paginatedItems.map((quotation) => (
                   <tr
                     key={quotation.$id.value}
                     className={tableStyles.trClickable}
@@ -289,8 +286,15 @@ export default function QuotationListContent({ quotations, locale, userEmail, us
               </tbody>
             </table>
           )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+            locale={locale}
+          />
         </div>
       </div>
-    </DashboardLayout>
   );
 }

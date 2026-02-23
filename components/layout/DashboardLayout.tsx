@@ -3,13 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getFieldLabel, type Language } from '@/lib/kintone/field-mappings';
+import { type Language } from '@/lib/kintone/field-mappings';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { logout } from '@/lib/auth/actions';
 import TransitionLink from '@/components/ui/TransitionLink';
 import CommandPalette from '@/components/ui/CommandPalette';
 import { useSidebar } from '@/context/SidebarContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
+import { MENU_ITEMS, COMMON_MENU_KEYS, COMMON_TOP_KEYS, COMMON_BOTTOM_KEYS, applyMenuConfig, applyGroupedMenuConfig } from '@/lib/navigation/menu-items';
 
 interface UserInfo {
   email?: string;
@@ -62,26 +64,54 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
     }
   }, [isUserDropdownOpen]);
 
-  const navigation = [
-    { name: 'TOP', href: `/${actualLocale}/dashboard`, icon: 'home' },
-    { name: getFieldLabel('WorkNo', language), href: `/${actualLocale}/workno`, icon: 'document' },
-    { name: language === 'ja' ? 'プロジェクト管理' : language === 'th' ? 'จัดการโครงการ' : 'Project Management', href: `/${actualLocale}/project-management`, icon: 'clipboard' },
-    { name: language === 'ja' ? '顧客管理' : language === 'th' ? 'จัดการลูกค้า' : 'Customer List', href: `/${actualLocale}/customers`, icon: 'users' },
-    { name: language === 'ja' ? '担当者管理' : language === 'th' ? 'จัดการผู้ติดต่อ' : 'Staff Management', href: `/${actualLocale}/staff`, icon: 'userGroup' },
-    { name: language === 'ja' ? '仕入業者管理' : language === 'th' ? 'จัดการซัพพลายเออร์' : 'Supplier Management', href: `/${actualLocale}/suppliers`, icon: 'truck' },
-    { name: language === 'ja' ? '従業員管理' : language === 'th' ? 'จัดการพนักงาน' : 'Employee Management', href: `/${actualLocale}/employees`, icon: 'user' },
-    { name: language === 'ja' ? 'パーツリスト' : language === 'th' ? 'รายการชิ้นส่วน' : 'Parts List', href: `/${actualLocale}/parts-list`, icon: 'list' },
-    { name: language === 'ja' ? '見積依頼' : language === 'th' ? 'ใบขอใบเสนอราคา' : 'Quote Requests', href: `/${actualLocale}/quote-requests`, icon: 'fileQuestion' },
-    { name: language === 'ja' ? '購買依頼' : language === 'th' ? 'คำขอจัดซื้อ' : 'Purchase Request', href: `/${actualLocale}/purchase-request`, icon: 'cart' },
-    { name: language === 'ja' ? '見積もり管理' : language === 'th' ? 'จัดการใบเสนอราคา' : 'Quotation Management', href: `/${actualLocale}/quotation`, icon: 'calculator' },
-    { name: language === 'ja' ? '注文書管理' : language === 'th' ? 'จัดการใบสั่งซื้อ' : 'Order Management', href: `/${actualLocale}/order-management`, icon: 'clipboardDoc' },
-    { name: language === 'ja' ? '発注管理' : language === 'th' ? 'การจัดการใบสั่งซื้อ' : 'PO Management', href: `/${actualLocale}/po-management`, icon: 'documentText' },
-    { name: language === 'ja' ? 'コスト管理' : language === 'th' ? 'การจัดการต้นทุน' : 'Cost Management', href: `/${actualLocale}/cost-management`, icon: 'chart' },
-    { name: language === 'ja' ? '請求書管理' : language === 'th' ? 'จัดการใบแจ้งหนี้' : 'Invoice Management', href: `/${actualLocale}/invoice-management`, icon: 'dollar' },
-    { name: language === 'ja' ? '機械管理' : language === 'th' ? 'การจัดการเครื่องจักร' : 'Machine Management', href: `/${actualLocale}/machines`, icon: 'cog' },
-    { name: language === 'ja' ? 'APP設定' : language === 'th' ? 'การตั้งค่าแอป' : 'App Settings', href: `/${actualLocale}/settings`, icon: 'settings' },
-    { name: language === 'ja' ? 'データ同期' : language === 'th' ? 'ซิงก์ข้อมูล' : 'Data Sync', href: `/${actualLocale}/import-data`, icon: 'database' },
-  ];
+  const { canShowNavItem, menuConfig, groupedMenuConfig } = useNavPermissions();
+
+  // MENU_ITEMSからナビゲーション構築
+  const allNavItems = MENU_ITEMS.map(item => ({
+    key: item.key,
+    name: item.name[language],
+    href: `/${actualLocale}/${item.path}`,
+    icon: item.icon,
+    appCode: item.appCode,
+    requiredPermission: item.requiredPermission,
+  }));
+
+  // グループモード判定
+  const isGroupedMode = groupedMenuConfig !== null && groupedMenuConfig.groups.length > 0;
+
+  // グループモード: applyGroupedMenuConfig で上部共通 + グループ + 下部共通 構築
+  const groupedNav = isGroupedMode
+    ? (() => {
+        const result = applyGroupedMenuConfig(allNavItems, groupedMenuConfig, COMMON_MENU_KEYS, COMMON_TOP_KEYS, COMMON_BOTTOM_KEYS);
+        return {
+          commonTop: result.commonTop.filter(item =>
+            canShowNavItem(item.appCode ?? null, item.requiredPermission)
+          ),
+          commonBottom: result.commonBottom.filter(item =>
+            canShowNavItem(item.appCode ?? null, item.requiredPermission)
+          ),
+          groups: result.groups.map(group => ({
+            ...group,
+            items: (group.items || []).filter(item =>
+              canShowNavItem(item.appCode ?? null, item.requiredPermission)
+            ),
+          })).filter(group => group.items.length > 0),
+        };
+      })()
+    : null;
+
+  // フラットモード: 従来の applyMenuConfig パス
+  const orderedNav = applyMenuConfig(allNavItems, menuConfig);
+  const filteredNavigation = orderedNav.filter(item =>
+    canShowNavItem(item.appCode ?? null, item.requiredPermission)
+  );
+
+  // 組織名をlocaleに応じて返す
+  const getOrgDisplayName = (orgName: string, orgNameEn: string | null, orgNameTh: string | null) => {
+    if (language === 'en' && orgNameEn) return orgNameEn;
+    if (language === 'th' && orgNameTh) return orgNameTh;
+    return orgName;
+  };
 
   const renderIcon = (iconName: string, className: string) => {
     const icons: Record<string, React.ReactNode> = {
@@ -151,25 +181,107 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto no-scrollbar">
-          <p className={`px-3 mb-2 text-theme-xs font-medium text-gray-400 uppercase ${!isExpanded && 'lg:hidden'}`}>
-            MENU
-          </p>
-          <ul className="space-y-1">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <li key={item.name}>
-                  <TransitionLink
-                    href={item.href}
-                    className={`menu-item group ${isActive ? 'menu-item-active' : 'menu-item-inactive'}`}
-                  >
-                    {renderIcon(item.icon, `w-5 h-5 ${isActive ? 'menu-item-icon-active' : 'menu-item-icon-inactive'}`)}
-                    {isExpanded && <span>{item.name}</span>}
-                  </TransitionLink>
-                </li>
-              );
-            })}
-          </ul>
+          {isGroupedMode && groupedNav ? (
+            <>
+              {/* 上部共通項目（TOP等） */}
+              {groupedNav.commonTop.length > 0 && (
+                <ul className="space-y-1">
+                  {groupedNav.commonTop.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <li key={item.key}>
+                        <TransitionLink
+                          href={item.href}
+                          className={`menu-item group ${isActive ? 'menu-item-active' : 'menu-item-inactive'}`}
+                        >
+                          {renderIcon(item.icon, `w-5 h-5 ${isActive ? 'menu-item-icon-active' : 'menu-item-icon-inactive'}`)}
+                          {isExpanded && <span>{item.name}</span>}
+                        </TransitionLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              {/* 組織グループセクション */}
+              {groupedNav.groups.map((group) => (
+                <div key={group.orgId} className="mt-4">
+                  {isExpanded ? (
+                    <p className="px-3 mb-2 text-theme-xs font-medium text-gray-400 uppercase truncate">
+                      {getOrgDisplayName(group.orgName, group.orgNameEn, group.orgNameTh)}
+                    </p>
+                  ) : (
+                    <div className="hidden lg:block mx-3 mb-2 border-t border-gray-200 dark:border-gray-700" />
+                  )}
+                  <ul className="space-y-1">
+                    {group.items.map((item) => {
+                      const isActive = pathname === item.href;
+                      return (
+                        <li key={item.key}>
+                          <TransitionLink
+                            href={item.href}
+                            className={`menu-item group ${isActive ? 'menu-item-active' : 'menu-item-inactive'}`}
+                          >
+                            {renderIcon(item.icon, `w-5 h-5 ${isActive ? 'menu-item-icon-active' : 'menu-item-icon-inactive'}`)}
+                            {isExpanded && <span>{item.name}</span>}
+                          </TransitionLink>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+
+              {/* 下部共通項目（システム管理、データ同期） */}
+              {groupedNav.commonBottom.length > 0 && (
+                <div className="mt-4">
+                  {isExpanded ? (
+                    <p className="px-3 mb-2 text-theme-xs font-medium text-gray-400 uppercase truncate">
+                      {language === 'ja' ? 'システム' : language === 'th' ? 'ระบบ' : 'System'}
+                    </p>
+                  ) : (
+                    <div className="hidden lg:block mx-3 mb-2 border-t border-gray-200 dark:border-gray-700" />
+                  )}
+                  <ul className="space-y-1">
+                    {groupedNav.commonBottom.map((item) => {
+                      const isActive = pathname === item.href;
+                      return (
+                        <li key={item.key}>
+                          <TransitionLink
+                            href={item.href}
+                            className={`menu-item group ${isActive ? 'menu-item-active' : 'menu-item-inactive'}`}
+                          >
+                            {renderIcon(item.icon, `w-5 h-5 ${isActive ? 'menu-item-icon-active' : 'menu-item-icon-inactive'}`)}
+                            {isExpanded && <span>{item.name}</span>}
+                          </TransitionLink>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* フラットモード（従来動作） */}
+              <ul className="space-y-1">
+                {filteredNavigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <li key={item.key}>
+                      <TransitionLink
+                        href={item.href}
+                        className={`menu-item group ${isActive ? 'menu-item-active' : 'menu-item-inactive'}`}
+                      >
+                        {renderIcon(item.icon, `w-5 h-5 ${isActive ? 'menu-item-icon-active' : 'menu-item-icon-inactive'}`)}
+                        {isExpanded && <span>{item.name}</span>}
+                      </TransitionLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </nav>
       </aside>
 

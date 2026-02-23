@@ -39,14 +39,11 @@ export async function GET(request: NextRequest) {
       targetAppId = app.id;
     }
 
-    // クエリ構築
+    // クエリ構築（target_idはFKなしの多態カラムのため個別に解決）
     let query = appPermissionsTable
       .select(`
         *,
-        app:apps(code, name),
-        target_employee:employees!app_permissions_target_id_fkey(id, name, employee_number),
-        target_organization:organizations!app_permissions_target_id_fkey(id, code, name),
-        target_role:roles!app_permissions_target_id_fkey(id, code, name)
+        app:apps(code, name)
       `)
       .eq('is_active', true)
       .order('priority', { ascending: false });
@@ -62,7 +59,37 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch permissions' }, { status: 500 });
     }
 
-    return NextResponse.json({ permissions });
+    // target_idを種別ごとに解決
+    const perms = permissions || [];
+    const roleIds = perms.filter((p: { target_type: string; target_id: string | null }) => p.target_type === 'role' && p.target_id).map((p: { target_id: string }) => p.target_id);
+    const orgIds = perms.filter((p: { target_type: string; target_id: string | null }) => p.target_type === 'organization' && p.target_id).map((p: { target_id: string }) => p.target_id);
+    const userIds = perms.filter((p: { target_type: string; target_id: string | null }) => p.target_type === 'user' && p.target_id).map((p: { target_id: string }) => p.target_id);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rolesTable = supabase.from('roles') as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orgsTable = supabase.from('organizations') as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const empsTable = supabase.from('employees') as any;
+
+    const [rolesRes, orgsRes, empsRes] = await Promise.all([
+      roleIds.length > 0 ? rolesTable.select('id, code, name').in('id', roleIds) : { data: [] },
+      orgIds.length > 0 ? orgsTable.select('id, code, name').in('id', orgIds) : { data: [] },
+      userIds.length > 0 ? empsTable.select('id, name, employee_number').in('id', userIds) : { data: [] },
+    ]);
+
+    const roleMap = Object.fromEntries((rolesRes.data || []).map((r: { id: string }) => [r.id, r]));
+    const orgMap = Object.fromEntries((orgsRes.data || []).map((o: { id: string }) => [o.id, o]));
+    const empMap = Object.fromEntries((empsRes.data || []).map((e: { id: string }) => [e.id, e]));
+
+    const enriched = perms.map((p: { target_type: string; target_id: string | null }) => ({
+      ...p,
+      target_role: p.target_type === 'role' && p.target_id ? roleMap[p.target_id] || null : null,
+      target_organization: p.target_type === 'organization' && p.target_id ? orgMap[p.target_id] || null : null,
+      target_employee: p.target_type === 'user' && p.target_id ? empMap[p.target_id] || null : null,
+    }));
+
+    return NextResponse.json({ permissions: enriched });
   } catch (error) {
     console.error('Error in GET /api/app-permissions:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -163,6 +190,8 @@ export async function POST(request: Request) {
 
 /**
  * アプリ権限を更新
+ * 単一更新: { id, ...updateData }
+ * バッチ更新: { items: [{ id, priority }] }
  */
 export async function PATCH(request: Request) {
   try {
@@ -174,14 +203,36 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const appPermissionsTable = supabase.from('app_permissions') as any;
+
+    // バッチ更新: { items: [{ id, priority }] }
+    if (Array.isArray(body.items)) {
+      const now = new Date().toISOString();
+      const results = await Promise.all(
+        body.items.map((item: { id: string; priority: number }) =>
+          appPermissionsTable
+            .update({ priority: item.priority, updated_at: now } as never)
+            .eq('id', item.id)
+        )
+      );
+
+      const failed = results.filter((r: { error: unknown }) => r.error);
+      if (failed.length > 0) {
+        console.error('Error batch updating app permissions:', failed[0].error);
+        return NextResponse.json({ error: 'Failed to update some permissions' }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, updated: body.items.length });
+    }
+
+    // 単一更新: { id, ...updateData }
     const { id, ...updateData } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const appPermissionsTable = supabase.from('app_permissions') as any;
 
     const { data: permission, error } = await appPermissionsTable
       .update({
@@ -205,9 +256,10 @@ export async function PATCH(request: Request) {
 }
 
 /**
- * アプリ権限を削除
+ * アプリ権限を削除（論理削除）
+ * DELETE /api/app-permissions?id=xxx
  */
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -216,8 +268,8 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { id } = body;
+    // query parameterからidを取得（DELETEリクエストのbody問題を回避）
+    const id = request.nextUrl.searchParams.get('id');
 
     if (!id) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });

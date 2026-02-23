@@ -106,11 +106,10 @@ const BASE_APP_STATUSES: BaseAppStatus[] = [
     id: 'project-management',
     name: 'プロジェクト管理',
     route: '/project-management',
-    description: '案件進捗をProject managementアプリから取得します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'planned',
-    notes: '検索・詳細参照をkintone APIで実行',
-    action: { kind: 'kintone-load', appKey: 'project', label: 'kintone読み込み' },
+    description: 'Supabaseに移行済みのプロジェクトデータを管理します。',
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
+    notes: 'プロジェクトステータス・部品表・見積依頼をSupabaseで管理',
   },
   {
     id: 'workno',
@@ -146,21 +145,21 @@ const BASE_APP_STATUSES: BaseAppStatus[] = [
     id: 'po-management',
     name: '発注管理',
     route: '/po-management',
-    description: '発注書の状況をkintoneのPO管理アプリで管理します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'planned',
+    description: 'Supabaseに移行したPOデータを参照します。',
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
     notes: '納期遅延アラートなどを表示',
-    action: { kind: 'kintone-load', appKey: 'po', label: 'kintone読み込み' },
+    action: { kind: 'supabase-import', endpoint: '/api/import-po', label: '再取り込み' },
   },
   {
     id: 'cost-management',
     name: 'コスト管理',
     route: '/cost-management',
-    description: '工事別原価をkintone Costアプリから取得します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'planned',
-    notes: '工事番号と紐付いて原価参照',
-    action: { kind: 'kintone-load', appKey: 'cost', label: 'kintone読み込み' },
+    description: 'Supabaseに移行したコストデータを参照します。',
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
+    notes: 'Kintone→Supabase同期済み・工事番号と紐付いて原価参照',
+    action: { kind: 'supabase-import', endpoint: '/api/import-costs', label: '再取り込み' },
   },
   {
     id: 'employees',
@@ -176,11 +175,11 @@ const BASE_APP_STATUSES: BaseAppStatus[] = [
     id: 'suppliers',
     name: '仕入業者管理',
     route: '/suppliers',
-    description: '仕入先マスタをkintone Supplierアプリから取得します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'planned',
-    notes: 'APIトークンとアプリIDの設定が必要',
-    action: { kind: 'kintone-load', appKey: 'suppliers', label: 'kintone読み込み' },
+    description: 'Supabaseに移行済みの仕入先マスタを表示します。',
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
+    notes: 'Kintone→Supabase同期済み（460件）',
+    action: { kind: 'supabase-import', endpoint: '/api/import-suppliers', label: '再取り込み' },
   },
   {
     id: 'staff',
@@ -296,53 +295,77 @@ export default function ImportDataClient({ locale }: ImportDataClientProps) {
     const startTime = new Date().toISOString();
 
     try {
-      // タイムアウト設定（5分）
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+      let totalImported = 0;
+      let totalErrors = 0;
+      let supabaseCount: number | string = '-';
+      let offset = 0;
+      let hasMore = true;
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        signal: controller.signal,
-      });
+      // バッチ対応: hasMore=true の間ループ（各リクエスト2分タイムアウト）
+      while (hasMore) {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        const url = `${endpoint}${separator}offset=${offset}`;
 
-      clearTimeout(timeoutId);
-      const data = await response.json();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2 * 60 * 1000);
 
-      if (response.ok && data?.success) {
-        const details: ActionResultDetail[] = [
-          { label: '全レコード数', value: data.totalRecords ?? '-' },
-          { label: '取り込み成功', value: data.imported ?? 0 },
-          { label: 'エラー件数', value: data.errors ?? 0 },
-          { label: 'Supabase総件数', value: data.supabaseCount ?? '-' },
-        ];
-
-        const timestamp = new Date().toISOString();
-        setResult(id, {
-          status: 'success',
-          message: '取り込みが完了しました。',
-          details,
-          timestamp,
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
         });
-        // 同期日を保存（成功時のみ）
-        saveLastSyncDate(id, timestamp);
-        setSyncStatuses((prev) => ({ ...prev, [id]: 'success' }));
-      } else {
-        setResult(id, {
-          status: 'error',
-          message: data?.error ?? '取り込みに失敗しました。',
-          timestamp: startTime,
-        });
-        setSyncStatuses((prev) => ({ ...prev, [id]: 'error' }));
+
+        clearTimeout(timeoutId);
+        const data = await response.json();
+
+        if (!response.ok || !data?.success) {
+          setResult(id, {
+            status: 'error',
+            message: data?.error ?? `バッチ取り込みに失敗 (offset=${offset})`,
+            timestamp: startTime,
+          });
+          setSyncStatuses((prev) => ({ ...prev, [id]: 'error' }));
+          setLoading(id, false);
+          return;
+        }
+
+        totalImported += data.imported ?? 0;
+        totalErrors += data.errors ?? 0;
+
+        // hasMoreがレスポンスにない場合は従来の単発APIとして終了
+        if (data.hasMore === undefined) {
+          supabaseCount = data.supabaseCount ?? '-';
+          hasMore = false;
+        } else {
+          hasMore = data.hasMore;
+          offset = data.nextOffset ?? offset + 500;
+          if (!hasMore) {
+            supabaseCount = data.supabaseCount ?? '-';
+          }
+        }
       }
+
+      const details: ActionResultDetail[] = [
+        { label: '取り込み成功', value: totalImported },
+        { label: 'エラー件数', value: totalErrors },
+        { label: 'Supabase総件数', value: supabaseCount },
+      ];
+
+      const timestamp = new Date().toISOString();
+      setResult(id, {
+        status: 'success',
+        message: '取り込みが完了しました。',
+        details,
+        timestamp,
+      });
+      saveLastSyncDate(id, timestamp);
+      setSyncStatuses((prev) => ({ ...prev, [id]: 'success' }));
     } catch (error: any) {
       console.error('Supabase import error:', error);
       if (error.name === 'AbortError') {
         setResult(id, {
           status: 'error',
-          message: '取り込みがタイムアウトしました（5分以上）。',
+          message: '取り込みがタイムアウトしました。',
           timestamp: startTime,
         });
       } else {

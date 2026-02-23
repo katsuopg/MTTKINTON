@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { Plus } from 'lucide-react';
 import type {
   QuoteRequestStatus,
@@ -59,7 +61,7 @@ export default function QuoteRequestList({
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [statuses, setStatuses] = useState<QuoteRequestStatus[]>([]);
-  const [requests, setRequests] = useState<QuoteRequestWithRelations[]>([]);
+  const [allRequests, setAllRequests] = useState<QuoteRequestWithRelations[]>([]);
   const [searchText, setSearchText] = useState(initialFilters.search || '');
   const [selectedStatus, setSelectedStatus] = useState(initialFilters.status_code || '');
 
@@ -77,7 +79,7 @@ export default function QuoteRequestList({
 
       const data = await response.json();
       setStatuses(data.statuses || []);
-      setRequests(data.requests || []);
+      setAllRequests(data.requests || []);
     } catch (error) {
       console.error('Error fetching quote requests:', error);
     } finally {
@@ -88,6 +90,8 @@ export default function QuoteRequestList({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const { paginatedItems: requests, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(allRequests);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
@@ -105,35 +109,34 @@ export default function QuoteRequestList({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      <ListPageHeader
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        searchPlaceholder={labels.searchPlaceholder[language]}
-        totalCount={requests.length}
-        countLabel={labels.records[language]}
-        filters={
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-          >
-            <option value="">{labels.allStatuses[language]}</option>
-            {statuses.map((status) => (
-              <option key={status.id} value={status.code}>
-                {getStatusName(status)}
-              </option>
-            ))}
-          </select>
-        }
-        addButton={{
-          label: labels.newRequest[language],
-          onClick: () => router.push(`/${locale}/quote-requests/new`),
-          icon: <Plus className="w-4 h-4 mr-2" />,
-        }}
-      />
-
       {/* テーブル */}
       <div className={tableStyles.tableContainer}>
+        <ListPageHeader
+          searchValue={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder={labels.searchPlaceholder[language]}
+          totalCount={allRequests.length}
+          countLabel={labels.records[language]}
+          filters={
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+            >
+              <option value="">{labels.allStatuses[language]}</option>
+              {statuses.map((status) => (
+                <option key={status.id} value={status.code}>
+                  {getStatusName(status)}
+                </option>
+              ))}
+            </select>
+          }
+          addButton={{
+            label: labels.newRequest[language],
+            onClick: () => router.push(`/${locale}/quote-requests/new`),
+            icon: <Plus className="w-4 h-4 mr-2" />,
+          }}
+        />
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
@@ -218,6 +221,14 @@ export default function QuoteRequestList({
             </tbody>
           </table>
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          locale={locale}
+        />
       </div>
     </div>
   );

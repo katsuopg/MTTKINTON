@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { KintoneClient } from '@/lib/kintone/client';
-import { ProjectRecord, WorkNoRecord, EmployeeRecord } from '@/types/kintone';
+import { ProjectRecord, WorkNoRecord, EmployeeRecord, InvoiceRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DashboardContent from './DashboardContent';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
@@ -23,6 +23,8 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   let workNoCount = 0;
   let projectCount = 0;
   let recentWorkNos: WorkNoRecord[] = [];
+  let fiscalYearWorkNos: WorkNoRecord[] = [];
+  let fiscalYearInvoices: InvoiceRecord[] = [];
   let employeeName = '';
 
   try {
@@ -39,13 +41,21 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
       '106',
       process.env.KINTONE_API_TOKEN_EMPLOYEE!
     );
+    const invoiceClient = new KintoneClient(
+      '26',
+      process.env.KINTONE_API_TOKEN_INVOICE!
+    );
 
     // 並列でAPI呼び出し
     const userEmail = user?.email || '';
-    const [workNoRecords, projectRecords, employeeRecords] = await Promise.all([
+    const [workNoRecords, projectRecords, employeeRecords, fiscalRecords, invoiceRecords] = await Promise.all([
       workNoClient.getRecords<WorkNoRecord>('order by 更新日時 desc limit 200'),
       projectClient.getRecords<ProjectRecord>('order by 更新日時 desc limit 200'),
       userEmail ? employeeClient.getRecords<EmployeeRecord>(`メールアドレス = "${userEmail}"`) : Promise.resolve([]),
+      // 第14期の全レコード取得（月別売上チャート用）
+      workNoClient.getRecords<WorkNoRecord>('WorkNo like "14-" order by WorkNo desc limit 500'),
+      // 第14期の請求書取得（実績用）
+      invoiceClient.getRecords<InvoiceRecord>('文字列__1行_ like "14-" order by 日付 desc limit 500'),
     ]);
 
     // クライアント側でWIPフィルタリング
@@ -56,6 +66,8 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     workNoCount = wipRecords.length;
     recentWorkNos = wipRecords;
     projectCount = projectRecords.length;
+    fiscalYearWorkNos = fiscalRecords;
+    fiscalYearInvoices = invoiceRecords;
 
     // 従業員名を取得
     if (employeeRecords.length > 0) {
@@ -80,11 +92,13 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
 
   return (
     <DashboardLayout locale={locale} userEmail={user?.email || ''} userInfo={userInfo}>
-      <DashboardContent 
+      <DashboardContent
         locale={locale}
         workNoCount={workNoCount}
         projectCount={projectCount}
         recentWorkNos={recentWorkNos}
+        fiscalYearWorkNos={fiscalYearWorkNos}
+        fiscalYearInvoices={fiscalYearInvoices}
       />
     </DashboardLayout>
   );

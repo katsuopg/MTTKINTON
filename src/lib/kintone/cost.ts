@@ -13,19 +13,17 @@ const workNoClient = new KintoneClient('21', process.env.KINTONE_API_TOKEN_WORKN
 
 /**
  * コスト管理レコードを取得
+ * queryを省略すると全件取得（KintoneClientの自動ページネーション）
  */
 export async function getCostRecords(
-  query?: string,
-  limit: number = 100,
-  offset: number = 0
+  query?: string
 ): Promise<KintoneRecordsResponse<CostRecord>> {
-  
+
   try {
-    const queryStr = query || (limit ? `limit ${limit}` : '');
-    const costRecords = await costClient.getRecords<CostRecord>(queryStr);
-    
+    const costRecords = await costClient.getRecords<CostRecord>(query);
+
     return { records: costRecords };
-    
+
   } catch (error) {
     console.error('Cost Management API Error:', error);
     throw new Error(`Failed to fetch cost records: ${error instanceof Error ? error.message : 'Unknown error'}`);

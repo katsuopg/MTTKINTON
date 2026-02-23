@@ -7,7 +7,10 @@ import DomContainer from '@/components/dom/DomContainer';
 import { detailStyles } from '@/components/ui/DetailStyles';
 import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
 import { FileText, Package, ArrowLeft, Pencil, Save, X, Upload, Image, File, Trash2, ExternalLink } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import type { ProjectWithRelations, ProjectStatus, EmployeeSummary } from '@/types/project';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface ProjectFile {
   id: string;
@@ -82,6 +85,8 @@ export default function ProjectDetailContent({
   locale,
   language,
 }: ProjectDetailContentProps) {
+  const { toast } = useToast();
+  const { confirmDialog } = useConfirmDialog();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [project, setProject] = useState<ProjectWithRelations | null>(null);
@@ -183,9 +188,13 @@ export default function ProjectDetailContent({
       });
       if (res.ok) {
         await fetchFiles(project.id);
+        toast({ type: 'success', title: labels.files[language] + ' ' + (language === 'ja' ? 'アップロード完了' : language === 'th' ? 'อัปโหลดสำเร็จ' : 'uploaded') });
+      } else {
+        toast({ type: 'error', title: language === 'ja' ? 'アップロードに失敗しました' : language === 'th' ? 'อัปโหลดไม่สำเร็จ' : 'Upload failed' });
       }
     } catch (err) {
       console.error('Error uploading file:', err);
+      toast({ type: 'error', title: language === 'ja' ? 'アップロードに失敗しました' : language === 'th' ? 'อัปโหลดไม่สำเร็จ' : 'Upload failed' });
     } finally {
       setUploadingFile(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -193,15 +202,26 @@ export default function ProjectDetailContent({
   };
 
   const handleDeleteFile = async (fileId: string) => {
-    if (!project || !confirm(labels.deleteConfirm[language])) return;
+    if (!project) return;
+
+    const confirmed = await confirmDialog({
+      title: language === 'ja' ? 'ファイル削除' : language === 'th' ? 'ลบไฟล์' : 'Delete File',
+      message: labels.deleteConfirm[language],
+      variant: 'danger',
+      confirmLabel: language === 'ja' ? '削除' : language === 'th' ? 'ลบ' : 'Delete',
+      cancelLabel: language === 'ja' ? 'キャンセル' : language === 'th' ? 'ยกเลิก' : 'Cancel',
+    });
+    if (!confirmed) return;
 
     try {
       await fetch(`/api/projects/${project.id}/files?file_id=${fileId}`, {
         method: 'DELETE',
       });
       await fetchFiles(project.id);
+      toast({ type: 'success', title: language === 'ja' ? 'ファイルを削除しました' : language === 'th' ? 'ลบไฟล์สำเร็จ' : 'File deleted' });
     } catch (err) {
       console.error('Error deleting file:', err);
+      toast({ type: 'error', title: language === 'ja' ? 'ファイル削除に失敗しました' : language === 'th' ? 'ลบไฟล์ไม่สำเร็จ' : 'Failed to delete file' });
     }
   };
 
@@ -293,6 +313,7 @@ export default function ProjectDetailContent({
       const updated = await response.json();
       setProject(updated);
       setEditing(false);
+      toast({ type: 'success', title: language === 'ja' ? '保存しました' : language === 'th' ? 'บันทึกสำเร็จ' : 'Saved successfully' });
     } catch (err) {
       console.error('Error saving project:', err);
       setSaveError(err instanceof Error ? err.message : labels.error[language]);
@@ -323,12 +344,7 @@ export default function ProjectDetailContent({
   const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white';
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
-        <span className="ml-3 text-gray-500">{labels.loading[language]}</span>
-      </div>
-    );
+    return <LoadingSpinner message={labels.loading[language]} />;
   }
 
   if (error || !project) {
@@ -364,12 +380,11 @@ export default function ProjectDetailContent({
     <div className={detailStyles.pageWrapper}>
       <DetailPageHeader
         backHref={`/${locale}/project-management`}
-        backLabel={labels.back[language]}
-        title={project.project_code}
-        subtitle={[
-          project.customer_code?.split('-').slice(2).join('-'),
+        title={[
+          project.project_code,
+          project.customer_name,
           project.project_name,
-        ].filter(Boolean).join(' — ') || undefined}
+        ].filter(Boolean).join(' - ')}
         statusBadge={project.status ? (
           <span className={`${detailStyles.badge} ${statusColors[project.status.code] || detailStyles.badgeDefault}`}>
             {getStatusName(project.status)}

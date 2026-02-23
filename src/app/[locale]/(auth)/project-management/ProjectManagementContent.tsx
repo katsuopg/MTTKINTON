@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 import { Plus } from 'lucide-react';
 import { extractCsName } from '@/lib/utils/customer-name';
 import type {
@@ -160,6 +162,8 @@ export function ProjectManagementContent({
     return sorted;
   }, [projects, sortField, sortDirection]);
 
+  const { paginatedItems: paginatedProjects, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(sortedProjects);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -178,35 +182,34 @@ export function ProjectManagementContent({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      <ListPageHeader
-        searchValue={searchText}
-        onSearchChange={setSearchText}
-        searchPlaceholder={labels.searchPlaceholder[language]}
-        totalCount={projects.length}
-        countLabel={labels.records[language]}
-        filters={
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-          >
-            <option value="">{labels.allStatuses[language]}</option>
-            {statuses.map((status) => (
-              <option key={status.id} value={status.code}>
-                {getStatusName(status)}
-              </option>
-            ))}
-          </select>
-        }
-        addButton={{
-          label: labels.newProject[language],
-          onClick: () => router.push(`/${locale}/project-management/new`),
-          icon: <Plus className="w-4 h-4 mr-2" />,
-        }}
-      />
-
       {/* テーブル */}
       <div className={tableStyles.tableContainer}>
+        <ListPageHeader
+          searchValue={searchText}
+          onSearchChange={setSearchText}
+          searchPlaceholder={labels.searchPlaceholder[language]}
+          totalCount={projects.length}
+          countLabel={labels.records[language]}
+          filters={
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+            >
+              <option value="">{labels.allStatuses[language]}</option>
+              {statuses.map((status) => (
+                <option key={status.id} value={status.code}>
+                  {getStatusName(status)}
+                </option>
+              ))}
+            </select>
+          }
+          addButton={{
+            label: labels.newProject[language],
+            onClick: () => router.push(`/${locale}/project-management/new`),
+            icon: <Plus className="w-4 h-4 mr-2" />,
+          }}
+        />
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
@@ -243,7 +246,7 @@ export function ProjectManagementContent({
               </tr>
             </thead>
             <tbody className={tableStyles.tbody}>
-              {sortedProjects.map((project) => (
+              {paginatedProjects.map((project) => (
                 <tr
                   key={project.id}
                   className={tableStyles.trClickable}
@@ -316,7 +319,7 @@ export function ProjectManagementContent({
                   </td>
                 </tr>
               ))}
-              {sortedProjects.length === 0 && (
+              {paginatedProjects.length === 0 && (
                 <tr>
                   <td colSpan={8} className={tableStyles.emptyRow}>
                     {labels.noData[language]}
@@ -326,6 +329,14 @@ export function ProjectManagementContent({
             </tbody>
           </table>
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          locale={locale}
+        />
       </div>
     </div>
   );

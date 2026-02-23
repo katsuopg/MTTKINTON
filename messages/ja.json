@@ -9,15 +9,19 @@
     "login": "ログイン",
     "email": "メールアドレス",
     "password": "パスワード",
+    "employeeNumber": "従業員番号",
+    "employeeNumberPlaceholder": "MTT00000",
+    "passwordPlaceholder": "パスワード",
     "loginTitle": "ログイン",
     "loginNote": "アカウントにログインしてください",
     "emailPlaceholder": "メールアドレスを入力",
-    "passwordPlaceholder": "パスワードを入力",
     "loggingIn": "ログイン中...",
     "logout": "ログアウト",
     "error": {
+      "employeeNumberRequired": "従業員番号を入力してください",
+      "passwordMin": "パスワードは6文字以上で入力してください",
       "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
-      "generic": "ログイン中にエラーが発生しました"
+      "generic": "ログインに失敗しました。もう一度お試しください。"
     }
   },
   "navigation": {

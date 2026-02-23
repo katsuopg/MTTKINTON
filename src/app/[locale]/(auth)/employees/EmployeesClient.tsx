@@ -2,10 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Database } from '@/types/supabase';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { type Language } from '@/lib/kintone/field-mappings';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
+import { Plus, Users } from 'lucide-react';
 
 type Employee = Database['public']['Tables']['employees']['Row'];
 
@@ -21,7 +24,7 @@ export default function EmployeesClient({ locale, language, employees, currentUs
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('在籍'); // デフォルトで在籍のみ表示
+  const [statusFilter, setStatusFilter] = useState('在籍');
 
   // 部署リストを抽出
   const departments = useMemo(() => {
@@ -72,34 +75,37 @@ export default function EmployeesClient({ locale, language, employees, currentUs
     });
   }, [employees, searchQuery, departmentFilter, statusFilter]);
 
-  return (
-    <div className="p-4 md:p-6 space-y-6">
-      {/* Search and Filter Section - TailAdmin Style */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="p-5">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={language === 'ja' ? '名前、ID、部署で検索...' : 'Search by name, ID, department...'}
-                className="w-full h-11 pl-10 pr-4 rounded-lg border border-gray-200 bg-transparent text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
-              />
-            </div>
+  const { paginatedItems: paginatedEmployees, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredEmployees);
 
-            {/* Filters and Add Button */}
-            <div className="flex flex-wrap items-center gap-3">
+  const searchPlaceholder = language === 'ja'
+    ? '名前、ID、部署で検索...'
+    : language === 'th'
+    ? 'ค้นหาด้วยชื่อ, รหัส, แผนก...'
+    : 'Search by name, ID, department...';
+
+  const countLabel = language === 'ja'
+    ? '名の従業員'
+    : language === 'th'
+    ? ' พนักงาน'
+    : ' employees';
+
+  return (
+    <div className={tableStyles.contentWrapper}>
+      <div className={tableStyles.tableContainer}>
+        <ListPageHeader
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={searchPlaceholder}
+          totalCount={filteredEmployees.length}
+          countLabel={countLabel}
+          filters={
+            <>
               <select
                 value={departmentFilter}
                 onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="h-11 rounded-lg border border-gray-200 bg-white px-4 text-theme-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
+                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
               >
-                <option value="">{language === 'ja' ? '全ての部署' : 'All Departments'}</option>
+                <option value="">{language === 'ja' ? '全ての部署' : language === 'th' ? 'ทุกแผนก' : 'All Departments'}</option>
                 {departments.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
@@ -108,46 +114,24 @@ export default function EmployeesClient({ locale, language, employees, currentUs
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="h-11 rounded-lg border border-gray-200 bg-white px-4 text-theme-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
+                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
               >
-                <option value="">{language === 'ja' ? '全ての状態' : 'All Status'}</option>
-                <option value="在籍">{language === 'ja' ? '在籍' : 'Active'}</option>
-                <option value="退職">{language === 'ja' ? '退職' : 'Resigned'}</option>
+                <option value="">{language === 'ja' ? '全ての状態' : language === 'th' ? 'ทุกสถานะ' : 'All Status'}</option>
+                <option value="在籍">{language === 'ja' ? '在籍' : language === 'th' ? 'ทำงานอยู่' : 'Active'}</option>
+                <option value="退職">{language === 'ja' ? '退職' : language === 'th' ? 'ลาออก' : 'Resigned'}</option>
               </select>
+            </>
+          }
+          addButton={{
+            label: language === 'ja' ? '新規登録' : language === 'th' ? 'เพิ่มใหม่' : 'Add New',
+            onClick: () => router.push(`/${locale}/employees/new`),
+            icon: <Plus size={16} className="mr-1.5" />,
+          }}
+        />
 
-              <Link
-                href={`/${locale}/employees/new`}
-                className="inline-flex items-center h-11 px-5 bg-brand-500 text-white font-medium rounded-lg hover:bg-brand-600 transition-colors shadow-theme-xs"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                {language === 'ja' ? '新規登録' : language === 'th' ? 'เพิ่มใหม่' : 'Add New'}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Employee Count */}
-      <p className="text-theme-sm text-gray-500 dark:text-gray-400">
-        {language === 'ja' ? `${filteredEmployees.length}名の従業員` :
-         language === 'th' ? `${filteredEmployees.length} พนักงาน` :
-         `${filteredEmployees.length} employees`}
-        {statusFilter && (
-          <span className="ml-2 text-gray-400">
-            ({language === 'ja' ? `全${employees.length}名中` : `of ${employees.length} total`})
-          </span>
-        )}
-      </p>
-
-      {/* Employee Table - TailAdmin Style */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         {filteredEmployees.length === 0 ? (
           <div className="p-12 text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+            <Users className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-4 text-gray-500 dark:text-gray-400">
               {searchQuery || departmentFilter || statusFilter
                 ? (language === 'ja' ? '条件に一致する従業員がいません' : 'No employees match the filters')
@@ -183,16 +167,15 @@ export default function EmployeesClient({ locale, language, employees, currentUs
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {filteredEmployees.map((emp) => {
+                {paginatedEmployees.map((emp) => {
                   const isActive = emp.status === '在籍' || emp.status === 'Active';
                   const isResigned = emp.status === '退職' || emp.status === 'Resigned' || emp.status === 'Inactive';
-                  // 社内メールアドレスを取得（company_emailを優先、なければemailから@megatechを検索）
                   const companyEmail = emp.company_email || (emp.email?.includes('@megatech') ? emp.email : null);
 
                   return (
                     <tr
                       key={emp.id}
-                      className={`${tableStyles.tr} cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors`}
+                      className={tableStyles.trClickable}
                       onClick={() => router.push(`/${locale}/employees/${emp.id}`)}
                     >
                       <td className={tableStyles.td}>
@@ -202,7 +185,6 @@ export default function EmployeesClient({ locale, language, employees, currentUs
                       </td>
                       <td className={tableStyles.td}>
                         <div className="flex items-center gap-3">
-                          {/* アバター：現在のユーザーなら設定したプロフ画像を表示、それ以外は従業員データのprofile_image_url */}
                           {(() => {
                             const isCurrentUser = emp.employee_number?.toLowerCase() === currentUserEmployeeNumber?.toLowerCase();
                             const avatarUrl = isCurrentUser ? currentUserAvatarUrl : emp.profile_image_url;
@@ -247,7 +229,7 @@ export default function EmployeesClient({ locale, language, employees, currentUs
                         ) : '-'}
                       </td>
                       <td className={tableStyles.td}>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        <span className={`${tableStyles.statusBadge} ${
                           isActive
                             ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
                             : isResigned
@@ -266,6 +248,14 @@ export default function EmployeesClient({ locale, language, employees, currentUs
             </table>
           </div>
         )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          locale={locale}
+        />
       </div>
     </div>
   );

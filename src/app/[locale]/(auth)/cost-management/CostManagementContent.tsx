@@ -2,17 +2,46 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { CostRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import Link from 'next/link';
 import { Language } from '@/lib/kintone/field-mappings';
 import { getStatusColor } from '@/lib/kintone/utils';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { Pagination } from '@/components/ui/Pagination';
+import { usePagination } from '@/hooks/usePagination';
 import { extractCsName } from '@/lib/utils/customer-name';
 
+interface SupabaseCostRecord {
+  id: string;
+  kintone_record_id: string;
+  record_no: string | null;
+  work_no: string;
+  wn_status: string | null;
+  start_date: string | null;
+  finish_date: string | null;
+  po_no: string | null;
+  po_date: string | null;
+  customer_id: string | null;
+  cost_status: string | null;
+  arrival_date: string | null;
+  invoice_date: string | null;
+  payment_date: string | null;
+  payment_term: string | null;
+  item_code: string | null;
+  description: string | null;
+  supplier_name: string | null;
+  model_type: string | null;
+  unit_price: number | null;
+  unit: string | null;
+  quantity: number | null;
+  total_amount: number | null;
+  registered_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 interface CostManagementContentProps {
-  costRecords: CostRecord[];
+  costRecords: SupabaseCostRecord[];
   locale: string;
   userEmail: string;
   userInfo?: { email: string; name: string; avatarUrl?: string };
@@ -27,30 +56,30 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
   // フィルタリング
   const filteredCosts = useMemo(() => {
     if (!searchTerm) return costRecords;
-    
+
     return costRecords.filter(record => {
-      const workNo = record.文字列__1行__15?.value?.toLowerCase() || record.Work_No?.value?.toLowerCase() || '';
-      const poNo = record.文字列__1行__1?.value?.toLowerCase() || '';
-      const supplier = record.ルックアップ_1?.value?.toLowerCase() || '';
-      const item = record.文字列__1行__3?.value?.toLowerCase() || '';
-      const status = record.ドロップダウン_5?.value?.toLowerCase() || '';
+      const workNo = (record.work_no || '').toLowerCase();
+      const poNo = (record.po_no || '').toLowerCase();
+      const supplier = (record.supplier_name || '').toLowerCase();
+      const item = (record.item_code || '').toLowerCase();
+      const status = (record.cost_status || '').toLowerCase();
       const query = searchTerm.toLowerCase();
-      
-      return workNo.includes(query) || 
-             poNo.includes(query) || 
-             supplier.includes(query) || 
-             item.includes(query) || 
+
+      return workNo.includes(query) ||
+             poNo.includes(query) ||
+             supplier.includes(query) ||
+             item.includes(query) ||
              status.includes(query);
     });
   }, [costRecords, searchTerm]);
 
   // 日付フォーマット関数
-  const formatDate = (dateString: string | undefined) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
+
     if (language === 'ja') {
       return dateString; // YYYY-MM-DD
     } else {
@@ -63,17 +92,15 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
   };
 
   // 数値フォーマット関数
-  const formatNumber = (value: string | undefined) => {
-    if (!value || value === '0' || value === '') return '-';
-    const number = parseFloat(value);
-    if (isNaN(number)) return '-';
-    return number.toLocaleString();
+  const formatNumber = (value: number | null | undefined) => {
+    if (value === null || value === undefined || value === 0) return '-';
+    return value.toLocaleString();
   };
 
   // ステータスによる行の色分け
-  const getRowColorClass = (status: string | undefined) => {
+  const getRowColorClass = (status: string | null | undefined) => {
     if (!status) return '';
-    
+
     const normalizedStatus = status.trim();
     if (normalizedStatus.includes('Working')) {
       return 'bg-blue-50';
@@ -83,33 +110,34 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
     return '';
   };
 
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredCosts);
+
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
-        <ListPageHeader
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder={
-            language === 'ja' ? '工事番号、PO番号、サプライヤー名で検索...' :
-            language === 'th' ? 'ค้นหาตามหมายเลขงาน, PO, ชื่อซัพพลายเออร์...' :
-            'Search by Work No., PO No., Supplier name...'
-          }
-          totalCount={filteredCosts.length}
-          countLabel={language === 'ja' ? '件のコストレコード' : language === 'th' ? ' รายการต้นทุน' : ' cost records'}
-        />
-
         {/* テーブル */}
         <div className={tableStyles.tableContainer}>
-          <div className="max-w-7xl overflow-x-auto">
+          <ListPageHeader
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder={
+              language === 'ja' ? '工事番号、PO番号、サプライヤー名で検索...' :
+              language === 'th' ? 'ค้นหาตามหมายเลขงาน, PO, ชื่อซัพพลายเออร์...' :
+              'Search by Work No., PO No., Supplier name...'
+            }
+            totalCount={filteredCosts.length}
+            countLabel={language === 'ja' ? '件のコストレコード' : language === 'th' ? ' รายการต้นทุน' : ' cost records'}
+          />
+          <div className="overflow-x-auto">
           {filteredCosts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className={tableStyles.emptyRow}>
               {searchTerm ? (
-                language === 'ja' ? '検索結果が見つかりませんでした' : 
-                language === 'th' ? 'ไม่พบผลการค้นหา' : 
+                language === 'ja' ? '検索結果が見つかりませんでした' :
+                language === 'th' ? 'ไม่พบผลการค้นหา' :
                 'No search results found'
               ) : (
-                language === 'ja' ? 'コストレコードがありません' : 
-                language === 'th' ? 'ไม่มีรายการต้นทุน' : 
+                language === 'ja' ? 'コストレコードがありません' :
+                language === 'th' ? 'ไม่มีรายการต้นทุน' :
                 'No cost records'
               )}
             </div>
@@ -117,161 +145,150 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
             <table className={tableStyles.table}>
               <thead className={tableStyles.thead}>
                 <tr>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-16">
-                    ID
-                  </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-28">
+                  <th className={tableStyles.th}>ID</th>
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Work No.'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? 'WNステータス' : language === 'th' ? 'สถานะ WN' : 'WN Status'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
+                  <th className={`${tableStyles.th} text-center`}>
                     {language === 'ja' ? '開始日' : language === 'th' ? 'วันเริ่ม' : 'Start Date'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
+                  <th className={`${tableStyles.th} text-center`}>
                     {language === 'ja' ? '完了日' : language === 'th' ? 'วันเสร็จ' : 'Finish Date'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-28">
-                    PO No.
-                  </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
+                  <th className={tableStyles.th}>PO No.</th>
+                  <th className={`${tableStyles.th} text-center`}>
                     {language === 'ja' ? 'PO日付' : language === 'th' ? 'วันที่ PO' : 'PO Date'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? '顧客名' : language === 'th' ? 'ลูกค้า' : 'Customer'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
+                  <th className={`${tableStyles.th} text-center`}>
                     {language === 'ja' ? '到着日' : language === 'th' ? 'วันที่มาถึง' : 'Arrival Date'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
+                  <th className={`${tableStyles.th} text-center`}>
                     {language === 'ja' ? '請求日' : language === 'th' ? 'วันที่ใบแจ้งหนี้' : 'INV DATE'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-24">
+                  <th className={`${tableStyles.th} text-center`}>
                     {language === 'ja' ? '支払日' : language === 'th' ? 'วันที่ชำระ' : 'Payment Date'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-24">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? '支払条件' : language === 'th' ? 'เงื่อนไขการชำระ' : 'Payment Term'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-32">
-                    ITEM
-                  </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-40">
+                  <th className={tableStyles.th}>ITEM</th>
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? '説明' : language === 'th' ? 'คำอธิบาย' : 'Description'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-40">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? 'サプライヤー' : language === 'th' ? 'ซัพพลายเออร์' : 'Supplier'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 w-32">
+                  <th className={tableStyles.th}>
                     {language === 'ja' ? 'モデル/タイプ' : language === 'th' ? 'รุ่น/ประเภท' : 'Model/Type'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-24">
+                  <th className={`${tableStyles.th} text-right`}>
                     {language === 'ja' ? '単価' : language === 'th' ? 'ราคาต่อหน่วย' : 'Unit Price'}
                   </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-center text-theme-xs dark:text-gray-400 w-16">
-                    UNIT
-                  </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-16">
-                    QTY
-                  </th>
-                  <th className="px-5 py-3 font-medium text-gray-500 text-right text-theme-xs dark:text-gray-400 w-24">
+                  <th className={`${tableStyles.th} text-center`}>UNIT</th>
+                  <th className={`${tableStyles.th} text-right`}>QTY</th>
+                  <th className={`${tableStyles.th} text-right`}>
                     {language === 'ja' ? '合計' : language === 'th' ? 'ยอดรวม' : 'Total'}
                   </th>
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {filteredCosts.map((record) => (
+                {paginatedItems.map((record) => (
                   <tr
-                    key={record.$id.value}
-                    className={`${tableStyles.trClickable} ${getRowColorClass(record.ドロップダウン_5?.value)}`}
+                    key={record.id}
+                    className={`${tableStyles.trClickable} ${getRowColorClass(record.cost_status)}`}
                     onClick={() => {
-                      const workNo = record.文字列__1行__15?.value;
-                      if (workNo) router.push(`/${locale}/workno/${encodeURIComponent(workNo)}`);
+                      if (record.work_no) router.push(`/${locale}/workno/${encodeURIComponent(record.work_no)}`);
                     }}
                   >
                     <td className={tableStyles.td}>
-                      {record.数値_0?.value || record.$id?.value || '-'}
+                      {record.record_no || record.kintone_record_id || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__15?.value ? (
+                      {record.work_no ? (
                         <span className="font-medium text-gray-800 dark:text-white/90">
-                          {record.文字列__1行__15.value}
+                          {record.work_no}
                         </span>
                       ) : (
                         '-'
                       )}
                     </td>
                     <td className={tableStyles.td}>
-                      <span 
+                      <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium min-w-[60px] justify-center ${
-                          getStatusColor(record.ドロップダウン?.value || '')
+                          getStatusColor(record.wn_status || '')
                         }`}
                       >
-                        {record.ドロップダウン?.value || '-'}
+                        {record.wn_status || '-'}
                       </span>
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {formatDate(record.日付?.value)}
+                      {formatDate(record.start_date)}
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {formatDate(record.日付_0?.value)}
+                      {formatDate(record.finish_date)}
                     </td>
                     <td className={`${tableStyles.td} font-medium`}>
-                      {record.文字列__1行__1?.value || '-'}
+                      {record.po_no || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {formatDate(record.日付_1?.value)}
+                      {formatDate(record.po_date)}
                     </td>
                     <td className={tableStyles.td}>
-                      {extractCsName(record.文字列__1行__2?.value) || '-'}
+                      {extractCsName(record.customer_id) || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      <span 
+                      <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium min-w-[70px] justify-center ${
-                          getStatusColor(record.ドロップダウン_5?.value || '')
+                          getStatusColor(record.cost_status || '')
                         }`}
                       >
-                        {record.ドロップダウン_5?.value || '-'}
+                        {record.cost_status || '-'}
                       </span>
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {formatDate(record.日付_2?.value)}
+                      {formatDate(record.arrival_date)}
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {formatDate(record.日付_3?.value)}
+                      {formatDate(record.invoice_date)}
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {formatDate(record.日付_4?.value)}
+                      {formatDate(record.payment_date)}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.ドロップダウン_0?.value || '-'}
+                      {record.payment_term || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__3?.value || '-'}
+                      {record.item_code || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__7?.value || '-'}
+                      {record.description || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.ルックアップ_1?.value || '-'}
+                      {record.supplier_name || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__9?.value || '-'}
+                      {record.model_type || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-right font-mono`}>
-                      {formatNumber(record.unit_price_0?.value)}
+                      {formatNumber(record.unit_price)}
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {record.ドロップダウン_3?.value || '-'}
+                      {record.unit || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-right font-mono`}>
-                      {formatNumber(record.数値?.value)}
+                      {formatNumber(record.quantity)}
                     </td>
                     <td className={`${tableStyles.td} text-right font-mono font-bold`}>
-                      {formatNumber(record.total_0?.value)}
+                      {formatNumber(record.total_amount)}
                     </td>
                   </tr>
                 ))}
@@ -279,6 +296,14 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
             </table>
           )}
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+            locale={locale}
+          />
         </div>
       </div>
     </DashboardLayout>

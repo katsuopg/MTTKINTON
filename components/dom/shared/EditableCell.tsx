@@ -23,7 +23,7 @@ export default function EditableCell({
   readOnly = false,
   align = 'left',
 }: EditableCellProps) {
-  const alignClass = align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : '';
+  const textAlign = align as React.CSSProperties['textAlign'];
 
   if (readOnly) {
     const displayValue = value ?? '';
@@ -31,9 +31,9 @@ export default function EditableCell({
       ? Number(displayValue).toLocaleString()
       : String(displayValue);
     return (
-      <span className={`block py-1 text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap overflow-hidden text-ellipsis ${alignClass} ${className}`}>
+      <div style={{ textAlign }} className={`py-1 text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap ${className}`}>
         {formatted || <span className="text-gray-300 dark:text-gray-600">{placeholder || '-'}</span>}
-      </span>
+      </div>
     );
   }
 
@@ -49,7 +49,8 @@ export default function EditableCell({
       }}
       placeholder={placeholder}
       disabled={disabled}
-      className={`w-full py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-brand-500 dark:text-white disabled:opacity-50 ${alignClass} ${className}`}
+      style={{ textAlign }}
+      className={`w-full px-1.5 py-1 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:text-white disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${className}`}
     />
   );
 }

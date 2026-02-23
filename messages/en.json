@@ -9,15 +9,19 @@
     "login": "Login",
     "email": "Email",
     "password": "Password",
+    "employeeNumber": "Employee Number",
+    "employeeNumberPlaceholder": "MTT00000",
+    "passwordPlaceholder": "Password",
     "loginTitle": "Login",
     "loginNote": "Please login to your account",
     "emailPlaceholder": "Enter your email",
-    "passwordPlaceholder": "Enter your password",
     "loggingIn": "Logging in...",
     "logout": "Logout",
     "error": {
+      "employeeNumberRequired": "Please enter your employee number",
+      "passwordMin": "Password must be at least 6 characters",
       "invalidCredentials": "Invalid email or password",
-      "generic": "An error occurred during login"
+      "generic": "Login failed. Please try again."
     }
   },
   "navigation": {

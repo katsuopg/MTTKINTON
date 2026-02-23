@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       .select(`
         *,
         role:roles(*),
-        employee:employees(id, name, employee_number),
+        employee:employees!user_roles_employee_id_fkey(id, name, employee_number),
         organization:organizations(id, name, code)
       `)
       .eq('is_active', true);
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       .select(`
         *,
         role:roles(*),
-        employee:employees(id, name, employee_number)
+        employee:employees!user_roles_employee_id_fkey(id, name, employee_number)
       `)
       .single();
 

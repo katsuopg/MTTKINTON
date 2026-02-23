@@ -26,10 +26,10 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 
   const title =
     locale === 'ja'
-      ? 'APP設定'
+      ? 'システム管理'
       : locale === 'th'
-      ? 'การตั้งค่าแอป'
-      : 'App Settings';
+      ? 'การจัดการระบบ'
+      : 'System Management';
 
   const userInfo = await getCurrentUserInfo();
 

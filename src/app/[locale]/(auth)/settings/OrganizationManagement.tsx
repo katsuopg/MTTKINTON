@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface Organization {
   id: string;
@@ -23,6 +25,8 @@ interface OrganizationManagementProps {
 }
 
 export default function OrganizationManagement({ locale }: OrganizationManagementProps) {
+  const { toast } = useToast();
+  const { confirmDialog } = useConfirmDialog();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -220,7 +224,7 @@ export default function OrganizationManagement({ locale }: OrganizationManagemen
             console.error('Failed to read error response:', e);
             errorMessage = `${errorMessage} (${response.status}: ${response.statusText})`;
           }
-          alert(errorMessage);
+          toast({ type: 'error', title: errorMessage });
           return;
         }
 
@@ -250,24 +254,35 @@ export default function OrganizationManagement({ locale }: OrganizationManagemen
             console.error('Failed to parse error response:', e);
             errorMessage = `${errorMessage} (${response.status}: ${response.statusText})`;
           }
-          alert(errorMessage);
+          toast({ type: 'error', title: errorMessage });
           return;
         }
       }
 
       setIsModalOpen(false);
       fetchOrganizations();
+      toast({
+        type: 'success',
+        title: editingOrg
+          ? (locale === 'ja' ? '組織を更新しました' : locale === 'th' ? 'อัปเดตองค์กรสำเร็จ' : 'Organization updated')
+          : (locale === 'ja' ? '組織を作成しました' : locale === 'th' ? 'สร้างองค์กรสำเร็จ' : 'Organization created'),
+      });
     } catch (error) {
       console.error('Error saving organization:', error);
-      alert('保存中にエラーが発生しました');
+      toast({ type: 'error', title: locale === 'ja' ? '保存中にエラーが発生しました' : locale === 'th' ? 'เกิดข้อผิดพลาดในการบันทึก' : 'Error saving organization' });
     }
   };
 
   // 組織を削除
   const handleDelete = async (id: string) => {
-    if (!confirm(locale === 'ja' ? 'この組織を削除しますか？' : locale === 'th' ? 'คุณต้องการลบองค์กรนี้หรือไม่?' : 'Are you sure you want to delete this organization?')) {
-      return;
-    }
+    const confirmed = await confirmDialog({
+      title: locale === 'ja' ? '組織削除' : locale === 'th' ? 'ลบองค์กร' : 'Delete Organization',
+      message: locale === 'ja' ? 'この組織を削除しますか？' : locale === 'th' ? 'คุณต้องการลบองค์กรนี้หรือไม่?' : 'Are you sure you want to delete this organization?',
+      variant: 'danger',
+      confirmLabel: locale === 'ja' ? '削除' : locale === 'th' ? 'ลบ' : 'Delete',
+      cancelLabel: locale === 'ja' ? 'キャンセル' : locale === 'th' ? 'ยกเลิก' : 'Cancel',
+    });
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/organizations/${id}`, {
@@ -276,14 +291,15 @@ export default function OrganizationManagement({ locale }: OrganizationManagemen
 
       if (!response.ok) {
         const error = await response.json();
-        alert(error.error || '削除に失敗しました');
+        toast({ type: 'error', title: error.error || (locale === 'ja' ? '削除に失敗しました' : locale === 'th' ? 'ลบไม่สำเร็จ' : 'Failed to delete') });
         return;
       }
 
       fetchOrganizations();
+      toast({ type: 'success', title: locale === 'ja' ? '組織を削除しました' : locale === 'th' ? 'ลบองค์กรสำเร็จ' : 'Organization deleted' });
     } catch (error) {
       console.error('Error deleting organization:', error);
-      alert('削除中にエラーが発生しました');
+      toast({ type: 'error', title: locale === 'ja' ? '削除中にエラーが発生しました' : locale === 'th' ? 'เกิดข้อผิดพลาดในการลบ' : 'Error deleting organization' });
     }
   };
 

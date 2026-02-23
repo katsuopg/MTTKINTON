@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 import dynamic from 'next/dynamic';
 
 const MiniSalesChart = dynamic(() => import('@/components/charts/MiniSalesChart'), {
@@ -81,6 +83,8 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
     return sorted;
   }, [customers, searchTerm, sortField, sortDirection, locale]);
 
+  const { paginatedItems: paginatedCustomers, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredAndSortedCustomers);
+
   const handleSort = (field: 'csId' | 'companyName' | 'rank') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -93,20 +97,19 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
-        <ListPageHeader
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          searchPlaceholder={
-            language === 'ja' ? '顧客名、会社名、国、電話番号で検索...' :
-            language === 'th' ? 'ค้นหาด้วยชื่อลูกค้า, ชื่อบริษัท, ประเทศ, เบอร์โทร...' :
-            'Search by Customer Name, Company Name, Country, Phone...'
-          }
-          totalCount={filteredAndSortedCustomers.length}
-          countLabel={language === 'ja' ? '件の顧客' : language === 'th' ? ' ราย' : ' customers'}
-        />
-
         {/* テーブル - TailAdminスタイル */}
         <div className={tableStyles.tableContainer}>
+          <ListPageHeader
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder={
+              language === 'ja' ? '顧客名、会社名、国、電話番号で検索...' :
+              language === 'th' ? 'ค้นหาด้วยชื่อลูกค้า, ชื่อบริษัท, ประเทศ, เบอร์โทร...' :
+              'Search by Customer Name, Company Name, Country, Phone...'
+            }
+            totalCount={filteredAndSortedCustomers.length}
+            countLabel={language === 'ja' ? '件の顧客' : language === 'th' ? ' ราย' : ' customers'}
+          />
           <div className="max-w-full overflow-x-auto">
             <table className={tableStyles.table}>
               <thead className={tableStyles.thead}>
@@ -154,7 +157,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {filteredAndSortedCustomers.map((customer) => (
+                {paginatedCustomers.map((customer) => (
                   <tr
                     key={customer.$id.value}
                     className={tableStyles.trClickable}
@@ -189,7 +192,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                     </td>
                   </tr>
                 ))}
-                {filteredAndSortedCustomers.length === 0 && (
+                {paginatedCustomers.length === 0 && (
                   <tr>
                     <td colSpan={6} className={tableStyles.emptyRow}>
                       {searchTerm ? (
@@ -207,6 +210,14 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
               </tbody>
             </table>
           </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={goToPage}
+            locale={locale}
+          />
         </div>
       </div>
     </DashboardLayout>

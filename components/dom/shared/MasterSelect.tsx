@@ -58,7 +58,7 @@ export default function MasterSelect({
       value={value || ''}
       onChange={(e) => onChange(e.target.value || null)}
       disabled={disabled}
-      className={`w-full py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-brand-500 dark:text-white disabled:opacity-50 ${className}`}
+      className={`w-full px-1 py-1 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:text-white disabled:opacity-50 ${className}`}
     >
       <option value="">{placeholder}</option>
       {items.map((item) => (

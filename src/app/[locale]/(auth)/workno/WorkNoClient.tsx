@@ -7,6 +7,20 @@ import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/fiel
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { extractCsName } from '@/lib/utils/customer-name';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
+
+
+const STATUS_TABS = [
+  { key: 'all', labelJa: '全て', labelEn: 'All', labelTh: 'ทั้งหมด' },
+  { key: 'Working', labelJa: '作業中', labelEn: 'Working', labelTh: 'กำลังทำงาน' },
+  { key: 'Wating PO', labelJa: 'PO待ち', labelEn: 'Waiting PO', labelTh: 'รอ PO' },
+  { key: 'Pending', labelJa: '保留', labelEn: 'Pending', labelTh: 'รอดำเนินการ' },
+  { key: 'Stock', labelJa: '在庫', labelEn: 'Stock', labelTh: 'สต็อก' },
+  { key: 'Finished', labelJa: '完了', labelEn: 'Finished', labelTh: 'เสร็จสิ้น' },
+  { key: 'Expenses', labelJa: '経費', labelEn: 'Expenses', labelTh: 'ค่าใช้จ่าย' },
+  { key: 'Cancel', labelJa: 'キャンセル', labelEn: 'Cancel', labelTh: 'ยกเลิก' },
+];
 
 interface WorkNoClientProps {
   locale: string;
@@ -31,6 +45,7 @@ export default function WorkNoClient({
   const [records, setRecords] = useState<WorkNoRecord[]>(initialRecords);
   const [fiscalYear, setFiscalYear] = useState(initialFiscalYear);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [activeStatusTab, setActiveStatusTab] = useState('all');
   const [filteredRecords, setFilteredRecords] = useState<Array<{record: WorkNoRecord, isChild: boolean}>>([]);
   
   // 請求書データから工事番号ごとのマップを作成
@@ -213,9 +228,14 @@ export default function WorkNoClient({
   // クライアントサイドフィルタリングとソート
   useEffect(() => {
     let filtered = records;
-    
+
+    // ステータスフィルター
+    if (activeStatusTab !== 'all') {
+      filtered = filtered.filter(record => record.Status?.value === activeStatusTab);
+    }
+
     if (searchQuery) {
-      filtered = records.filter(record => {
+      filtered = filtered.filter(record => {
         const workNo = record.WorkNo?.value?.toLowerCase() || '';
         const csId = record.文字列__1行__8?.value?.toLowerCase() || '';
         const category = record.文字列__1行__1?.value?.toLowerCase() || '';
@@ -223,7 +243,7 @@ export default function WorkNoClient({
         const model = record.文字列__1行__9?.value?.toLowerCase() || '';
         const mcItem = record.McItem?.value?.toLowerCase() || '';
         const query = searchQuery.toLowerCase();
-        return workNo.includes(query) || csId.includes(query) || category.includes(query) || 
+        return workNo.includes(query) || csId.includes(query) || category.includes(query) ||
                description.includes(query) || model.includes(query) || mcItem.includes(query);
       });
     }
@@ -231,7 +251,7 @@ export default function WorkNoClient({
     const sorted = sortWorkNumbers(filtered);
     const hierarchy = buildHierarchy(sorted);
     setFilteredRecords(hierarchy);
-  }, [records, searchQuery, sortWorkNumbers, buildHierarchy]);
+  }, [records, searchQuery, activeStatusTab, sortWorkNumbers, buildHierarchy]);
 
   // 日付フォーマット関数
   const formatDate = (dateString: string | undefined) => {
@@ -270,36 +290,77 @@ export default function WorkNoClient({
     ? ' หมายเลขงาน'
     : ' work numbers';
 
+  const getTabLabel = (tab: typeof STATUS_TABS[number]) => {
+    if (language === 'ja') return tab.labelJa;
+    if (language === 'th') return tab.labelTh;
+    return tab.labelEn;
+  };
+
+  const handleStatusTabChange = (tab: string) => {
+    setActiveStatusTab(tab);
+  };
+
+  const { paginatedItems: paginatedWorkItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredRecords);
+
   return (
     <div className={tableStyles.contentWrapper}>
-      <ListPageHeader
-        searchValue={searchQuery}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder={searchPlaceholder}
-        totalCount={filteredRecords.length}
-        countLabel={countLabel}
-        filters={
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
-            </label>
-            <select
-              value={fiscalYear.toString()}
-              onChange={(e) => handlePeriodChange(e.target.value)}
-              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-            >
-              {periodOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        }
-      />
-
       {/* テーブル表示 - TailAdminスタイル */}
       <div className={tableStyles.tableContainer}>
+        <ListPageHeader
+          searchValue={searchQuery}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder={searchPlaceholder}
+          totalCount={filteredRecords.length}
+          countLabel={countLabel}
+          filters={
+            <>
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
+                </label>
+                <select
+                  value={fiscalYear.toString()}
+                  onChange={(e) => handlePeriodChange(e.target.value)}
+                  className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+                >
+                  {periodOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* デスクトップ: ステータスタブ */}
+              <div className="hidden sm:flex items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900">
+                {STATUS_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => handleStatusTabChange(tab.key)}
+                    className={`px-2.5 py-1.5 font-medium rounded-md text-theme-xs transition-colors hover:text-gray-900 dark:hover:text-white ${
+                      activeStatusTab === tab.key
+                        ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    {getTabLabel(tab)}
+                  </button>
+                ))}
+              </div>
+              {/* モバイル: セレクト */}
+              <select
+                value={activeStatusTab}
+                onChange={(e) => handleStatusTabChange(e.target.value)}
+                className="sm:hidden h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+              >
+                {STATUS_TABS.map((tab) => (
+                  <option key={tab.key} value={tab.key}>
+                    {getTabLabel(tab)}
+                  </option>
+                ))}
+              </select>
+            </>
+          }
+        />
         <div className="max-w-full overflow-x-auto">
           {filteredRecords.length === 0 ? (
             <div className={tableStyles.emptyRow}>
@@ -345,7 +406,7 @@ export default function WorkNoClient({
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-              {filteredRecords.filter(item => item?.record?.$id?.value).map((item) => (
+              {paginatedWorkItems.filter(item => item?.record?.$id?.value).map((item) => (
                 <tr
                   key={item.record.$id.value}
                   className={`${tableStyles.trClickable} ${item.record.Status?.value === 'Finished' ? 'bg-success-50 dark:bg-success-500/10' : ''}`}
@@ -459,6 +520,14 @@ export default function WorkNoClient({
             </table>
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          locale={locale}
+        />
       </div>
     </div>
   );

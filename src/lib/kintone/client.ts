@@ -77,8 +77,39 @@ export class KintoneClient {
   }
 
   // 汎用的なレコード取得メソッド
+  // Kintone APIは1回最大500件。queryにlimitが含まれている場合はそのまま、
+  // 含まれていない場合は自動ページネーションで全件取得する。
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getRecords<T extends Record<string, any>>(query?: string, fields?: string[]): Promise<T[]> {
+    // queryにlimitが明示されている場合は単発リクエスト
+    const hasExplicitLimit = query ? /\blimit\b/i.test(query) : false;
+
+    if (hasExplicitLimit) {
+      return this.fetchRecordsOnce<T>(query, fields);
+    }
+
+    // limitなし → 全件取得（500件ずつページネーション）
+    const PAGE_SIZE = 500;
+    let allRecords: T[] = [];
+    let offset = 0;
+
+    while (true) {
+      const paginatedQuery = query
+        ? `${query} limit ${PAGE_SIZE} offset ${offset}`
+        : `limit ${PAGE_SIZE} offset ${offset}`;
+
+      const records = await this.fetchRecordsOnce<T>(paginatedQuery, fields);
+      allRecords = allRecords.concat(records);
+
+      if (records.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+
+    return allRecords;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async fetchRecordsOnce<T extends Record<string, any>>(query?: string, fields?: string[]): Promise<T[]> {
     let endpoint = `/k/v1/records.json?app=${this.appId}`;
 
     if (query) {

@@ -5,9 +5,9 @@ import { useRouter, useParams } from 'next/navigation'
 import { Language } from '@/lib/kintone/field-mappings'
 import { FileText, Calendar, Calculator } from 'lucide-react'
 import FileViewerModal from '../FileViewerModal'
-import DashboardLayout from '@/components/layout/DashboardLayout'
 import { detailStyles } from '@/components/ui/DetailStyles'
 import { DetailPageHeader } from '@/components/ui/DetailPageHeader'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { extractCsName } from '@/lib/utils/customer-name'
 
 // 注文書レコードの型定義
@@ -35,11 +35,7 @@ interface OrderRecord {
   更新日時: { type: "UPDATED_TIME"; value: string }
 }
 
-interface OrderDetailContentProps {
-  userInfo?: { email: string; name: string; avatarUrl?: string };
-}
-
-export default function OrderDetailContent({ userInfo }: OrderDetailContentProps) {
+export default function OrderDetailContent() {
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
@@ -76,32 +72,24 @@ export default function OrderDetailContent({ userInfo }: OrderDetailContentProps
   const pageTitle = locale === 'ja' ? '注文書詳細' : 'Order Detail'
 
   if (loading) {
-    return (
-      <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-lg text-gray-600 dark:text-gray-400">読み込み中...</div>
-        </div>
-      </DashboardLayout>
-    )
+    return <LoadingSpinner message={locale === 'ja' ? '読み込み中...' : 'Loading...'} />
   }
 
   if (error || !order) {
     return (
-      <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo}>
-        <div className={detailStyles.pageWrapper}>
-          <div className={`${detailStyles.card} ${detailStyles.cardContent}`}>
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-              <p className="text-red-600 dark:text-red-400">{error || '注文書が見つかりません'}</p>
-              <button
-                onClick={() => router.push(`/${locale}/order-management`)}
-                className={`mt-4 ${detailStyles.link}`}
-              >
-                一覧に戻る
-              </button>
-            </div>
+      <div className={detailStyles.pageWrapper}>
+        <div className={`${detailStyles.card} ${detailStyles.cardContent}`}>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <p className="text-red-600 dark:text-red-400">{error || '注文書が見つかりません'}</p>
+            <button
+              onClick={() => router.push(`/${locale}/order-management`)}
+              className={`mt-4 ${detailStyles.link}`}
+            >
+              一覧に戻る
+            </button>
           </div>
         </div>
-      </DashboardLayout>
+      </div>
     )
   }
 
@@ -116,12 +104,14 @@ export default function OrderDetailContent({ userInfo }: OrderDetailContentProps
   }
 
   return (
-    <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo}>
       <div className={detailStyles.pageWrapper}>
         <DetailPageHeader
           backHref={`/${locale}/order-management`}
-          backLabel="注文書一覧に戻る"
-          title={`注文書詳細 - ${order.文字列__1行_.value}`}
+          title={[
+            order.文字列__1行_.value,
+            order.文字列__1行__2.value,
+            extractCsName(order.文字列__1行__0?.value),
+          ].filter(Boolean).join(' - ')}
           actions={
             order.添付ファイル?.value?.length > 0 ? (
               <FileViewerModal
@@ -298,6 +288,5 @@ export default function OrderDetailContent({ userInfo }: OrderDetailContentProps
           </div>
         </div>
       </div>
-    </DashboardLayout>
   )
 }

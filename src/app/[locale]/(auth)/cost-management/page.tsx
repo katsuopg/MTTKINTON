@@ -1,4 +1,3 @@
-import { getCostRecords } from '@/lib/kintone/cost';
 import { CostManagementContent } from './CostManagementContent';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
@@ -20,12 +19,18 @@ export default async function CostManagementPage({ params }: CostManagementPageP
   const userInfo = await getCurrentUserInfo();
 
   try {
-    console.log('Attempting to fetch cost records...');
-    const { records: costRecords } = await getCostRecords();
+    const { data: costRecords, error: fetchError } = await supabase
+      .from('cost_records')
+      .select('*')
+      .order('kintone_record_id', { ascending: false });
+
+    if (fetchError) {
+      console.error('Error fetching cost records from Supabase:', fetchError);
+    }
 
     return (
       <CostManagementContent
-        costRecords={costRecords}
+        costRecords={costRecords || []}
         locale={locale}
         userEmail={user.email || ''}
         userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}

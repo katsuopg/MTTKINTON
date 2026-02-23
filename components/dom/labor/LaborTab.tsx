@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Save, X, Pencil } from 'lucide-react';
 import EditableCell from '../shared/EditableCell';
 import StatusBadge from '../shared/StatusBadge';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type {
   DomHeaderWithRelations,
   DomLabor,
@@ -45,6 +47,8 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
 };
 
 export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
+  const { toast } = useToast();
+  const { confirmDialog } = useConfirmDialog();
   const [editing, setEditing] = useState(false);
   const [editingItems, setEditingItems] = useState<Map<string, Record<string, unknown>>>(new Map());
   const [newItems, setNewItems] = useState<Partial<DomLabor>[]>([]);
@@ -126,8 +130,10 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
       setSelectedItems(new Set());
       setHasChanges(false);
       setEditing(false);
+      toast({ type: 'success', title: UI_LABELS[language].save + ' OK' });
     } catch (error) {
       console.error('Error saving:', error);
+      toast({ type: 'error', title: language === 'ja' ? '保存に失敗しました' : language === 'th' ? 'บันทึกไม่สำเร็จ' : 'Failed to save' });
     } finally {
       setSaving(false);
     }
@@ -135,15 +141,24 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
 
   const handleDelete = async () => {
     if (selectedItems.size === 0) return;
-    if (!confirm(UI_LABELS[language].confirmDelete)) return;
+    const confirmed = await confirmDialog({
+      title: language === 'ja' ? '削除確認' : language === 'th' ? 'ยืนยันการลบ' : 'Confirm Delete',
+      message: UI_LABELS[language].confirmDelete,
+      variant: 'danger',
+      confirmLabel: language === 'ja' ? '削除' : language === 'th' ? 'ลบ' : 'Delete',
+      cancelLabel: language === 'ja' ? 'キャンセル' : language === 'th' ? 'ยกเลิก' : 'Cancel',
+    });
+    if (!confirmed) return;
 
     try {
       const ids = Array.from(selectedItems).join(',');
       await fetch(`/api/dom/${dom.id}/labor?ids=${ids}`, { method: 'DELETE' });
       setSelectedItems(new Set());
       onRefresh();
+      toast({ type: 'success', title: language === 'ja' ? '削除しました' : language === 'th' ? 'ลบสำเร็จ' : 'Deleted' });
     } catch (error) {
       console.error('Error deleting:', error);
+      toast({ type: 'error', title: language === 'ja' ? '削除に失敗しました' : language === 'th' ? 'ลบไม่สำเร็จ' : 'Failed to delete' });
     }
   };
 
@@ -192,7 +207,7 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
                   ? handleNewItemChange(newIndex, 'discipline', e.target.value)
                   : handleItemChange(itemId!, 'discipline', e.target.value)
               }
-              className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-brand-500 dark:text-white"
+              className="w-full px-1 py-1 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:text-white"
             >
               {DISCIPLINE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.labels[language]}</option>
@@ -211,7 +226,7 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
                   ? handleNewItemChange(newIndex, 'work_type', e.target.value)
                   : handleItemChange(itemId!, 'work_type', e.target.value)
               }
-              className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-brand-500 dark:text-white"
+              className="w-full px-1 py-1 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 dark:text-white"
             >
               {WORK_TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.labels[language]}</option>
@@ -315,7 +330,7 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
         </div>
 
         <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[800px]">
             <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
               <tr>
                 {COLUMN_HEADERS[language].map((header, i) => (

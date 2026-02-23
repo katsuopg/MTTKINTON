@@ -1,11 +1,30 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { KintoneClient } from '@/lib/kintone/client';
-import { PORecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
+import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
+import { detailStyles, getStatusBadgeClass } from '@/components/ui/DetailStyles';
+import { tableStyles } from '@/components/ui/TableStyles';
+
+interface SupabasePOLineItem {
+  id: string;
+  po_record_id: string;
+  kintone_row_id: string | null;
+  item_no: string | null;
+  description: string | null;
+  quantity: number | null;
+  unit: string | null;
+  unit_price: number | null;
+  amount: number | null;
+  line_status: string | null;
+  line_payment: string | null;
+  line_date_1: string | null;
+  line_date_2: string | null;
+  notes: string | null;
+  sort_order: number | null;
+}
 
 interface PODetailPageProps {
   params: {
@@ -19,25 +38,43 @@ export default async function PODetailPage({ params: { locale, id } }: PODetailP
 
   // 認証チェック
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     redirect(`/${locale}/auth/login`);
   }
 
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const pageTitle = language === 'ja' ? '発注詳細' : language === 'th' ? 'รายละเอียดใบสั่งซื้อ' : 'PO Details';
-  
-  // kintoneから特定のPOレコードを取得
-  let poRecord: PORecord | null = null;
-  
-  try {
-    const poClient = new KintoneClient(
-      '22', // PO Managementアプリ ID
-      process.env.KINTONE_API_TOKEN_PO!
-    );
-    poRecord = await poClient.getRecord<PORecord>(id);
-  } catch (error) {
-    console.error('Error fetching PO record:', error);
+
+  // SupabaseからPOレコードを取得
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: poData, error: poError } = await supabase
+    .from('po_records')
+    .select('*')
+    .eq('kintone_record_id', id)
+    .single();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const poRecord = poData as any;
+
+  if (poError) {
+    console.error('Error fetching PO record:', poError);
+  }
+
+  // 明細行を取得
+  let lineItems: SupabasePOLineItem[] = [];
+  if (poRecord) {
+    const { data: lines, error: lineError } = await supabase
+      .from('po_line_items')
+      .select('*')
+      .eq('po_record_id', poRecord.id)
+      .order('sort_order', { ascending: true });
+
+    if (lineError) {
+      console.error('Error fetching line items:', lineError);
+    } else {
+      lineItems = (lines || []) as SupabasePOLineItem[];
+    }
   }
 
   const userInfo = await getCurrentUserInfo();
@@ -48,8 +85,8 @@ export default async function PODetailPage({ params: { locale, id } }: PODetailP
         <div className="p-6">
           <div className="text-center py-8">
             <p className="text-gray-500">
-              {language === 'ja' ? 'データが見つかりません' : 
-               language === 'th' ? 'ไม่พบข้อมูล' : 
+              {language === 'ja' ? 'データが見つかりません' :
+               language === 'th' ? 'ไม่พบข้อมูล' :
                'Data not found'}
             </p>
           </div>
@@ -59,225 +96,231 @@ export default async function PODetailPage({ params: { locale, id } }: PODetailP
   }
 
   // 納期チェック
-  const deliveryDate = poRecord.日付_0?.value ? new Date(poRecord.日付_0.value) : null;
+  const deliveryDate = poRecord.delivery_date ? new Date(poRecord.delivery_date) : null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const isOverdue = deliveryDate && deliveryDate < today;
-  
+
   // 納品済みチェック
-  const isDelivered = poRecord.ドロップダウン_1?.value === 'Delivered' || 
-                    poRecord.ドロップダウン_1?.value === '納品済み' ||
-                    poRecord.ドロップダウン_1?.value === 'Arrived';
+  const isDelivered = poRecord.po_status === 'Delivered' ||
+                    poRecord.po_status === '納品済み' ||
+                    poRecord.po_status === 'Arrived';
+
+  // タイトル構築
+  const titleParts = [
+    poRecord.po_no,
+    poRecord.work_no,
+    poRecord.supplier_name,
+    poRecord.subject,
+  ].filter(Boolean);
+  const headerTitle = titleParts.join(' - ') || '-';
+
+  // 承認ステータスバッジ
+  const getApprovalBadgeClass = (status: string) => {
+    if (status === 'Approval' || status === 'Approved') return getStatusBadgeClass('Working');
+    if (status === 'Checking Boss' || status === 'UnProcess') return getStatusBadgeClass('Processing');
+    if (status === 'Cancelled' || status === 'キャンセル') return getStatusBadgeClass('Cancelled');
+    return getStatusBadgeClass('');
+  };
 
   return (
     <DashboardLayout locale={locale} userEmail={user.email} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
-      <div className="p-4 h-full overflow-hidden">
-        {/* ヘッダー部分 */}
-        <div className="mb-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <h2 className="text-xl font-bold text-gray-900">
-              {poRecord.文字列__1行__1?.value || '-'}
-            </h2>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-              poRecord.ステータス.value === 'Approval' || poRecord.ステータス.value === 'Approved'
-                ? 'bg-green-100 text-green-800'
-                : poRecord.ステータス.value === 'Checking Boss' || poRecord.ステータス.value === 'UnProcess' 
-                ? 'bg-yellow-100 text-yellow-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}>
-              {poRecord.ステータス.value}
+      <div className={detailStyles.pageWrapper}>
+        <DetailPageHeader
+          backHref={`/${locale}/po-management`}
+          title={headerTitle}
+          statusBadge={
+            <span className={getApprovalBadgeClass(poRecord.approval_status || '')}>
+              {poRecord.approval_status || '-'}
             </span>
-            {isDelivered && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {poRecord.ドロップダウン_1?.value}
-              </span>
-            )}
-            <span className="text-sm text-gray-600">
-              {language === 'ja' ? '発注日' : language === 'th' ? 'วันที่สั่งซื้อ' : 'PO Date'}: {poRecord.日付?.value || '-'}
-            </span>
-            <span className={`text-sm ${isOverdue && !isDelivered ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
-              {language === 'ja' ? '納期' : language === 'th' ? 'กำหนดส่ง' : 'Due Date'}: {poRecord.日付_0?.value || '-'}
-              {isOverdue && !isDelivered && ' ⚠️'}
-            </span>
-          </div>
-          <Link 
-            href={`/${locale}/po-management`}
-            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            {language === 'ja' ? '一覧に戻る' : language === 'th' ? 'กลับไปยังรายการ' : 'Back to List'}
-          </Link>
-        </div>
+          }
+        />
 
-        {/* 基本情報と明細を一つのカードに統合 */}
-        <div className="bg-white shadow rounded-lg">
+        {/* カード: 基本情報 + 追加情報 + 明細 + 金額 */}
+        <div className={detailStyles.card}>
           {/* 基本情報 */}
-          <div className="p-4 border-b">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">
+          <div className={detailStyles.cardHeader}>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
               {language === 'ja' ? '基本情報' : language === 'th' ? 'ข้อมูลพื้นฐาน' : 'Basic Information'}
             </h3>
-            <div className="grid grid-cols-4 gap-4">
+          </div>
+          <div className={detailStyles.cardContent}>
+            <div className={detailStyles.grid4}>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? '工事番号' : 'Work No.'}</label>
-                <div className="text-sm mt-1">
-                  {poRecord.ルックアップ?.value ? (
-                    <Link 
-                      href={`/${locale}/workno`}
-                      className="text-indigo-600 hover:text-indigo-900 underline"
-                    >
-                      {poRecord.ルックアップ.value}
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '工事番号' : 'Work No.'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>
+                  {poRecord.work_no ? (
+                    <Link href={`/${locale}/workno/${poRecord.work_no}`} className="text-brand-500 hover:text-brand-600 underline">
+                      {poRecord.work_no}
                     </Link>
                   ) : '-'}
                 </div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">CS ID</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.文字列__1行__2?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>CS ID</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.cs_id || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? 'サプライヤー' : 'Supplier'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.ルックアップ_1?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? 'サプライヤー' : 'Supplier'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.supplier_name || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? '支払条件' : 'Payment Terms'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.ドロップダウン_0?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '支払条件' : 'Payment Terms'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.payment_term || '-'}</div>
+              </div>
+              <div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '発注日' : 'PO Date'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.po_date || '-'}</div>
+              </div>
+              <div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '納期' : 'Delivery Date'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1 ${isOverdue && !isDelivered ? 'text-error-600 font-medium' : ''}`}>
+                  {poRecord.delivery_date || '-'}
+                  {isOverdue && !isDelivered && ' ⚠️'}
+                </div>
+              </div>
+              <div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? 'POステータス' : 'PO Status'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>
+                  {poRecord.po_status ? (
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-theme-xs font-medium ${
+                      isDelivered ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400' : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400'
+                    }`}>
+                      {poRecord.po_status}
+                    </span>
+                  ) : '-'}
+                </div>
+              </div>
+              <div>
+                <div className={detailStyles.fieldLabel}>QT No.</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.qt_no || '-'}</div>
               </div>
             </div>
           </div>
 
           {/* 追加情報 */}
-          <div className="p-4 border-b">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">
+          <div className={detailStyles.cardHeaderWithBg}>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
               {language === 'ja' ? '追加情報' : language === 'th' ? 'ข้อมูลเพิ่มเติม' : 'Additional Information'}
             </h3>
-            <div className="grid grid-cols-4 gap-4">
+          </div>
+          <div className={detailStyles.cardContent}>
+            <div className={detailStyles.grid4}>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? '到着日' : 'Arrival date'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.日付_1?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '到着日' : 'Arrival date'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.date_1 || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? '支払日' : 'Payment date'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.日付_2?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '支払日' : 'Payment date'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.date_2 || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? 'データ' : 'Data'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.ドロップダウン_4?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? 'データ' : 'Data'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.data_status || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? '請求書日' : 'Invoice Date'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.日付_5?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '請求書日' : 'Invoice Date'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.date_5 || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? '開始日' : 'Start in date'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.日付_6?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '開始日' : 'Start in date'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.date_6 || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">{language === 'ja' ? '終了日' : 'Finish in date'}</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.日付_7?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '終了日' : 'Finish in date'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.date_7 || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">QT No.</label>
-                <div className="text-sm mt-1 text-gray-900">{poRecord.文字列__1行__3?.value || '-'}</div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '担当者' : 'Requester'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.requester || '-'}</div>
               </div>
               <div>
-                <label className="text-xs text-gray-500">QT file</label>
-                <div className="text-sm mt-1">
-                  {poRecord.添付ファイル?.value && poRecord.添付ファイル.value.length > 0 ? (
-                    <a 
-                      href={poRecord.添付ファイル.value[0].fileKey} 
-                      className="text-indigo-600 hover:text-indigo-900 underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {poRecord.添付ファイル.value[0].name}
-                    </a>
-                  ) : '-'}
-                </div>
+                <div className={detailStyles.fieldLabel}>{language === 'ja' ? '転送先' : 'Forward'}</div>
+                <div className={`${detailStyles.fieldValue} mt-1`}>{poRecord.forward || '-'}</div>
               </div>
             </div>
           </div>
 
           {/* 明細項目 */}
-          <div className="px-4 py-3 border-b">
-            <h3 className="text-sm font-medium text-gray-900">
+          <div className={detailStyles.cardHeaderWithBg}>
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
               {language === 'ja' ? '明細項目' : language === 'th' ? 'รายการสินค้า' : 'Line Items'}
             </h3>
           </div>
-          
-          {poRecord.Table?.value && poRecord.Table.value.length > 0 && (
-            <div>
-              <table className="min-w-full">
-                <thead className="bg-gray-50 sticky top-0">
+
+          {lineItems.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className={tableStyles.table}>
+                <thead className={tableStyles.thead}>
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NO</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{language === 'ja' ? '説明' : 'Description'}</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{language === 'ja' ? '数量' : 'QTY'}</th>
-                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{language === 'ja' ? '単位' : 'Unit'}</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{language === 'ja' ? '単価' : 'Unit Price'}</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{language === 'ja' ? '金額' : 'Amount'}</th>
+                    <th className={tableStyles.th}>NO</th>
+                    <th className={tableStyles.th}>{language === 'ja' ? '説明' : 'Description'}</th>
+                    <th className={`${tableStyles.th} text-right`}>{language === 'ja' ? '数量' : 'QTY'}</th>
+                    <th className={`${tableStyles.th} text-center`}>{language === 'ja' ? '単位' : 'Unit'}</th>
+                    <th className={`${tableStyles.th} text-right`}>{language === 'ja' ? '単価' : 'Unit Price'}</th>
+                    <th className={`${tableStyles.th} text-right`}>{language === 'ja' ? '金額' : 'Amount'}</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white">
-                  {poRecord.Table.value.map((item, index) => (
-                    <tr key={item.id} className="hover:bg-gray-50 border-b border-gray-200">
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                        {item.value.文字列__1行_?.value || index + 1}
+                <tbody className={tableStyles.tbody}>
+                  {lineItems.map((item, index) => (
+                    <tr key={item.id} className={tableStyles.tr}>
+                      <td className={tableStyles.td}>
+                        {item.item_no || index + 1}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {item.value.文字列__1行__0?.value || '-'}
+                      <td className={tableStyles.td}>
+                        {item.description || '-'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                        {item.value.QTY?.value || '-'}
+                      <td className={`${tableStyles.td} text-right`}>
+                        {item.quantity != null ? item.quantity : '-'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center">
-                        {item.value.ドロップダウン?.value || '-'}
+                      <td className={`${tableStyles.td} text-center`}>
+                        {item.unit || '-'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right">
-                        {item.value.unit_price?.value ? `${parseFloat(item.value.unit_price.value).toLocaleString()}` : '-'}
+                      <td className={`${tableStyles.td} text-right`}>
+                        {item.unit_price != null ? item.unit_price.toLocaleString() : '-'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                        {item.value.total?.value ? `${parseFloat(item.value.total.value).toLocaleString()}` : '-'}
+                      <td className={`${tableStyles.td} text-right font-medium`}>
+                        {item.amount != null ? item.amount.toLocaleString() : '-'}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
-          
-          {poRecord.Table?.value && poRecord.Table.value.length === 0 && (
+          ) : (
             <div className="p-8 text-center">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {language === 'ja' ? '明細なし' : 'No items'}
               </div>
             </div>
           )}
-          
+
           {/* 金額フッター */}
-          <div className="bg-gray-50 border-t px-4 py-3">
+          <div className="border-t border-gray-100 dark:border-gray-800 px-5 py-4">
             <div className="flex justify-end">
-              <div className="space-y-2">
+              <div className="space-y-2 w-64">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500 mr-8">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {language === 'ja' ? '小計' : 'Subtotal'}
                   </span>
-                  <span className="text-sm text-gray-900 font-medium text-right">
-                    {poRecord.subtotal?.value ? `${parseFloat(poRecord.subtotal.value).toLocaleString()} THB` : '0 THB'}
+                  <span className="text-sm text-gray-800 dark:text-white/90 font-medium">
+                    {poRecord.subtotal != null ? `${poRecord.subtotal.toLocaleString()} THB` : '0 THB'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500 mr-8">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {language === 'ja' ? '割引' : 'Discount'}
                   </span>
-                  <span className="text-sm text-gray-900 font-medium text-right">
-                    {poRecord.discount?.value ? `${parseFloat(poRecord.discount.value).toLocaleString()} THB` : '0 THB'}
+                  <span className="text-sm text-gray-800 dark:text-white/90 font-medium">
+                    {poRecord.discount != null ? `${poRecord.discount.toLocaleString()} THB` : '0 THB'}
                   </span>
                 </div>
-                <div className="flex items-center justify-between border-t pt-2">
-                  <span className="text-sm font-medium text-gray-900 mr-8">
+                <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-2">
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">
                     {language === 'ja' ? '合計' : 'Total'}
                   </span>
-                  <span className="text-sm font-bold text-gray-900 text-right">
-                    {poRecord.grand_total?.value ? `${parseFloat(poRecord.grand_total.value).toLocaleString()} THB` : '0 THB'}
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">
+                    {poRecord.grand_total != null ? `${poRecord.grand_total.toLocaleString()} THB` : '0 THB'}
                   </span>
                 </div>
               </div>

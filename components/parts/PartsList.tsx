@@ -4,6 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, Download, Upload, FolderPlus, Save, X } from 'lucide-react';
 import Tabs, { TabPanel } from '@/components/ui/Tabs';
 import type { PartCategory, PartSection, PartListItem, PartCategoryCode, PART_CATEGORY_LABELS } from '@/types/parts';
+import { useToast } from '@/components/ui/Toast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface PartsListProps {
   projectCode: string;
@@ -65,6 +67,8 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
 };
 
 export default function PartsList({ projectCode, locale }: PartsListProps) {
+  const { toast } = useToast();
+  const { confirmDialog } = useConfirmDialog();
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
 
   const [categories, setCategories] = useState<PartCategory[]>([]);
@@ -232,8 +236,10 @@ export default function PartsList({ projectCode, locale }: PartsListProps) {
       setEditingItems(new Map());
       setHasChanges(false);
       await fetchData();
+      toast({ type: 'success', title: UI_LABELS[language].save + ' OK' });
     } catch (error) {
       console.error('Error saving:', error);
+      toast({ type: 'error', title: language === 'ja' ? '保存に失敗しました' : language === 'th' ? 'บันทึกไม่สำเร็จ' : 'Failed to save' });
     } finally {
       setSaving(false);
     }
@@ -242,7 +248,14 @@ export default function PartsList({ projectCode, locale }: PartsListProps) {
   // 削除
   const handleDelete = async () => {
     if (selectedItems.size === 0) return;
-    if (!confirm(UI_LABELS[language].confirmDelete)) return;
+    const confirmed = await confirmDialog({
+      title: language === 'ja' ? '削除確認' : language === 'th' ? 'ยืนยันการลบ' : 'Confirm Delete',
+      message: UI_LABELS[language].confirmDelete,
+      variant: 'danger',
+      confirmLabel: language === 'ja' ? '削除' : language === 'th' ? 'ลบ' : 'Delete',
+      cancelLabel: language === 'ja' ? 'キャンセル' : language === 'th' ? 'ยกเลิก' : 'Cancel',
+    });
+    if (!confirmed) return;
 
     try {
       const ids = Array.from(selectedItems).join(',');
@@ -251,8 +264,10 @@ export default function PartsList({ projectCode, locale }: PartsListProps) {
 
       setSelectedItems(new Set());
       await fetchData();
+      toast({ type: 'success', title: language === 'ja' ? '削除しました' : language === 'th' ? 'ลบสำเร็จ' : 'Deleted' });
     } catch (error) {
       console.error('Error deleting:', error);
+      toast({ type: 'error', title: language === 'ja' ? '削除に失敗しました' : language === 'th' ? 'ลบไม่สำเร็จ' : 'Failed to delete' });
     }
   };
 

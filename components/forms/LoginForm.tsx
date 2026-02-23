@@ -7,20 +7,36 @@ import { z } from 'zod';
 import { login } from '@/lib/auth/actions';
 import { Loader2 } from 'lucide-react';
 
-const loginSchema = z.object({
-  identifier: z.string().min(1, '従業員番号を入力してください'),
-  password: z.string().min(6, 'パスワードは6文字以上で入力してください'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-
 interface LoginFormProps {
   locale: string;
+  messages: {
+    auth: {
+      login: string;
+      password: string;
+      employeeNumber: string;
+      employeeNumberPlaceholder: string;
+      passwordPlaceholder: string;
+      loggingIn: string;
+      error: {
+        employeeNumberRequired: string;
+        passwordMin: string;
+        generic: string;
+      };
+    };
+  };
 }
 
-export function LoginForm({ locale }: LoginFormProps) {
+export function LoginForm({ locale, messages }: LoginFormProps) {
+  const t = messages.auth;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loginSchema = z.object({
+    identifier: z.string().min(1, t.error.employeeNumberRequired),
+    password: z.string().min(6, t.error.passwordMin),
+  });
+
+  type LoginFormData = z.infer<typeof loginSchema>;
 
   const {
     register,
@@ -36,12 +52,11 @@ export function LoginForm({ locale }: LoginFormProps) {
 
     try {
       await login(data.identifier, data.password);
-      // サーバーアクションでリダイレクトが実行される
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('ログインに失敗しました。もう一度お試しください。');
+        setError(t.error.generic);
       }
     } finally {
       setIsLoading(false);
@@ -55,7 +70,7 @@ export function LoginForm({ locale }: LoginFormProps) {
           htmlFor="identifier"
           className="block text-sm font-medium text-gray-700"
         >
-          従業員番号
+          {t.employeeNumber}
         </label>
         <div className="mt-1">
           <input
@@ -66,8 +81,8 @@ export function LoginForm({ locale }: LoginFormProps) {
             autoComplete="username"
             required
             className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono"
-            placeholder="MTT00000"
-            suppressHydrationWarning={true}
+            placeholder={t.employeeNumberPlaceholder}
+            suppressHydrationWarning
           />
           {errors.identifier && (
             <p className="mt-2 text-sm text-red-600">
@@ -82,7 +97,7 @@ export function LoginForm({ locale }: LoginFormProps) {
           htmlFor="password"
           className="block text-sm font-medium text-gray-700"
         >
-          パスワード
+          {t.password}
         </label>
         <div className="mt-1">
           <input
@@ -93,8 +108,8 @@ export function LoginForm({ locale }: LoginFormProps) {
             autoComplete="current-password"
             required
             className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            placeholder="パスワード"
-            suppressHydrationWarning={true}
+            placeholder={t.passwordPlaceholder}
+            suppressHydrationWarning
           />
           {errors.password && (
             <p className="mt-2 text-sm text-red-600">
@@ -119,10 +134,10 @@ export function LoginForm({ locale }: LoginFormProps) {
           {isLoading ? (
             <>
               <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
-              ログイン中...
+              {t.loggingIn}
             </>
           ) : (
-            'ログイン'
+            t.login
           )}
         </button>
       </div>

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Database } from '@/types/supabase';
 import { type Language } from '@/lib/kintone/field-mappings';
-import Link from 'next/link';
 import { detailStyles } from '@/components/ui/DetailStyles';
+import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
+import Tabs, { TabPanel } from '@/components/ui/Tabs';
+import { Pencil, Save, X, Upload } from 'lucide-react';
 
 type Employee = Database['public']['Tables']['employees']['Row'];
 
@@ -95,6 +97,38 @@ export default function EmployeeDetailContent({
 
   const [uploadingType, setUploadingType] = useState<string | null>(null);
   const [activeDocTab, setActiveDocTab] = useState<'idCard' | 'license' | 'passport' | 'visa'>('idCard');
+
+  // 所属組織
+  const [orgNames, setOrgNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchOrgs = async () => {
+      try {
+        const res = await fetch('/api/organization-members');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.members) return;
+
+        // この従業員の所属組織をフィルタ
+        const myOrgs = data.members.filter(
+          (m: { employee_uuid: string | null }) => m.employee_uuid === employee.id
+        );
+
+        const names = myOrgs.map((m: { organizations: { name: string; name_en?: string; name_th?: string } | null }) => {
+          const org = m.organizations;
+          if (!org) return '';
+          if (language === 'en' && org.name_en) return org.name_en;
+          if (language === 'th' && org.name_th) return org.name_th;
+          return org.name;
+        }).filter(Boolean);
+
+        setOrgNames(names);
+      } catch (err) {
+        console.error('Error fetching org memberships:', err);
+      }
+    };
+    fetchOrgs();
+  }, [employee.id, language]);
 
   // Get employee data
   const isActive = employee.status === '在籍' || employee.status === 'Active';
@@ -420,9 +454,7 @@ export default function EmployeeDetailContent({
           disabled={uploadingType === type}
           className="inline-flex items-center gap-2 px-3 py-1.5 text-theme-xs font-medium text-brand-600 bg-brand-50 rounded-lg hover:bg-brand-100 dark:bg-brand-500/15 dark:text-brand-400 disabled:opacity-50"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-          </svg>
+          <Upload size={16} />
           {uploadingType === type ? t.uploading : t.uploadFile}
         </button>
         <input
@@ -476,100 +508,101 @@ export default function EmployeeDetailContent({
   );
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      {/* Profile Header Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="p-5 lg:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
-            {/* Left: Avatar and Info */}
-            <div className="flex items-center gap-4">
-              {employee.profile_image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={employee.profile_image_url}
-                  alt={formData.name || ''}
-                  className="w-20 h-20 rounded-full object-cover"
+    <div className={detailStyles.pageWrapper}>
+      {/* DetailPageHeader: 1行構成 */}
+      <DetailPageHeader
+        backHref={`/${locale}/employees`}
+        title={[
+          employee.employee_number,
+          formData.name,
+          formData.department,
+        ].filter(Boolean).join(' - ')}
+        statusBadge={
+          <span className={`${detailStyles.badge} ${
+            isActive ? detailStyles.badgeSuccess
+              : isResigned ? detailStyles.badgeDanger
+              : detailStyles.badgeWarning
+          }`}>
+            {isActive ? t.active : isResigned ? t.resigned : (employee.status || t.active)}
+          </span>
+        }
+        actions={
+          isEditing ? (
+            <>
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={isSaving}
+                className={detailStyles.secondaryButton}
+              >
+                <X size={16} className="mr-1.5" />
+                {t.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`${detailStyles.primaryButton} ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Save size={16} className="mr-1.5" />
+                {isSaving ? t.saving : t.save}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className={detailStyles.secondaryButton}
+            >
+              <Pencil size={16} className="mr-1.5" />
+              {t.edit}
+            </button>
+          )
+        }
+      />
+
+      {/* Profile Card */}
+      <div className={detailStyles.card}>
+        <div className={detailStyles.cardContent}>
+          <div className="flex items-center gap-4">
+            {employee.profile_image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={employee.profile_image_url}
+                alt={formData.name || ''}
+                className="w-20 h-20 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-brand-500 flex items-center justify-center text-white text-2xl font-bold">
+                {formData.name?.charAt(0) || '?'}
+              </div>
+            )}
+            <div>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-b border-brand-500 focus:outline-none"
                 />
               ) : (
-                <div className="w-20 h-20 rounded-full bg-brand-500 flex items-center justify-center text-white text-2xl font-bold">
-                  {formData.name?.charAt(0) || '?'}
-                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {formData.name || '-'}
+                  {employee.name_th && (
+                    <span className="ml-2 text-lg font-normal text-gray-500 dark:text-gray-400">
+                      ({employee.name_th})
+                    </span>
+                  )}
+                </h2>
               )}
-              <div>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="text-2xl font-bold text-gray-900 dark:text-white bg-transparent border-b border-brand-500 focus:outline-none"
-                  />
-                ) : (
-                  <h1 className={detailStyles.pageTitle}>
-                    {formData.name || '-'}
-                    {employee.name_th && (
-                      <span className="ml-2 text-lg font-normal text-gray-500 dark:text-gray-400">
-                        ({employee.name_th})
-                      </span>
-                    )}
-                  </h1>
-                )}
-                <div className="flex items-center gap-3 mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
-                  <span className="font-mono">{employee.employee_number}</span>
-                  <span className="text-gray-300 dark:text-gray-600">|</span>
-                  <span>{formData.position || '-'}</span>
-                  <span className="text-gray-300 dark:text-gray-600">|</span>
-                  <span>{formData.department || '-'}</span>
-                </div>
-                <span className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  isActive ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
-                    : isResigned ? 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-500'
-                    : 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
-                }`}>
-                  {isActive ? t.active : isResigned ? t.resigned : (employee.status || t.active)}
-                </span>
+              <div className="flex items-center gap-3 mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
+                <span className="font-mono">{employee.employee_number}</span>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <span>{formData.position || '-'}</span>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <span>{formData.department || '-'}</span>
               </div>
-            </div>
-
-            {/* Right: Actions */}
-            <div className="flex items-center gap-3">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-theme-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 disabled:opacity-50"
-                  >
-                    {isSaving ? t.saving : t.save}
-                  </button>
-                  <button
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                    className="inline-flex items-center gap-2 px-4 py-2 text-theme-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
-                  >
-                    {t.cancel}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-theme-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  {t.edit}
-                </button>
-              )}
-              <Link
-                href={`/${locale}/employees`}
-                className="inline-flex items-center gap-2 px-4 py-2 text-theme-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                {t.backToList}
-              </Link>
             </div>
           </div>
         </div>
@@ -587,11 +620,11 @@ export default function EmployeeDetailContent({
       )}
 
       {/* Basic Information Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.basicInfo}</h2>
+      <div className={detailStyles.card}>
+        <div className={detailStyles.cardHeaderWithBg}>
+          <h2 className={detailStyles.cardTitle}>{t.basicInfo}</h2>
         </div>
-        <div className="p-5 lg:p-6">
+        <div className={detailStyles.cardContent}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Gender Select */}
             <div>
@@ -613,7 +646,32 @@ export default function EmployeeDetailContent({
                 </p>
               )}
             </div>
-            {renderField(t.department, 'department', formData.department)}
+            {/* 配属：組織メンバーシップから取得、フォールバックでdepartmentフィールド */}
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t.department}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              ) : orgNames.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {orgNames.map((name, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+                    >
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-800 dark:text-white/90">{formData.department || '-'}</p>
+              )}
+            </div>
             {renderField(t.position, 'position', formData.position)}
             {renderField(t.birthDate, 'date_of_birth', formData.date_of_birth, 'date')}
             {renderField(t.hireDate, 'hire_date', formData.hire_date, 'date')}
@@ -625,11 +683,11 @@ export default function EmployeeDetailContent({
       </div>
 
       {/* Contact Information Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.contactInfo}</h2>
+      <div className={detailStyles.card}>
+        <div className={detailStyles.cardHeaderWithBg}>
+          <h2 className={detailStyles.cardTitle}>{t.contactInfo}</h2>
         </div>
-        <div className="p-5 lg:p-6">
+        <div className={detailStyles.cardContent}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {renderField(t.phone, 'tel', formData.tel, 'tel')}
             {renderField(t.email, 'email', formData.email, 'email')}
@@ -652,59 +710,28 @@ export default function EmployeeDetailContent({
       </div>
 
       {/* Identity Documents Card with Tabs */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{language === 'ja' ? '身分証明書類' : language === 'th' ? 'เอกสารประจำตัว' : 'Identity Documents'}</h2>
+      <div className={detailStyles.card}>
+        <div className={detailStyles.cardHeaderWithBg}>
+          <h2 className={detailStyles.cardTitle}>{language === 'ja' ? '身分証明書類' : language === 'th' ? 'เอกสารประจำตัว' : 'Identity Documents'}</h2>
         </div>
-        <div className="p-5 lg:p-6 space-y-4">
-          {/* Tabs */}
-          <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setActiveDocTab('idCard')}
-              className={`px-4 py-2 text-theme-sm font-medium border-b-2 transition-colors ${
-                activeDocTab === 'idCard'
-                  ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              {t.nationalIdCard}
-            </button>
-            <button
-              onClick={() => setActiveDocTab('license')}
-              className={`px-4 py-2 text-theme-sm font-medium border-b-2 transition-colors ${
-                activeDocTab === 'license'
-                  ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              {t.licenseInfo}
-            </button>
-            <button
-              onClick={() => setActiveDocTab('passport')}
-              className={`px-4 py-2 text-theme-sm font-medium border-b-2 transition-colors ${
-                activeDocTab === 'passport'
-                  ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              {t.documentInfo}
-            </button>
-            <button
-              onClick={() => setActiveDocTab('visa')}
-              className={`px-4 py-2 text-theme-sm font-medium border-b-2 transition-colors ${
-                activeDocTab === 'visa'
-                  ? 'border-brand-500 text-brand-600 dark:text-brand-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              {t.visaInfo}
-            </button>
-          </div>
+        <div className={detailStyles.cardContent}>
+          <Tabs
+            variant="underline"
+            activeTab={activeDocTab}
+            onTabChange={(key) => setActiveDocTab(key as 'idCard' | 'license' | 'passport' | 'visa')}
+            tabs={[
+              { key: 'idCard', label: t.nationalIdCard },
+              { key: 'license', label: t.licenseInfo },
+              { key: 'passport', label: t.documentInfo },
+              { key: 'visa', label: t.visaInfo },
+            ]}
+            className="mb-4"
+          />
 
           {/* Tab Content */}
           <div className="pt-2">
             {/* National ID Tab */}
-            {activeDocTab === 'idCard' && (
+            <TabPanel value="idCard" activeValue={activeDocTab}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
@@ -729,10 +756,10 @@ export default function EmployeeDetailContent({
                 </div>
                 <FileUploadSection label={t.idCardImage} type="idCard" fileRef={idCardFileRef} files={uploadedFiles.idCard} />
               </div>
-            )}
+            </TabPanel>
 
             {/* Driver's License Tab */}
-            {activeDocTab === 'license' && (
+            <TabPanel value="license" activeValue={activeDocTab}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   {isEditing ? (
@@ -764,10 +791,10 @@ export default function EmployeeDetailContent({
                 </div>
                 <FileUploadSection label={t.licenseImage} type="license" fileRef={licenseFileRef} files={uploadedFiles.license} />
               </div>
-            )}
+            </TabPanel>
 
             {/* Passport Tab */}
-            {activeDocTab === 'passport' && (
+            <TabPanel value="passport" activeValue={activeDocTab}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   {isEditing ? (
@@ -799,10 +826,10 @@ export default function EmployeeDetailContent({
                 </div>
                 <FileUploadSection label={t.passportImage} type="passport" fileRef={passportFileRef} files={uploadedFiles.passport} />
               </div>
-            )}
+            </TabPanel>
 
             {/* Visa Tab */}
-            {activeDocTab === 'visa' && (
+            <TabPanel value="visa" activeValue={activeDocTab}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   {isEditing ? (
@@ -846,17 +873,17 @@ export default function EmployeeDetailContent({
                 </div>
                 <FileUploadSection label={t.visaImage} type="visa" fileRef={visaFileRef} files={uploadedFiles.visa} />
               </div>
-            )}
+            </TabPanel>
           </div>
         </div>
       </div>
 
       {/* Documents Upload Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.documents}</h2>
+      <div className={detailStyles.card}>
+        <div className={detailStyles.cardHeaderWithBg}>
+          <h2 className={detailStyles.cardTitle}>{t.documents}</h2>
         </div>
-        <div className="p-5 lg:p-6">
+        <div className={detailStyles.cardContent}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FileUploadSection label={t.contract} type="contract" fileRef={contractFileRef} files={uploadedFiles.contract} />
             <FileUploadSection label={t.resume} type="resume" fileRef={resumeFileRef} files={uploadedFiles.resume} />
@@ -865,11 +892,11 @@ export default function EmployeeDetailContent({
       </div>
 
       {/* Emergency Contact Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">{t.emergencyContact}</h2>
+      <div className={detailStyles.card}>
+        <div className={detailStyles.cardHeaderWithBg}>
+          <h2 className={detailStyles.cardTitle}>{t.emergencyContact}</h2>
         </div>
-        <div className="p-5 lg:p-6">
+        <div className={detailStyles.cardContent}>
           <div className="p-4 rounded-lg bg-error-50 dark:bg-error-500/10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {renderField(t.emergencyName, 'emergency_contact_name', formData.emergency_contact_name)}

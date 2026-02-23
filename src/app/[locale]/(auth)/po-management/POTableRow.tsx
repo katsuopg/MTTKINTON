@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { PORecord } from '@/types/kintone';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
+import type { SupabasePORecord } from './POManagementContent';
 
 interface POTableRowProps {
-  record: PORecord;
+  record: SupabasePORecord;
   locale: string;
   language: Language;
   isDelivered: boolean;
@@ -16,11 +16,11 @@ interface POTableRowProps {
 
 export default function POTableRow({ record, locale, language, isDelivered, isOverdue }: POTableRowProps) {
   const router = useRouter();
-  const hasNoPO = !record.文字列__1行__1?.value;
+  const hasNoPO = !record.po_no;
 
   const handleRowClick = () => {
     if (hasNoPO) {
-      router.push(`/${locale}/po-management/${record.$id.value}`);
+      router.push(`/${locale}/po-management/${record.kintone_record_id}`);
     }
   };
 
@@ -34,82 +34,82 @@ export default function POTableRow({ record, locale, language, isDelivered, isOv
       onClick={hasNoPO ? handleRowClick : undefined}
     >
       <td className={tableStyles.td}>
-        {record.ステータス?.value && (
+        {record.approval_status && (
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-theme-xs font-medium ${
-            record.ステータス.value === 'Approval' || record.ステータス.value === 'Approved'
+            record.approval_status === 'Approval' || record.approval_status === 'Approved'
               ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
-              : record.ステータス.value === 'Checking Boss' || record.ステータス.value === 'UnProcess'
+              : record.approval_status === 'Checking Boss' || record.approval_status === 'UnProcess'
               ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
-              : record.ステータス.value === 'Cancelled' || record.ステータス.value === 'キャンセル'
+              : record.approval_status === 'Cancelled' || record.approval_status === 'キャンセル'
               ? 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-500'
               : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400'
           }`}>
-            {record.ステータス.value}
+            {record.approval_status}
           </span>
         )}
       </td>
       <td className={tableStyles.td}>
-        {(record.ドロップダウン_1?.value === 'Arrived' ||
-          record.ドロップダウン_1?.value === 'Delivered' ||
-          record.ドロップダウン_1?.value === '納品済み') && (
+        {(record.po_status === 'Arrived' ||
+          record.po_status === 'Delivered' ||
+          record.po_status === '納品済み') && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-theme-xs font-medium bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400">
-            {record.ドロップダウン_1.value}
+            {record.po_status}
           </span>
         )}
       </td>
       <td className={tableStyles.td}>
-        {record.文字列__1行__1?.value ? (
+        {record.po_no ? (
           <Link
-            href={`/${locale}/po-management/${record.$id.value}`}
+            href={`/${locale}/po-management/${record.kintone_record_id}`}
             className={tableStyles.tdLink}
             onClick={(e) => e.stopPropagation()}
           >
-            {record.文字列__1行__1.value}
+            {record.po_no}
           </Link>
         ) : '-'}
       </td>
       <td className={tableStyles.td}>
-        {record.ルックアップ?.value ? (
+        {record.work_no ? (
           <Link
-            href={`/${locale}/workno/${record.ルックアップ.value}`}
+            href={`/${locale}/workno/${record.work_no}`}
             className={tableStyles.tdLink}
             onClick={(e) => e.stopPropagation()}
           >
-            {record.ルックアップ.value}
+            {record.work_no}
           </Link>
         ) : '-'}
       </td>
       <td className={tableStyles.td}>
-        {record.ルックアップ_1?.value ? (
+        {record.supplier_name ? (
           <Link
-            href={`/${locale}/suppliers?search=${encodeURIComponent(record.ルックアップ_1.value)}`}
+            href={`/${locale}/suppliers?search=${encodeURIComponent(record.supplier_name)}`}
             className={tableStyles.tdLink}
             onClick={(e) => e.stopPropagation()}
-            title={record.ルックアップ_1.value}
+            title={record.supplier_name}
           >
-            {record.ルックアップ_1.value.length > 10 ? (
+            {record.supplier_name.length > 10 ? (
               <span>
-                {record.ルックアップ_1.value.substring(0, 10)}...
+                {record.supplier_name.substring(0, 10)}...
               </span>
             ) : (
-              record.ルックアップ_1.value
+              record.supplier_name
             )}
           </Link>
         ) : '-'}
       </td>
       <td className={tableStyles.td}>
-        {record.日付?.value || '-'}
+        {record.po_date || '-'}
       </td>
       <td className={tableStyles.td}>
-        <span className={!record.日付_0?.value ? 'text-error-600 dark:text-error-500 font-medium' : isOverdue && !isDelivered ? 'text-error-600 dark:text-error-500 font-medium' : 'text-gray-800 dark:text-white/90'}>
-          {record.日付_0?.value || '-'}
+        <span className={!record.delivery_date ? 'text-error-600 dark:text-error-500 font-medium' : isOverdue && !isDelivered ? 'text-error-600 dark:text-error-500 font-medium' : 'text-gray-800 dark:text-white/90'}>
+          {record.delivery_date || '-'}
         </span>
-        {(isOverdue && !isDelivered) || !record.日付_0?.value ? (
+        {(isOverdue && !isDelivered) || !record.delivery_date ? (
           <span className="ml-1 text-error-500">⚠️</span>
         ) : null}
       </td>
       <td className={`${tableStyles.td} text-end font-medium text-gray-800 dark:text-white/90`}>
-        {record.grand_total?.value ? `${parseFloat(record.grand_total.value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B` : '-'}
+        {record.grand_total != null ? `${record.grand_total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B` : '-'}
       </td>
     </tr>
   );

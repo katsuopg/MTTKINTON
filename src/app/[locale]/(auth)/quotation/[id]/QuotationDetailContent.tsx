@@ -1,22 +1,19 @@
 'use client';
 
 import { QuotationRecord } from '@/types/kintone';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { detailStyles, getStatusBadgeClass } from '@/components/ui/DetailStyles';
 import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
-import { Edit2 } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import { extractCsName } from '@/lib/utils/customer-name';
 
 interface QuotationDetailContentProps {
   quotation: QuotationRecord;
   locale: string;
-  userEmail: string;
-  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export default function QuotationDetailContent({ quotation, locale, userEmail, userInfo }: QuotationDetailContentProps) {
+export default function QuotationDetailContent({ quotation, locale }: QuotationDetailContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const pageTitle = language === 'ja' ? '見積もり詳細' : language === 'th' ? 'รายละเอียดใบเสนอราคา' : 'Quotation Details';
 
@@ -45,13 +42,10 @@ export default function QuotationDetailContent({ quotation, locale, userEmail, u
   };
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={detailStyles.pageWrapper}>
         <DetailPageHeader
           backHref={`/${locale}/quotation`}
-          backLabel={language === 'ja' ? '一覧に戻る' : 'Back to List'}
           title={quotation.qtno2?.value || 'QT-XXXX'}
-          subtitle={language === 'ja' ? '見積番号' : 'Quotation Number'}
           statusBadge={quotation.ドロップダウン?.value ? (
             <span className={getStatusBadgeClass(quotation.ドロップダウン.value)}>
               {quotation.ドロップダウン.value}
@@ -60,9 +54,9 @@ export default function QuotationDetailContent({ quotation, locale, userEmail, u
           actions={
             <Link
               href={`/${locale}/quotation/${quotation.$id.value}/edit`}
-              className={detailStyles.primaryButton}
+              className={detailStyles.secondaryButton}
             >
-              <Edit2 size={16} className="mr-2" />
+              <Pencil size={16} className="mr-1.5" />
               {language === 'ja' ? '編集' : 'Edit'}
             </Link>
           }
@@ -386,6 +380,5 @@ export default function QuotationDetailContent({ quotation, locale, userEmail, u
           </div>
         )}
       </div>
-    </DashboardLayout>
   );
 }

@@ -3,6 +3,8 @@
 import { ReactNode } from 'react';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { PermissionsProvider } from '@/hooks/usePermissions';
+import { FeedbackProvider } from '@/components/ui/FeedbackProvider';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -18,11 +20,15 @@ export default function AuthLayout({
 }: AuthLayoutProps) {
   return (
     <ThemeProvider>
-      <SidebarProvider>
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-          {children}
-        </div>
-      </SidebarProvider>
+      <PermissionsProvider>
+        <FeedbackProvider>
+          <SidebarProvider>
+            <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+              {children}
+            </div>
+          </SidebarProvider>
+        </FeedbackProvider>
+      </PermissionsProvider>
     </ThemeProvider>
   );
 }

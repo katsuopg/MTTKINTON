@@ -6,6 +6,9 @@ import { type Language } from '@/lib/kintone/field-mappings';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { InvoiceRecord } from '@/types/kintone';
+import { useToast } from '@/components/ui/Toast';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
 
 interface InvoiceManagementClientProps {
   locale: string;
@@ -22,6 +25,7 @@ export default function InvoiceManagementClient({
 }: InvoiceManagementClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   
   console.log('=== InvoiceManagementClient ===');
   console.log('Initial records count:', initialInvoiceRecords?.length || 0);
@@ -44,6 +48,7 @@ export default function InvoiceManagementClient({
       }
     } catch (error) {
       console.error('Error fetching invoice records:', error);
+      toast({ type: 'error', title: language === 'ja' ? 'データの取得に失敗しました' : language === 'th' ? 'ดึงข้อมูลไม่สำเร็จ' : 'Failed to fetch data' });
     }
     setIsLoading(false);
   }, []);
@@ -121,6 +126,8 @@ export default function InvoiceManagementClient({
     ? ' ใบแจ้งหนี้'
     : ' invoices';
 
+  const { paginatedItems: paginatedInvoices, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredInvoices);
+
   // 数値フォーマット
   const formatNumber = (value: string | undefined): string => {
     if (!value) return '-';
@@ -131,35 +138,34 @@ export default function InvoiceManagementClient({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      <ListPageHeader
-        searchValue={searchQuery}
-        onSearchChange={handleSearchChange}
-        searchPlaceholder={searchPlaceholder}
-        totalCount={filteredInvoices.length}
-        countLabel={countLabel}
-        filters={
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
-            </label>
-            <select
-              value={selectedPeriod}
-              onChange={(e) => handlePeriodChange(e.target.value)}
-              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
-            >
-              <option value="">{language === 'ja' ? '全期間' : 'All Periods'}</option>
-              {availablePeriods().map((period) => (
-                <option key={period} value={period}>
-                  {period}
-                </option>
-              ))}
-            </select>
-          </div>
-        }
-      />
-
       {/* テーブル表示 */}
       <div className={tableStyles.tableContainer}>
+        <ListPageHeader
+          searchValue={searchQuery}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder={searchPlaceholder}
+          totalCount={filteredInvoices.length}
+          countLabel={countLabel}
+          filters={
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
+              </label>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => handlePeriodChange(e.target.value)}
+                className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
+              >
+                <option value="">{language === 'ja' ? '全期間' : 'All Periods'}</option>
+                {availablePeriods().map((period) => (
+                  <option key={period} value={period}>
+                    {period}
+                  </option>
+                ))}
+              </select>
+            </div>
+          }
+        />
         <div className="max-w-full overflow-x-auto">
           {isLoading ? (
             <div className={tableStyles.emptyRow}>
@@ -168,7 +174,7 @@ export default function InvoiceManagementClient({
                 <span>{language === 'ja' ? '読み込み中...' : language === 'th' ? 'กำลังโหลด...' : 'Loading...'}</span>
               </div>
             </div>
-          ) : filteredInvoices.length === 0 ? (
+          ) : paginatedInvoices.length === 0 ? (
             <div className={tableStyles.emptyRow}>
               {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
             </div>
@@ -197,7 +203,7 @@ export default function InvoiceManagementClient({
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-                {filteredInvoices.map((record) => (
+                {paginatedInvoices.map((record) => (
                   <tr key={record.$id.value} className={tableStyles.tr}>
                     <td className={tableStyles.td}>
                       <a href={`/${locale}/workno/${record.文字列__1行_?.value}`} className={tableStyles.tdLink}>
@@ -233,6 +239,14 @@ export default function InvoiceManagementClient({
             </table>
           )}
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          locale={locale}
+        />
       </div>
     </div>
   );
