@@ -132,7 +132,9 @@ export default function ProjectDetailContent({
     setLoading(true);
     setError(false);
     try {
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectCode)}`);
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectCode)}`, {
+        cache: 'no-store',
+      });
       if (!response.ok) {
         if (response.status === 404) {
           setProject(null);

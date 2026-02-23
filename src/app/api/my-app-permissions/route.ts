@@ -38,32 +38,42 @@ export async function GET() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const organizationMembersTable = supabase.from('organization_members') as any;
 
-    // 従業員IDを特定
+    // 従業員IDを特定（UUID + kintone_record_id）
     let employeeId: string | null = null;
+    let kintoneRecordId: string | null = null;
 
     if (employeeNumberFromMeta) {
       const { data: employee } = await employeesTable
-        .select('id')
+        .select('id, kintone_record_id')
         .eq('employee_number', employeeNumberFromMeta)
         .single();
-      if (employee) employeeId = employee.id;
+      if (employee) {
+        employeeId = employee.id;
+        kintoneRecordId = employee.kintone_record_id;
+      }
     }
 
     if (!employeeId && userEmail.endsWith('@mtt.internal')) {
       const employeeNumber = userEmail.replace('@mtt.internal', '');
       const { data: employee } = await employeesTable
-        .select('id')
+        .select('id, kintone_record_id')
         .eq('employee_number', employeeNumber)
         .single();
-      if (employee) employeeId = employee.id;
+      if (employee) {
+        employeeId = employee.id;
+        kintoneRecordId = employee.kintone_record_id;
+      }
     }
 
     if (!employeeId && userEmail) {
       const { data: employee } = await employeesTable
-        .select('id')
+        .select('id, kintone_record_id')
         .eq('company_email', userEmail)
         .single();
-      if (employee) employeeId = employee.id;
+      if (employee) {
+        employeeId = employee.id;
+        kintoneRecordId = employee.kintone_record_id;
+      }
     }
 
     if (!employeeId) {
@@ -110,9 +120,11 @@ export async function GET() {
     }
 
     // 所属組織を取得
+    // organization_members.employee_id は kintone_record_id を格納している
+    const orgMemberEmployeeId = kintoneRecordId || employeeId;
     const { data: orgMembers } = await organizationMembersTable
       .select('organization_id')
-      .eq('employee_id', employeeId)
+      .eq('employee_id', orgMemberEmployeeId)
       .eq('is_active', true);
 
     const orgIds = (orgMembers || []).map((m: { organization_id: string }) => m.organization_id);

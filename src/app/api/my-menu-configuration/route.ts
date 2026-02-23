@@ -26,32 +26,42 @@ export async function GET() {
     const userEmail = user.email || '';
     const employeeNumberFromMeta = user.user_metadata?.employee_number || '';
 
-    // 従業員IDを特定
+    // 従業員IDを特定（UUID + kintone_record_id）
     let employeeId: string | null = null;
+    let kintoneRecordId: string | null = null;
 
     if (employeeNumberFromMeta) {
       const { data: employee } = await from(supabase, 'employees')
-        .select('id')
+        .select('id, kintone_record_id')
         .eq('employee_number', employeeNumberFromMeta)
         .single();
-      if (employee) employeeId = employee.id;
+      if (employee) {
+        employeeId = employee.id;
+        kintoneRecordId = employee.kintone_record_id;
+      }
     }
 
     if (!employeeId && userEmail.endsWith('@mtt.internal')) {
       const employeeNumber = userEmail.replace('@mtt.internal', '');
       const { data: employee } = await from(supabase, 'employees')
-        .select('id')
+        .select('id, kintone_record_id')
         .eq('employee_number', employeeNumber)
         .single();
-      if (employee) employeeId = employee.id;
+      if (employee) {
+        employeeId = employee.id;
+        kintoneRecordId = employee.kintone_record_id;
+      }
     }
 
     if (!employeeId && userEmail) {
       const { data: employee } = await from(supabase, 'employees')
-        .select('id')
+        .select('id, kintone_record_id')
         .eq('company_email', userEmail)
         .single();
-      if (employee) employeeId = employee.id;
+      if (employee) {
+        employeeId = employee.id;
+        kintoneRecordId = employee.kintone_record_id;
+      }
     }
 
     if (!employeeId) {
@@ -95,9 +105,11 @@ export async function GET() {
       targetOrgIds = orgIdsWithConfig;
     } else {
       // 一般ユーザー: 所属組織のうちメニュー設定があるもの
+      // organization_members.employee_id は kintone_record_id を格納している
+      const orgMemberEmployeeId = kintoneRecordId || employeeId;
       const { data: orgMembers } = await from(supabase, 'organization_members')
         .select('organization_id')
-        .eq('employee_id', employeeId)
+        .eq('employee_id', orgMemberEmployeeId)
         .eq('is_active', true);
 
       const memberOrgIds = (orgMembers || []).map((m: { organization_id: string }) => m.organization_id);
@@ -143,19 +155,21 @@ export async function GET() {
       const orgMap = new Map(orgs.map((o) => [o.id, o]));
 
       // 組織ごとにメニュー設定をグルーピング
+      // 管理者の場合は全項目を表示可能にする
       const configByOrg = new Map<string, { menu_key: string; display_order: number; is_visible: boolean }[]>();
       for (const config of allMenuConfigs) {
         const list = configByOrg.get(config.organization_id) || [];
-        list.push({ menu_key: config.menu_key, display_order: config.display_order, is_visible: config.is_visible });
+        list.push({ menu_key: config.menu_key, display_order: config.display_order, is_visible: isAdmin ? true : config.is_visible });
         configByOrg.set(config.organization_id, list);
       }
 
       // 共通項目: デフォルト設定の共通キーのみ抽出。なければ共通キーをis_visible=trueで生成
+      // 管理者の場合は常にis_visible=true
       const commonItems: { menu_key: string; display_order: number; is_visible: boolean }[] = [];
       if (defaultConfig.length > 0) {
         for (const item of defaultConfig) {
           if (COMMON_MENU_KEYS.includes(item.menu_key)) {
-            commonItems.push(item);
+            commonItems.push({ ...item, is_visible: isAdmin ? true : item.is_visible });
           }
         }
       }
@@ -202,7 +216,11 @@ export async function GET() {
       .order('display_order', { ascending: true });
 
     if (defaultConfig && defaultConfig.length > 0) {
-      return NextResponse.json({ mode: 'flat', items: defaultConfig });
+      // 管理者の場合は全項目を表示可能にする
+      const items = isAdmin
+        ? defaultConfig.map((item: { menu_key: string; display_order: number; is_visible: boolean }) => ({ ...item, is_visible: true }))
+        : defaultConfig;
+      return NextResponse.json({ mode: 'flat', items });
     }
 
     // 設定なし
