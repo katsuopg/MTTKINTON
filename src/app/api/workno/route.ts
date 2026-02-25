@@ -2,13 +2,16 @@ import { KintoneClient } from '@/lib/kintone/client';
 import { WorkNoRecord } from '@/types/kintone';
 import { createClient } from '@/lib/supabase/server';
 
-const workNoClient = new KintoneClient(
-  process.env.KINTONE_APP_WORK_NO || '21',
-  process.env.KINTONE_API_TOKEN_WORKNO!
-);
+function getWorkNoClient() {
+  return new KintoneClient(
+    process.env.KINTONE_APP_WORK_NO || '21',
+    process.env.KINTONE_API_TOKEN_WORKNO!
+  );
+}
 
 export async function GET(request: Request) {
   try {
+    const workNoClient = getWorkNoClient();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -30,6 +33,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const workNoClient = getWorkNoClient();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -38,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    
+
     const record: any = {
       work_no: { value: body.work_no },
       status: { value: body.status },

@@ -1,15 +1,11 @@
 import { KintoneRecordsResponse, CostRecord, KINTONE_APPS } from '@/types/kintone';
 import { KintoneClient } from '@/lib/kintone/client';
 
-const API_TOKEN = process.env.KINTONE_API_TOKEN_COST!;
 const APP_ID = KINTONE_APPS.COST_MANAGEMENT.appId;
-const KINTONE_DOMAIN = process.env.KINTONE_DOMAIN!;
 
-// KintoneClientインスタンスを作成
-const costClient = new KintoneClient(APP_ID.toString(), API_TOKEN);
-
-// 比較用WorkNoクライアント（デバッグ用）
-const workNoClient = new KintoneClient('21', process.env.KINTONE_API_TOKEN_WORKNO!);
+function getCostClient() {
+  return new KintoneClient(APP_ID.toString(), process.env.KINTONE_API_TOKEN_COST!);
+}
 
 /**
  * コスト管理レコードを取得
@@ -20,7 +16,7 @@ export async function getCostRecords(
 ): Promise<KintoneRecordsResponse<CostRecord>> {
 
   try {
-    const costRecords = await costClient.getRecords<CostRecord>(query);
+    const costRecords = await getCostClient().getRecords<CostRecord>(query);
 
     return { records: costRecords };
 
@@ -34,8 +30,10 @@ export async function getCostRecords(
  * 特定のコストレコードを取得
  */
 export async function getCostRecord(recordId: string): Promise<CostRecord> {
-  const url = `https://${KINTONE_DOMAIN}/k/v1/record.json`;
-  
+  const domain = process.env.KINTONE_DOMAIN!;
+  const apiToken = process.env.KINTONE_API_TOKEN_COST!;
+  const url = `https://${domain}/k/v1/record.json`;
+
   const params = new URLSearchParams({
     app: APP_ID.toString(),
     id: recordId,
@@ -44,7 +42,7 @@ export async function getCostRecord(recordId: string): Promise<CostRecord> {
   const response = await fetch(`${url}?${params}`, {
     method: 'GET',
     headers: {
-      'X-Cybozu-API-Token': API_TOKEN,
+      'X-Cybozu-API-Token': apiToken,
       'Content-Type': 'application/json',
     },
   });
