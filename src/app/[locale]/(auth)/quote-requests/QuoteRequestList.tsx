@@ -143,83 +143,133 @@ export default function QuoteRequestList({
             <span className="ml-3 text-gray-500">{labels.loading[language]}</span>
           </div>
         ) : (
-          <table className={tableStyles.table}>
-            <thead className={tableStyles.thead}>
-              <tr>
-                <th className={tableStyles.th}>{labels.requestNo[language]}</th>
-                <th className={tableStyles.th}>{labels.requester[language]}</th>
-                <th className={tableStyles.th}>{labels.workNo[language]}</th>
-                <th className={tableStyles.th}>{labels.status[language]}</th>
-                <th className={`${tableStyles.th} text-center`}>{labels.itemsCount[language]}</th>
-                <th className={tableStyles.th}>{labels.desiredDate[language]}</th>
-                <th className={tableStyles.th}>{labels.createdAt[language]}</th>
-              </tr>
-            </thead>
-            <tbody className={tableStyles.tbody}>
-              {requests.map((request) => {
-                const itemsCount = Array.isArray(request.items)
-                  ? request.items.length
-                  : (request as any).items?.[0]?.count || 0;
-
-                return (
-                  <tr
-                    key={request.id}
-                    className={tableStyles.trClickable}
-                    onClick={() => router.push(`/${locale}/quote-requests/${request.id}`)}
-                  >
-                    <td className={`${tableStyles.td} font-medium`}>
-                      <span className={tableStyles.tdLink}>
-                        {request.request_no}
-                      </span>
-                    </td>
-                    <td className={tableStyles.td}>
-                      {request.requester_name || '-'}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {request.work_no ? (
-                        <a
-                          href={`/${locale}/workno/${request.work_no}`}
-                          className={tableStyles.tdLink}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {request.work_no}
-                        </a>
-                      ) : (
-                        '-'
-                      )}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {request.status && (
-                        <span
-                          className={`${tableStyles.statusBadge} ${
-                            statusColors[request.status.code] || 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {getStatusName(request.status)}
+          <>
+            {/* モバイル: カードビュー */}
+            <div className={tableStyles.mobileCardList}>
+              {requests.length === 0 ? (
+                <div className={tableStyles.emptyRow}>{labels.noData[language]}</div>
+              ) : (
+                requests.map((request) => {
+                  const itemsCount = Array.isArray(request.items)
+                    ? request.items.length
+                    : (request as any).items?.[0]?.count || 0;
+                  return (
+                    <div
+                      key={request.id}
+                      className={tableStyles.mobileCard}
+                      onClick={() => router.push(`/${locale}/quote-requests/${request.id}`)}
+                    >
+                      <div className={tableStyles.mobileCardHeader}>
+                        {request.status && (
+                          <span className={`${tableStyles.statusBadge} ${statusColors[request.status.code] || 'bg-gray-100 text-gray-800'}`}>
+                            {getStatusName(request.status)}
+                          </span>
+                        )}
+                        <span className={tableStyles.mobileCardMeta}>{formatDate(request.created_at)}</span>
+                      </div>
+                      <div className={tableStyles.mobileCardTitle}>
+                        {request.request_no}{request.work_no ? ` / ${request.work_no}` : ''}
+                      </div>
+                      <div className={tableStyles.mobileCardFields}>
+                        <span className={tableStyles.mobileCardFieldValue}>
+                          {request.requester_name || '-'}
                         </span>
-                      )}
-                    </td>
-                    <td className={`${tableStyles.td} text-center`}>
-                      {itemsCount}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {formatDate(request.desired_delivery_date)}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {formatDate(request.created_at)}
+                        <span className={tableStyles.mobileCardFieldValue}>
+                          {labels.itemsCount[language]}: {itemsCount}
+                        </span>
+                        {request.desired_delivery_date && (
+                          <span className={tableStyles.mobileCardFieldValue}>
+                            {labels.desiredDate[language]}: {formatDate(request.desired_delivery_date)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* デスクトップ: テーブルビュー */}
+            <div className={tableStyles.desktopOnly}>
+            <table className={tableStyles.table}>
+              <thead className={tableStyles.thead}>
+                <tr>
+                  <th className={tableStyles.th}>{labels.requestNo[language]}</th>
+                  <th className={tableStyles.th}>{labels.requester[language]}</th>
+                  <th className={tableStyles.th}>{labels.workNo[language]}</th>
+                  <th className={tableStyles.th}>{labels.status[language]}</th>
+                  <th className={`${tableStyles.th} text-center`}>{labels.itemsCount[language]}</th>
+                  <th className={tableStyles.th}>{labels.desiredDate[language]}</th>
+                  <th className={tableStyles.th}>{labels.createdAt[language]}</th>
+                </tr>
+              </thead>
+              <tbody className={tableStyles.tbody}>
+                {requests.map((request) => {
+                  const itemsCount = Array.isArray(request.items)
+                    ? request.items.length
+                    : (request as any).items?.[0]?.count || 0;
+
+                  return (
+                    <tr
+                      key={request.id}
+                      className={tableStyles.trClickable}
+                      onClick={() => router.push(`/${locale}/quote-requests/${request.id}`)}
+                    >
+                      <td className={`${tableStyles.td} font-medium`}>
+                        <span className={tableStyles.tdLink}>
+                          {request.request_no}
+                        </span>
+                      </td>
+                      <td className={tableStyles.td}>
+                        {request.requester_name || '-'}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {request.work_no ? (
+                          <a
+                            href={`/${locale}/workno/${request.work_no}`}
+                            className={tableStyles.tdLink}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {request.work_no}
+                          </a>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {request.status && (
+                          <span
+                            className={`${tableStyles.statusBadge} ${
+                              statusColors[request.status.code] || 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {getStatusName(request.status)}
+                          </span>
+                        )}
+                      </td>
+                      <td className={`${tableStyles.td} text-center`}>
+                        {itemsCount}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {formatDate(request.desired_delivery_date)}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {formatDate(request.created_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {requests.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className={tableStyles.emptyRow}>
+                      {labels.noData[language]}
                     </td>
                   </tr>
-                );
-              })}
-              {requests.length === 0 && (
-                <tr>
-                  <td colSpan={7} className={tableStyles.emptyRow}>
-                    {labels.noData[language]}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+            </div>
+          </>
         )}
         <Pagination
           currentPage={currentPage}

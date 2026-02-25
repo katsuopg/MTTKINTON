@@ -361,6 +361,73 @@ export default function WorkNoClient({
             </>
           }
         />
+        {/* モバイル: カードビュー */}
+        <div className={tableStyles.mobileCardList}>
+          {filteredRecords.length === 0 ? (
+            <div className={tableStyles.emptyRow}>
+              {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
+            </div>
+          ) : (
+            paginatedWorkItems.filter(item => item?.record?.$id?.value).map((item) => {
+              const statusBadgeClass =
+                item.record.Status?.value === 'Working' ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' :
+                item.record.Status?.value === 'Finished' ? 'bg-success-500 text-white' :
+                item.record.Status?.value === 'Wating PO' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' :
+                item.record.Status?.value === 'Stock' ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400' :
+                item.record.Status?.value === 'Pending' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
+                item.record.Status?.value === 'Cancel' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' :
+                item.record.Status?.value === 'Expenses' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400' :
+                'bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400';
+
+              return (
+                <div
+                  key={item.record.$id.value}
+                  className={tableStyles.mobileCard}
+                  onClick={() => router.push(`/${locale}/workno/${encodeURIComponent(item.record.WorkNo?.value || '')}`)}
+                >
+                  <div className={tableStyles.mobileCardHeader}>
+                    <span className={`${tableStyles.statusBadge} ${statusBadgeClass}`}>
+                      {getStatusLabel(item.record.Status?.value || '', language)}
+                    </span>
+                    <span className={tableStyles.mobileCardMeta}>
+                      {formatDate(item.record.Salesdate?.value)}
+                    </span>
+                  </div>
+                  <div className={tableStyles.mobileCardTitle}>
+                    {item.isChild && <span className="text-gray-400 mr-1">└</span>}
+                    {item.record.WorkNo?.value}
+                  </div>
+                  <div className={tableStyles.mobileCardSubtitle}>
+                    {item.record.文字列__1行__8?.value
+                      ? extractCsName(item.record.文字列__1行__8.value)
+                      : '-'}
+                    {item.record.文字列__1行__2?.value && ` - ${item.record.文字列__1行__2.value}`}
+                  </div>
+                  <div className={tableStyles.mobileCardFields}>
+                    <span className={tableStyles.mobileCardFieldValue}>
+                      {formatNumber(item.record.grand_total?.value)}
+                    </span>
+                    {item.record.ルックアップ?.value && (
+                      <span className={`${tableStyles.statusBadge} bg-success-500 text-white text-[10px] px-1.5 py-0`}>PO</span>
+                    )}
+                    {hasInvoice(item.record) && (
+                      <span className={`${tableStyles.statusBadge} bg-success-500 text-white text-[10px] px-1.5 py-0`}>INV</span>
+                    )}
+                    {item.record.Salesdate?.value &&
+                     new Date(item.record.Salesdate.value) < new Date() &&
+                     item.record.Status?.value !== 'Finished' &&
+                     item.record.Status?.value !== 'Cancel' && (
+                      <span className="text-warning-500 text-xs">⚠</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* デスクトップ: テーブルビュー */}
+        <div className={tableStyles.desktopOnly}>
         <div className="max-w-full overflow-x-auto">
           {filteredRecords.length === 0 ? (
             <div className={tableStyles.emptyRow}>
@@ -519,6 +586,7 @@ export default function WorkNoClient({
               </tbody>
             </table>
           )}
+        </div>
         </div>
         <Pagination
           currentPage={currentPage}

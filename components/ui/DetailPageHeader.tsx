@@ -26,7 +26,7 @@ export function DetailPageHeader({
           {backHref && (
             <Link
               href={backHref}
-              className="flex-shrink-0 p-1.5 -ml-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-white/[0.05] transition-colors"
+              className="flex-shrink-0 min-w-[44px] min-h-[44px] -ml-2 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-white/[0.05] transition-colors"
             >
               <ArrowLeft size={20} />
             </Link>

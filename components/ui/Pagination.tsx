@@ -20,7 +20,7 @@ const labels = {
   th: { showing: 'แสดง', of: 'จาก', to: '-', items: 'รายการ' },
 } as const;
 
-const btnBase = 'flex items-center justify-center w-10 h-10 rounded-lg text-theme-sm font-medium transition-colors';
+const btnBase = 'flex items-center justify-center w-11 h-11 rounded-lg text-theme-sm font-medium transition-colors';
 const btnInactive = `${btnBase} border border-gray-300 bg-white text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]`;
 const btnActive = `${btnBase} bg-brand-500 text-white`;
 const btnDisabled = 'disabled:opacity-50 disabled:cursor-not-allowed';
@@ -87,45 +87,75 @@ export function Pagination({
       </div>
 
       {totalPages > 1 && (
-        <nav className="flex items-center gap-2" aria-label="Pagination">
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage <= 1}
-            className={`${btnInactive} ${btnDisabled}`}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          {pageNumbers.map((page, idx) =>
-            page === 'ellipsis' ? (
-              <span
-                key={`ellipsis-${idx}`}
-                className="flex items-center justify-center w-10 h-10 text-theme-sm text-gray-400 dark:text-gray-500"
-              >
-                ...
+        <>
+          {/* モバイル: 簡略ページネーション */}
+          <nav className="flex sm:hidden items-center gap-3" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className={`${btnInactive} ${btnDisabled} px-3`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="text-theme-xs ml-1">
+                {lang === 'ja' ? '前へ' : lang === 'th' ? 'ก่อน' : 'Prev'}
               </span>
-            ) : (
-              <button
-                key={page}
-                onClick={() => onPageChange(page)}
-                className={page === currentPage ? btnActive : btnInactive}
-                aria-current={page === currentPage ? 'page' : undefined}
-              >
-                {page}
-              </button>
-            )
-          )}
+            </button>
+            <span className="text-theme-sm text-gray-600 dark:text-gray-300 tabular-nums">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className={`${btnInactive} ${btnDisabled} px-3`}
+            >
+              <span className="text-theme-xs mr-1">
+                {lang === 'ja' ? '次へ' : lang === 'th' ? 'ถัดไป' : 'Next'}
+              </span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </nav>
 
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-            className={`${btnInactive} ${btnDisabled}`}
-            aria-label="Next page"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </nav>
+          {/* デスクトップ: フルページネーション */}
+          <nav className="hidden sm:flex items-center gap-2" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className={`${btnInactive} ${btnDisabled}`}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {pageNumbers.map((page, idx) =>
+              page === 'ellipsis' ? (
+                <span
+                  key={`ellipsis-${idx}`}
+                  className="flex items-center justify-center w-11 h-11 text-theme-sm text-gray-400 dark:text-gray-500"
+                >
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => onPageChange(page)}
+                  className={page === currentPage ? btnActive : btnInactive}
+                  aria-current={page === currentPage ? 'page' : undefined}
+                >
+                  {page}
+                </button>
+              )
+            )}
+
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className={`${btnInactive} ${btnDisabled}`}
+              aria-label="Next page"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </nav>
+        </>
       )}
     </div>
   );

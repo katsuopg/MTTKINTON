@@ -151,6 +151,61 @@ export default function POManagementContent({
             </>
           }
         />
+        {/* モバイル: カードビュー */}
+        <div className={tableStyles.mobileCardList}>
+          {filteredRecords.length === 0 ? (
+            <div className={tableStyles.emptyRow}>
+              {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
+            </div>
+          ) : (
+            paginatedItems.map((record) => {
+              const deliveryDate = record.delivery_date ? new Date(record.delivery_date) : null;
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const isDelivered = record.po_status === 'Delivered' || record.po_status === '納品済み' || record.po_status === 'Arrived';
+              const isOverdue = !!(deliveryDate && deliveryDate < today && !isDelivered);
+              const formatAmount = (val: number | null) => val ? `${val.toLocaleString()}B` : '-';
+
+              return (
+                <div
+                  key={record.kintone_record_id}
+                  className={`${tableStyles.mobileCard} ${isOverdue ? 'bg-red-50/50 dark:bg-red-900/10' : isDelivered ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                  onClick={() => window.location.href = `/${locale}/po-management/${record.kintone_record_id}`}
+                >
+                  <div className={tableStyles.mobileCardHeader}>
+                    <span className={`${tableStyles.statusBadge} ${
+                      isOverdue ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' :
+                      isDelivered ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' :
+                      'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400'
+                    }`}>
+                      {isOverdue
+                        ? (language === 'ja' ? '納期超過' : language === 'th' ? 'เกินกำหนด' : 'Overdue')
+                        : isDelivered
+                        ? (language === 'ja' ? '納品済み' : language === 'th' ? 'ส่งมอบแล้ว' : 'Delivered')
+                        : record.po_status || '-'}
+                    </span>
+                    <span className={tableStyles.mobileCardMeta}>
+                      {record.delivery_date?.replace(/-/g, '/') || '-'}
+                    </span>
+                  </div>
+                  <div className={tableStyles.mobileCardTitle}>
+                    {record.po_no || '-'}
+                  </div>
+                  <div className={tableStyles.mobileCardSubtitle}>
+                    {record.supplier_name || '-'}
+                  </div>
+                  <div className={tableStyles.mobileCardFields}>
+                    <span className={tableStyles.mobileCardFieldValue}>{record.work_no || '-'}</span>
+                    <span className={tableStyles.mobileCardFieldValue}>{formatAmount(record.grand_total)}</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* デスクトップ: テーブルビュー */}
+        <div className={tableStyles.desktopOnly}>
         <div className="max-w-full overflow-x-auto">
           <table className={tableStyles.table}>
             <thead className={tableStyles.thead}>
@@ -209,6 +264,7 @@ export default function POManagementContent({
               )}
             </tbody>
           </table>
+        </div>
         </div>
         <Pagination
           currentPage={currentPage}

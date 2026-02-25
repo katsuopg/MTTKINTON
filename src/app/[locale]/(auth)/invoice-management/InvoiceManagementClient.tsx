@@ -166,79 +166,122 @@ export default function InvoiceManagementClient({
             </div>
           }
         />
-        <div className="max-w-full overflow-x-auto">
-          {isLoading ? (
-            <div className={tableStyles.emptyRow}>
-              <div className="flex items-center justify-center gap-3">
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-brand-500"></div>
-                <span>{language === 'ja' ? '読み込み中...' : language === 'th' ? 'กำลังโหลด...' : 'Loading...'}</span>
-              </div>
+        {isLoading ? (
+          <div className={tableStyles.emptyRow}>
+            <div className="flex items-center justify-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-brand-500"></div>
+              <span>{language === 'ja' ? '読み込み中...' : language === 'th' ? 'กำลังโหลด...' : 'Loading...'}</span>
             </div>
-          ) : paginatedInvoices.length === 0 ? (
-            <div className={tableStyles.emptyRow}>
-              {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
-            </div>
-          ) : (
-            <table className={tableStyles.table}>
-              <thead className={tableStyles.thead}>
-                <tr>
-                  <th className={tableStyles.th}>
-                    {language === 'ja' ? '工事番号' : 'Work No.'}
-                  </th>
-                  <th className={tableStyles.th}>
-                    {language === 'ja' ? '請求書番号' : 'Invoice No.'}
-                  </th>
-                  <th className={tableStyles.th}>
-                    {language === 'ja' ? '請求書日付' : 'Invoice Date'}
-                  </th>
-                  <th className={tableStyles.th}>
-                    {language === 'ja' ? '顧客名' : 'Customer'}
-                  </th>
-                  <th className={`${tableStyles.th} text-end`}>
-                    {language === 'ja' ? '金額' : 'Amount'}
-                  </th>
-                  <th className={`${tableStyles.th} text-center`}>
-                    {language === 'ja' ? 'ステータス' : 'Status'}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className={tableStyles.tbody}>
-                {paginatedInvoices.map((record) => (
-                  <tr key={record.$id.value} className={tableStyles.tr}>
-                    <td className={tableStyles.td}>
-                      <a href={`/${locale}/workno/${record.文字列__1行_?.value}`} className={tableStyles.tdLink}>
-                        {record.文字列__1行_?.value || '-'}
-                      </a>
-                    </td>
-                    <td className={`${tableStyles.td} text-gray-800 dark:text-white/90`}>
-                      {record.文字列__1行__0?.value || '-'}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {record.日付?.value?.replace(/-/g, '/') || '-'}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {record.CS_name?.value || '-'}
-                    </td>
-                    <td className={`${tableStyles.td} text-end font-medium text-gray-800 dark:text-white/90`}>
-                      {formatNumber(record.計算?.value || record.total?.value)}
-                    </td>
-                    <td className={`${tableStyles.td} text-center`}>
-                      <span className={`inline-flex px-2.5 py-0.5 text-theme-xs font-medium rounded-full ${
-                        record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
-                          ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
-                          : record.ラジオボタン?.value?.includes('Pending') || record.ラジオボタン?.value?.includes('รอ')
-                          ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
-                          : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400'
-                      }`}>
+          </div>
+        ) : paginatedInvoices.length === 0 ? (
+          <div className={tableStyles.emptyRow}>
+            {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
+          </div>
+        ) : (
+          <>
+            {/* モバイル: カードビュー */}
+            <div className={tableStyles.mobileCardList}>
+              {paginatedInvoices.map((record) => {
+                const statusClass = record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
+                  ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
+                  : record.ラジオボタン?.value?.includes('Pending') || record.ラジオボタン?.value?.includes('รอ')
+                  ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
+                  : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400';
+                return (
+                  <div
+                    key={record.$id.value}
+                    className={tableStyles.mobileCard}
+                    onClick={() => window.location.href = `/${locale}/workno/${record.文字列__1行_?.value}`}
+                  >
+                    <div className={tableStyles.mobileCardHeader}>
+                      <span className={`${tableStyles.statusBadge} ${statusClass}`}>
                         {record.ラジオボタン?.value || '-'}
                       </span>
-                    </td>
+                      <span className={tableStyles.mobileCardMeta}>
+                        {record.日付?.value?.replace(/-/g, '/') || '-'}
+                      </span>
+                    </div>
+                    <div className={tableStyles.mobileCardTitle}>
+                      {record.文字列__1行__0?.value || '-'} / {record.文字列__1行_?.value || '-'}
+                    </div>
+                    <div className={tableStyles.mobileCardFields}>
+                      <span className={tableStyles.mobileCardFieldValue}>
+                        {record.CS_name?.value || '-'}
+                      </span>
+                      <span className={tableStyles.mobileCardFieldValue}>
+                        {formatNumber(record.計算?.value || record.total?.value)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* デスクトップ: テーブルビュー */}
+            <div className={tableStyles.desktopOnly}>
+            <div className="max-w-full overflow-x-auto">
+              <table className={tableStyles.table}>
+                <thead className={tableStyles.thead}>
+                  <tr>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? '工事番号' : 'Work No.'}
+                    </th>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? '請求書番号' : 'Invoice No.'}
+                    </th>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? '請求書日付' : 'Invoice Date'}
+                    </th>
+                    <th className={tableStyles.th}>
+                      {language === 'ja' ? '顧客名' : 'Customer'}
+                    </th>
+                    <th className={`${tableStyles.th} text-end`}>
+                      {language === 'ja' ? '金額' : 'Amount'}
+                    </th>
+                    <th className={`${tableStyles.th} text-center`}>
+                      {language === 'ja' ? 'ステータス' : 'Status'}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                </thead>
+                <tbody className={tableStyles.tbody}>
+                  {paginatedInvoices.map((record) => (
+                    <tr key={record.$id.value} className={tableStyles.tr}>
+                      <td className={tableStyles.td}>
+                        <a href={`/${locale}/workno/${record.文字列__1行_?.value}`} className={tableStyles.tdLink}>
+                          {record.文字列__1行_?.value || '-'}
+                        </a>
+                      </td>
+                      <td className={`${tableStyles.td} text-gray-800 dark:text-white/90`}>
+                        {record.文字列__1行__0?.value || '-'}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {record.日付?.value?.replace(/-/g, '/') || '-'}
+                      </td>
+                      <td className={tableStyles.td}>
+                        {record.CS_name?.value || '-'}
+                      </td>
+                      <td className={`${tableStyles.td} text-end font-medium text-gray-800 dark:text-white/90`}>
+                        {formatNumber(record.計算?.value || record.total?.value)}
+                      </td>
+                      <td className={`${tableStyles.td} text-center`}>
+                        <span className={`inline-flex px-2.5 py-0.5 text-theme-xs font-medium rounded-full ${
+                          record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
+                            ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
+                            : record.ラジオボタン?.value?.includes('Pending') || record.ラジオボタン?.value?.includes('รอ')
+                            ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
+                            : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400'
+                        }`}>
+                          {record.ラジオボタン?.value || '-'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            </div>
+          </>
+        )}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

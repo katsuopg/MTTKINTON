@@ -110,6 +110,49 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
             totalCount={filteredAndSortedCustomers.length}
             countLabel={language === 'ja' ? '件の顧客' : language === 'th' ? ' ราย' : ' customers'}
           />
+          {/* モバイル: カードビュー */}
+          <div className={tableStyles.mobileCardList}>
+            {paginatedCustomers.length === 0 ? (
+              <div className={tableStyles.emptyRow}>
+                {searchTerm
+                  ? (language === 'ja' ? '検索結果が見つかりませんでした' : language === 'th' ? 'ไม่พบผลการค้นหา' : 'No search results found')
+                  : (language === 'ja' ? '顧客データがありません' : language === 'th' ? 'ไม่มีข้อมูลลูกค้า' : 'No customer data')}
+              </div>
+            ) : (
+              paginatedCustomers.map((customer) => (
+                <div
+                  key={customer.$id.value}
+                  className={tableStyles.mobileCard}
+                  onClick={() => router.push(`/${locale}/customers/${customer.文字列__1行_.value}`)}
+                >
+                  <div className={tableStyles.mobileCardHeader}>
+                    <span className={`${tableStyles.statusBadge} ${
+                      customer.顧客ランク?.value === 'A' ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500' :
+                      customer.顧客ランク?.value === 'B' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500' :
+                      customer.顧客ランク?.value === 'C' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
+                      'bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400'
+                    }`}>
+                      {customer.顧客ランク?.value || '-'}
+                    </span>
+                  </div>
+                  <div className={tableStyles.mobileCardTitle}>
+                    {customer.会社名.value}
+                  </div>
+                  <div className={tableStyles.mobileCardSubtitle}>
+                    {customer.Cs_Name?.value || customer.文字列__1行_.value.replace(/^\d{2}-\d{3}-/, '')}
+                  </div>
+                  <div className={tableStyles.mobileCardFields}>
+                    <span className={tableStyles.mobileCardFieldValue}>
+                      TEL: {customer.TEL?.value || '-'}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* デスクトップ: テーブルビュー */}
+          <div className={tableStyles.desktopOnly}>
           <div className="max-w-full overflow-x-auto">
             <table className={tableStyles.table}>
               <thead className={tableStyles.thead}>
@@ -209,6 +252,7 @@ export function CustomerListContent({ customers, locale, userEmail, salesSummary
                 )}
               </tbody>
             </table>
+          </div>
           </div>
           <Pagination
             currentPage={currentPage}

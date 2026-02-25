@@ -55,6 +55,43 @@ export default function SuppliersTable({ suppliers, locale, language, initialSea
         totalCount={filteredSuppliers.length}
         countLabel={language === 'ja' ? '件の仕入業者' : language === 'th' ? ' ซัพพลายเออร์' : ' suppliers'}
       />
+      {/* モバイル: カードビュー */}
+      <div className={tableStyles.mobileCardList}>
+        {filteredSuppliers.length === 0 ? (
+          <div className={tableStyles.emptyRow}>
+            {language === 'ja' ? 'データがありません' :
+             language === 'th' ? 'ไม่มีข้อมูล' :
+             'No data available'}
+          </div>
+        ) : (
+          paginatedItems.map((supplier: Supplier) => (
+            <div
+              key={supplier.id}
+              className={tableStyles.mobileCard}
+              onClick={() => window.location.href = `/${locale}/suppliers/${supplier.id}`}
+            >
+              <div className={tableStyles.mobileCardTitle}>
+                {language === 'th'
+                  ? (supplier.company_name || supplier.company_name_en || '-')
+                  : (supplier.company_name_en || supplier.company_name || '-')}
+              </div>
+              <div className={tableStyles.mobileCardFields}>
+                <span className={tableStyles.mobileCardFieldValue}>
+                  TEL: {supplier.phone_number || '-'}
+                </span>
+                {supplier.email && (
+                  <span className={tableStyles.mobileCardFieldValue}>
+                    {supplier.email}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* デスクトップ: テーブルビュー */}
+      <div className={tableStyles.desktopOnly}>
       <div className="max-w-full overflow-x-auto">
         {filteredSuppliers.length === 0 ? (
           <div className={tableStyles.emptyRow}>
@@ -102,6 +139,7 @@ export default function SuppliersTable({ suppliers, locale, language, initialSea
             </tbody>
           </table>
         )}
+      </div>
       </div>
       <Pagination
         currentPage={currentPage}

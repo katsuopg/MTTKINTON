@@ -12,6 +12,7 @@ import { useSidebar } from '@/context/SidebarContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useNavPermissions } from '@/hooks/useNavPermissions';
 import { MENU_ITEMS, COMMON_MENU_KEYS, COMMON_TOP_KEYS, COMMON_BOTTOM_KEYS, applyMenuConfig, applyGroupedMenuConfig } from '@/lib/navigation/menu-items';
+import BottomNavigation from './BottomNavigation';
 
 interface UserInfo {
   email?: string;
@@ -54,6 +55,13 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // BottomNavigationの「メニュー」ボタンからサイドバーを開く
+  useEffect(() => {
+    const handler = () => toggleMobileSidebar();
+    window.addEventListener('toggle-mobile-sidebar', handler);
+    return () => window.removeEventListener('toggle-mobile-sidebar', handler);
+  }, [toggleMobileSidebar]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -293,14 +301,24 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
           <div className="flex items-center gap-4">
             <button
               onClick={toggleMobileSidebar}
-              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-lg border border-gray-200 dark:border-gray-700"
+              className="lg:hidden flex items-center justify-center w-11 h-11 rounded-lg border border-gray-200 dark:border-gray-700"
             >
               <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
 
-            {/* Search Bar (Command Palette trigger) */}
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="md:hidden flex items-center justify-center w-11 h-11 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+
+            {/* Search Bar (Command Palette trigger) - Desktop */}
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
               className="hidden md:flex items-center w-64 py-2.5 pl-3 pr-3 text-theme-sm bg-gray-50 border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-700 transition-colors cursor-pointer"
@@ -320,7 +338,7 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center justify-center w-11 h-11 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               {theme === 'light' ? (
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -334,7 +352,7 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
             </button>
 
             {/* Notification */}
-            <button className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
+            <button className="relative flex items-center justify-center w-11 h-11 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
               <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
@@ -353,10 +371,10 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
                 }}
                 className="flex items-center gap-2 text-gray-700 dark:text-gray-300"
               >
-                <div className="w-10 h-10 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                <div className="w-11 h-11 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                   {userInfo?.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={userInfo.avatarUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+                    <img src={userInfo.avatarUrl} alt="Profile" className="w-11 h-11 rounded-full object-cover" />
                   ) : (
                     <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -434,10 +452,13 @@ export default function DashboardLayout({ children, locale = 'ja', userEmail, us
         </header>
 
         {/* Page Content */}
-        <main className="min-h-[calc(100vh-4rem)]">
+        <main className="min-h-[calc(100vh-4rem)] pb-16 lg:pb-0">
           {children}
         </main>
       </div>
+
+      {/* Bottom Navigation (Mobile) */}
+      <BottomNavigation locale={actualLocale} language={language} />
 
       {/* Command Palette */}
       <CommandPalette

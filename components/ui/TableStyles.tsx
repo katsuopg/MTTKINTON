@@ -45,6 +45,25 @@ export const tableStyles = {
   editButton: "text-brand-500 hover:text-brand-600 text-sm font-medium",
   deleteButton: "text-rose-500 hover:text-rose-600 text-sm font-medium",
 
+  // タッチターゲット統一（44px）
+  touchTarget: "min-w-[44px] min-h-[44px] flex items-center justify-center",
+  iconButton: "min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-white/[0.05] transition-colors",
+
+  // モバイルカードビュー
+  mobileOnly: "md:hidden",
+  desktopOnly: "hidden md:block",
+  mobileCardList: "md:hidden divide-y divide-gray-100 dark:divide-white/[0.05]",
+  mobileCard: "px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.02] active:bg-gray-100 dark:active:bg-white/[0.04] transition-colors cursor-pointer",
+  mobileCardHeader: "flex items-center justify-between gap-2",
+  mobileCardTitle: "text-sm font-medium text-gray-800 dark:text-white/90 truncate",
+  mobileCardSubtitle: "text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate",
+  mobileCardMeta: "text-xs text-gray-400 dark:text-gray-500",
+  mobileCardFields: "mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5",
+  mobileCardFieldLabel: "text-xs text-gray-400 dark:text-gray-500",
+  mobileCardFieldValue: "text-xs text-gray-600 dark:text-gray-300",
+  mobileCardBadges: "mt-1.5 flex items-center gap-1.5",
+  mobileCardChevron: "flex-shrink-0 w-4 h-4 text-gray-300 dark:text-gray-600",
+
   // 旧スタイル（後方互換性のため）
   wrapper: "overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]",
   header: "px-5 py-4 flex justify-between items-center border-b border-gray-100 dark:border-white/[0.05]",
