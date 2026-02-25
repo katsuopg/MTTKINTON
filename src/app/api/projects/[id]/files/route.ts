@@ -73,8 +73,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     else if (['dwg', 'dxf'].includes(ext)) fileType = 'dwg';
     else if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) fileType = 'doc';
 
-    // Storageにアップロード
-    const filePath = `${id}/${Date.now()}_${file.name}`;
+    // Storageにアップロード（ファイル名にはtimestamp+拡張子のみ使用し、パストラバーサルを防止）
+    const filePath = `${id}/${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from('project-files')
       .upload(filePath, file);

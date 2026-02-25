@@ -25,6 +25,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       if (!filePath) {
         return NextResponse.json({ error: 'file_path required' }, { status: 400 });
       }
+
+      // パストラバーサル対策: ../やプロトコルを含むパスを拒否
+      if (filePath.includes('..') || filePath.startsWith('/') || filePath.includes('://')) {
+        return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
+      }
+
+      // DBに登録されたファイルパスか検証
+      const { data: fileRecord } = await (supabase
+        .from('dom_item_files') as SupabaseAny)
+        .select('id')
+        .eq('file_path', filePath)
+        .single();
+      if (!fileRecord) {
+        return NextResponse.json({ error: 'File not found' }, { status: 404 });
+      }
+
       const { data: blob, error: dlError } = await supabase.storage
         .from('dom-files')
         .download(filePath);
