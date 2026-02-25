@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAny = any;
@@ -11,14 +12,14 @@ interface RouteParams {
 // GET: 見積依頼詳細取得
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // アプリ権限チェック: 見積の閲覧権限が必要
+    const permCheck = await requireAppPermission('quotations', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const { id } = await params;
     const supabase = await createClient();
-
-    // 認証チェック
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // 見積依頼ヘッダー取得（ステータス、明細、オファー、発注情報を含む）
     const { data: quoteRequest, error } = await (supabase
@@ -67,19 +68,20 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PATCH: 見積依頼更新
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const permCheck = await requireAppPermission('quotations', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const { id } = await params;
     const supabase = await createClient();
     const body = await request.json();
 
-    // 認証チェック
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // 更新可能なフィールドのみ抽出
     const updateData: Record<string, unknown> = {
-      updated_by: user.id,
+      updated_by: user!.id,
     };
 
     const allowedFields = [
@@ -124,16 +126,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 // DELETE: 見積依頼キャンセル（論理削除）
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const permCheck = await requireAppPermission('quotations', 'can_delete');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const { id } = await params;
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const reason = searchParams.get('reason') || '';
 
-    // 認証チェック
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // 現在のステータス取得
     const { data: currentRequest } = await (supabase
@@ -162,9 +165,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .update({
         status_id: cancelledStatus.id,
         cancelled_at: new Date().toISOString(),
-        cancelled_by: user.id,
+        cancelled_by: user!.id,
         cancel_reason: reason,
-        updated_by: user.id,
+        updated_by: user!.id,
       })
       .eq('id', id)
       .select(`
@@ -184,7 +187,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         from_status_id: currentRequest?.status_id,
         to_status_id: cancelledStatus.id,
         reason: reason,
-        changed_by: user.id,
+        changed_by: user!.id,
       });
 
     return NextResponse.json(quoteRequest);

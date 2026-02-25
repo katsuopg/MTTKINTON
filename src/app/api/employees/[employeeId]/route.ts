@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
+import { filterFieldsByPermission } from '@/lib/auth/app-permissions';
 
 // 許可されたフィールドのリスト（SQLインジェクション防止）
 const ALLOWED_FIELDS = [
@@ -33,13 +35,14 @@ export async function PUT(
   { params }: { params: Promise<{ employeeId: string }> }
 ) {
   try {
+    // アプリ権限チェック: 従業員の編集権限が必要
+    const permCheck = await requireAppPermission('employees', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const { employeeId } = await params;
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const body = await request.json();
 
@@ -78,13 +81,14 @@ export async function GET(
   { params }: { params: Promise<{ employeeId: string }> }
 ) {
   try {
+    // アプリ権限チェック: 従業員の閲覧権限が必要
+    const permCheck = await requireAppPermission('employees', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const { employeeId } = await params;
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const employeesTable = supabase.from('employees') as any;
@@ -98,7 +102,9 @@ export async function GET(
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    return NextResponse.json(employee);
+    // フィールド権限でデータをフィルタリング（給与等の機密フィールドを隠す）
+    const filtered = filterFieldsByPermission(employee, permCheck.permissions.fieldPermissions);
+    return NextResponse.json(filtered);
   } catch (error) {
     console.error('Error fetching employee:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
