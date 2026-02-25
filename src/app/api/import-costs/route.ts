@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { KintoneClient } from '@/lib/kintone/client';
 import { CostRecord, KINTONE_APPS } from '@/types/kintone';
 
+type SupabaseAny = any;
+
 const PAGE_SIZE = 500;
 
 // コストデータをバッチでSupabaseに取り込むAPIルート
@@ -73,10 +75,8 @@ export async function POST(request: NextRequest) {
         registered_by: cost.文字列__1行__8?.value || null,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await supabase
-        .from('cost_records')
-        .upsert(rows as any[], { onConflict: 'kintone_record_id' });
+      const { error } = await (supabase.from('cost_records') as SupabaseAny)
+        .upsert(rows, { onConflict: 'kintone_record_id' });
 
       if (error) {
         console.error(`バッチupsertエラー (offset=${offset}, i=${i}):`, error.message);

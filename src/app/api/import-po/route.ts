@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { KintoneClient } from '@/lib/kintone/client';
 import { PORecord, KINTONE_APPS } from '@/types/kintone';
 
+type SupabaseAny = any;
+
 const PAGE_SIZE = 500;
 
 // POデータをバッチでSupabaseに取り込むAPIルート
@@ -77,10 +79,8 @@ export async function POST(request: NextRequest) {
         forward: po.forward?.value || null,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: upsertedData, error } = await supabase
-        .from('po_records')
-        .upsert(rows as any[], { onConflict: 'kintone_record_id' })
+      const { data: upsertedData, error } = await (supabase.from('po_records') as SupabaseAny)
+        .upsert(rows, { onConflict: 'kintone_record_id' })
         .select('id, kintone_record_id');
 
       if (error) {
@@ -99,8 +99,7 @@ export async function POST(request: NextRequest) {
           if (!originalRecord?.Table?.value || originalRecord.Table.value.length === 0) continue;
 
           // 既存明細を削除
-          await supabase
-            .from('po_line_items')
+          await (supabase.from('po_line_items') as SupabaseAny)
             .delete()
             .eq('po_record_id', upserted.id);
 
@@ -122,10 +121,8 @@ export async function POST(request: NextRequest) {
             sort_order: idx,
           }));
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { error: lineError } = await supabase
-            .from('po_line_items')
-            .insert(lineItems as any[]);
+          const { error: lineError } = await (supabase.from('po_line_items') as SupabaseAny)
+            .insert(lineItems);
 
           if (lineError) {
             console.error(`明細行挿入エラー (record_id=${upserted.kintone_record_id}):`, lineError.message);

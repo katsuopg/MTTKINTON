@@ -8,6 +8,8 @@ import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
 import Link from 'next/link';
 import { Building2, Phone, Mail, MapPin } from 'lucide-react';
 
+type SupabaseAny = any;
+
 interface Supplier {
   id: string;
   supplier_id: string;
@@ -42,11 +44,10 @@ export default async function SupplierDetailPage({ params }: SupplierDetailPageP
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
 
   // Supabaseから仕入業者詳細を取得
-  const { data: supplier, error } = await supabase
-    .from('suppliers')
+  const { data: supplier, error } = await (supabase.from('suppliers') as SupabaseAny)
     .select('*')
     .eq('id', id)
-    .single();
+    .single() as { data: Supplier | null; error: any };
 
   const pageTitle = language === 'ja' ? '仕入業者詳細' : language === 'th' ? 'รายละเอียดซัพพลายเออร์' : 'Supplier Details';
 
