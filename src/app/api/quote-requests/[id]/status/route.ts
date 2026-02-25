@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { QuoteRequestStatusCode } from '@/types/quote-request';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAny = any;
@@ -24,6 +25,12 @@ const STATUS_TRANSITIONS: Record<QuoteRequestStatusCode, QuoteRequestStatusCode[
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
+
+    const permCheck = await requireAppPermission('quotations', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const body = await request.json();
 
@@ -39,11 +46,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 認証チェック
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // 現在の見積依頼取得
     const { data: currentRequest } = await (supabase
@@ -93,13 +96,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // ステータス更新データ
     const updateData: Record<string, unknown> = {
       status_id: newStatus.id,
-      updated_by: user.id,
+      updated_by: user!.id,
     };
 
     // キャンセルの場合は追加情報を保存
     if (status_code === 'cancelled') {
       updateData.cancelled_at = new Date().toISOString();
-      updateData.cancelled_by = user.id;
+      updateData.cancelled_by = user!.id;
       updateData.cancel_reason = reason || null;
     }
 
@@ -125,7 +128,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         from_status_id: currentRequest.status_id,
         to_status_id: newStatus.id,
         reason: reason || null,
-        changed_by: user.id,
+        changed_by: user!.id,
       });
 
     // 通知作成（必要に応じて）

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { QuoteRequestItemOfferCreate } from '@/types/quote-request';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAny = any;
@@ -13,13 +14,13 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
 
-    // 認証チェック
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requireAppPermission('quotations', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     // 見積依頼の明細とオファーを取得
     const { data: items, error } = await (supabase
@@ -49,14 +50,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
+
+    const permCheck = await requireAppPermission('quotations', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const body: QuoteRequestItemOfferCreate = await request.json();
 
-    // 認証チェック
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // 明細が見積依頼に属するか確認
     const { data: item } = await (supabase
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         quoted_delivery_date: body.quoted_delivery_date,
         lead_time_days: body.lead_time_days,
         purchaser_remarks: body.purchaser_remarks,
-        created_by: user.id,
+        created_by: user!.id,
       })
       .select()
       .single();
@@ -108,14 +111,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
+
+    const permCheck = await requireAppPermission('quotations', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const body = await request.json();
-
-    // 認証チェック
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const { offer_id, ...updateData } = body;
 

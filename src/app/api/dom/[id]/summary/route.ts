@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 type SupabaseAny = any;
 
@@ -10,11 +11,12 @@ interface RouteParams {
 // GET: コスト集計
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requireAppPermission('projects', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { id } = await params;
 

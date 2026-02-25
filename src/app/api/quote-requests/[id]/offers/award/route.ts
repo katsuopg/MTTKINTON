@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAny = any;
@@ -12,6 +13,12 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
+
+    const permCheck = await requireAppPermission('quotations', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const body = await request.json();
 
@@ -24,11 +31,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 認証チェック
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // オファー取得と検証
     const { data: offer } = await (supabase
@@ -69,7 +72,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .update({
         is_awarded: true,
         awarded_at: new Date().toISOString(),
-        awarded_by: user.id,
+        awarded_by: user!.id,
       })
       .eq('id', offer_id)
       .select()
@@ -107,6 +110,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
+
+    const permCheck = await requireAppPermission('quotations', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const offerId = searchParams.get('offer_id');
@@ -116,12 +125,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         { error: 'offer_id is required' },
         { status: 400 }
       );
-    }
-
-    // 認証チェック
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // オファー取得と検証

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 import type { ProjectCreate, ProjectSearchParams } from '@/types/project';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -8,13 +9,13 @@ type SupabaseAny = any;
 // GET: プロジェクト一覧取得
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    // 認証チェック
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 権限チェック
+    const permCheck = await requireAppPermission('projects', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
 
@@ -77,14 +78,17 @@ export async function GET(request: NextRequest) {
 // POST: プロジェクト作成
 export async function POST(request: NextRequest) {
   try {
+    // 権限チェック
+    const permCheck = await requireAppPermission('projects', 'can_add');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const body: ProjectCreate = await request.json();
 
-    // 認証チェック
+    // ユーザー情報取得（created_by用）
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'ログインが必要です' }, { status: 401 });
-    }
 
     // バリデーション
     const missing: string[] = [];
@@ -129,7 +133,7 @@ export async function POST(request: NextRequest) {
       sales_person_id: toNullIfEmpty(body.sales_person_id),
       start_date: toNullIfEmpty(body.start_date),
       due_date: toNullIfEmpty(body.due_date),
-      created_by: user.id,
+      created_by: user!.id,
     };
 
     // 手動入力されたproject_codeがあればセット

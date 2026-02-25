@@ -4,11 +4,18 @@ import { getQuotationRecordsByCustomer } from '@/lib/kintone/quotation';
 import { getOrderRecordsByCustomer } from '@/lib/kintone/order';
 import { getInvoiceRecordsByCustomer } from '@/lib/kintone/invoice';
 import { getCustomerById } from '@/lib/kintone/customer';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // 権限チェック
+  const permCheck = await requireAppPermission('customers', 'can_view');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const period = searchParams.get('period');
   const type = searchParams.get('type');

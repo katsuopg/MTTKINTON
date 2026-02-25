@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 type SupabaseAny = any;
 
@@ -10,11 +11,12 @@ interface RouteParams {
 // GET: ファイル一覧
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requireAppPermission('projects', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
@@ -81,11 +83,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // POST: ファイルアップロード＋レコード作成
 export async function POST(request: NextRequest) {
   try {
+    const permCheck = await requireAppPermission('projects', 'can_add');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -127,7 +131,7 @@ export async function POST(request: NextRequest) {
         file_size: file.size,
         revision,
         description: description || null,
-        uploaded_by: user.id,
+        uploaded_by: user!.id,
       })
       .select()
       .single();
@@ -144,11 +148,12 @@ export async function POST(request: NextRequest) {
 // DELETE: ファイル削除（Storage + DB）
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requireAppPermission('projects', 'can_delete');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('file_id');

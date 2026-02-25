@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { KintoneClient } from '@/lib/kintone/client';
-import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ workNo: string }> }
 ) {
   try {
-    // 認証チェック
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 権限チェック
+    const permCheck = await requireAppPermission('work_numbers', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
 
     const { workNo } = await params;

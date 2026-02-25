@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { KintoneClient } from '@/lib/kintone/client';
 import { EmployeeRecord, KINTONE_APPS, KintoneFileInfo } from '@/types/kintone';
+import { requirePermission } from '@/lib/auth/permissions';
 
 // Kintoneフィールドを安全に取得するヘルパー
 function getFieldValue(field: { value: string } | undefined): string | null {
@@ -101,13 +102,13 @@ function getExtension(filename: string, contentType: string): string {
 
 // 全従業員データをSupabaseに取り込むAPIルート
 export async function POST() {
-  const supabase = await createClient();
-
-  // ユーザー認証チェック
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+  // 権限チェック
+  const permCheck = await requirePermission('import_data');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
   }
+
+  const supabase = await createClient();
 
   // Service Role Keyを使用したadminクライアント（Storage用）
   const supabaseAdmin = createAdminClient(
@@ -304,12 +305,13 @@ export async function POST() {
 
 // GET: 現在のSupabase従業員数を取得
 export async function GET() {
-  const supabase = await createClient();
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+  // 権限チェック
+  const permCheck = await requirePermission('import_data');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
   }
+
+  const supabase = await createClient();
 
   try {
     const { count, error } = await supabase

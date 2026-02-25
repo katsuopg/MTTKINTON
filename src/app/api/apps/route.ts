@@ -1,17 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/auth/permissions';
 
 /**
  * アプリ一覧を取得
  */
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const appsTable = supabase.from('apps') as any;
@@ -38,12 +39,12 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const body = await request.json();
     const { code, name, name_en, name_th, description, table_name, icon, color, display_order } = body;

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { KintoneClient } from '@/lib/kintone/client'
+import { requireAppPermission } from '@/lib/auth/app-permissions'
 
 // 注文書レコードの型定義
 interface OrderRecord {
@@ -31,6 +32,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // 権限チェック
+    const permCheck = await requireAppPermission('orders', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const { id } = await params;
     const apiToken = process.env.KINTONE_API_TOKEN_ORDER
     if (!apiToken) {

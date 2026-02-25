@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInvoiceRecords } from '@/lib/kintone/invoice';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ period: string }> }
 ) {
   try {
+    // 権限チェック
+    const permCheck = await requireAppPermission('invoices', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const { period } = await context.params;
     console.log('API: Fetching invoice records for period:', period);
     

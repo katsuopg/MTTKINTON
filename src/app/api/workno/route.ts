@@ -1,6 +1,6 @@
 import { KintoneClient } from '@/lib/kintone/client';
 import { WorkNoRecord } from '@/types/kintone';
-import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 function getWorkNoClient() {
   return new KintoneClient(
@@ -11,13 +11,13 @@ function getWorkNoClient() {
 
 export async function GET(request: Request) {
   try {
-    const workNoClient = getWorkNoClient();
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    // 権限チェック
+    const permCheck = await requireAppPermission('work_numbers', 'can_view');
+    if (!permCheck.allowed) {
+      return Response.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const workNoClient = getWorkNoClient();
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
@@ -33,13 +33,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const workNoClient = getWorkNoClient();
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    // 権限チェック
+    const permCheck = await requireAppPermission('work_numbers', 'can_add');
+    if (!permCheck.allowed) {
+      return Response.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const workNoClient = getWorkNoClient();
 
     const body = await request.json();
 

@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/auth/permissions';
 
 // 組織一覧取得
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-
-  // 認証チェック
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+  const permCheck = await requirePermission('manage_organizations');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
   }
+
+  const supabase = await createClient();
 
   try {
     const { data: organizations, error } = await supabase
@@ -32,13 +32,13 @@ export async function GET(request: NextRequest) {
 
 // 組織作成
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
-  // 認証チェック
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+  const permCheck = await requirePermission('manage_organizations');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
   }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   try {
     const body = await request.json();
@@ -58,8 +58,8 @@ export async function POST(request: NextRequest) {
       description: description || null,
       // display_orderを数値に変換
       display_order: parseInt(String(display_order), 10) || 0,
-      created_by: user.email || 'system',
-      updated_by: user.email || 'system',
+      created_by: user!.email || 'system',
+      updated_by: user!.email || 'system',
     };
     const { data, error } = await supabase
       .from('organizations')

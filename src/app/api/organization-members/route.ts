@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requirePermission } from '@/lib/auth/permissions';
 
 interface OrganizationMemberUpdate {
   is_active?: boolean;
@@ -16,17 +17,12 @@ interface OrganizationMemberInsert {
 
 // 従業員の所属組織一覧を取得
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-
-  // 認証チェック
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+  const permCheck = await requirePermission('manage_organizations');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
   }
+
+  const supabase = await createClient();
 
   const { searchParams } = new URL(request.url);
   const employeeId = searchParams.get('employee_id');
@@ -102,17 +98,12 @@ export async function GET(request: NextRequest) {
 
 // 従業員の所属組織を更新（複数組織対応）
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
-  // 認証チェック
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+  const permCheck = await requirePermission('manage_organizations');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
   }
+
+  const supabase = await createClient();
 
   try {
     const body = await request.json();

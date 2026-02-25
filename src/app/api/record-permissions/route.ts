@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/auth/permissions';
 
 /**
  * レコード権限ルール一覧を取得
@@ -7,12 +8,12 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const searchParams = request.nextUrl.searchParams;
     const appCode = searchParams.get('app_code');
@@ -68,12 +69,13 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     const body = await request.json();
     const {
@@ -121,7 +123,7 @@ export async function POST(request: Request) {
 
     const { data: employee } = await employeesTable
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', user!.id)
       .single();
 
     const { data: rule, error } = await recordPermissionRulesTable
@@ -160,12 +162,12 @@ export async function POST(request: Request) {
  */
 export async function PATCH(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const body = await request.json();
     const { id, ...updateData } = body;
@@ -203,12 +205,12 @@ export async function PATCH(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const body = await request.json();
     const { id } = body;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 import type { QuoteRequestCreate, QuoteRequestSearchParams } from '@/types/quote-request';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -8,13 +9,13 @@ type SupabaseAny = any;
 // GET: 見積依頼一覧取得
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-
-    // 認証チェック
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 権限チェック
+    const permCheck = await requireAppPermission('quotations', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
 
@@ -102,22 +103,25 @@ export async function GET(request: NextRequest) {
 // POST: 見積依頼作成
 export async function POST(request: NextRequest) {
   try {
+    // 権限チェック
+    const permCheck = await requireAppPermission('quotations', 'can_add');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const body: QuoteRequestCreate = await request.json();
 
-    // 認証チェック
+    // ユーザー情報取得（requester_id等で使用）
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     // ユーザー名取得
     const { data: employee } = await (supabase.from('employees') as SupabaseAny)
       .select('name, name_en')
-      .eq('user_id', user.id)
+      .eq('user_id', user!.id)
       .single();
 
-    const requesterName = employee?.name || employee?.name_en || user.email;
+    const requesterName = employee?.name || employee?.name_en || user!.email;
 
     // デフォルトステータス取得
     const { data: defaultStatus } = await (supabase
@@ -137,14 +141,14 @@ export async function POST(request: NextRequest) {
     const { data: quoteRequest, error: requestError } = await (supabase
       .from('quote_requests') as SupabaseAny)
       .insert({
-        requester_id: user.id,
+        requester_id: user!.id,
         requester_name: requesterName,
         work_no: body.work_no,
         project_code: body.project_code,
         status_id: defaultStatus.id,
         desired_delivery_date: body.desired_delivery_date,
         remarks: body.remarks,
-        created_by: user.id,
+        created_by: user!.id,
       })
       .select()
       .single();
@@ -185,7 +189,7 @@ export async function POST(request: NextRequest) {
       .insert({
         quote_request_id: quoteRequest.id,
         to_status_id: defaultStatus.id,
-        changed_by: user.id,
+        changed_by: user!.id,
       });
 
     return NextResponse.json(quoteRequest);

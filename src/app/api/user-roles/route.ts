@@ -1,15 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/auth/permissions';
 
 // ユーザーロール一覧取得
 export async function GET(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_users');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const employeeId = searchParams.get('employee_id');
@@ -52,12 +53,13 @@ export async function GET(request: Request) {
 // ユーザーにロールを割り当て
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_users');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     const body = await request.json();
     const { employee_id, role_id, organization_id, expires_at } = body;
@@ -99,7 +101,7 @@ export async function POST(request: Request) {
     // 付与者の従業員IDを取得
     const { data: granter } = await employeesTable
       .select('id')
-      .eq('company_email', user.email)
+      .eq('company_email', user!.email)
       .single();
 
     const { data: userRole, error } = await userRolesTable
@@ -132,12 +134,12 @@ export async function POST(request: Request) {
 // ユーザーロールを削除（無効化）
 export async function DELETE(request: Request) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_users');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

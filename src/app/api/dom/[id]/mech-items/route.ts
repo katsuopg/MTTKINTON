@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 type SupabaseAny = any;
 
@@ -10,11 +11,12 @@ interface RouteParams {
 // GET: メカ部品一覧（DOMヘッダーIDでフィルタ）
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requireAppPermission('projects', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { id } = await params;
     const { searchParams } = new URL(request.url);
@@ -58,11 +60,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // POST: メカ部品作成
 export async function POST(request: NextRequest) {
   try {
+    const permCheck = await requireAppPermission('projects', 'can_add');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     const body = await request.json();
     const items = Array.isArray(body) ? body : [body];
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
       amount: (item.quantity ?? 1) * (item.unit_price ?? 0),
       notes: item.notes || null,
       sort_order: item.sort_order || 0,
-      created_by: user.id,
+      created_by: user!.id,
     }));
 
     const { data, error } = await (supabase
@@ -112,11 +116,12 @@ export async function POST(request: NextRequest) {
 // PATCH: メカ部品更新
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requireAppPermission('projects', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const body = await request.json();
     const items = Array.isArray(body) ? body : [body];
@@ -166,11 +171,12 @@ export async function PATCH(request: NextRequest) {
 // DELETE: メカ部品論理削除
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requireAppPermission('projects', 'can_delete');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const ids = searchParams.get('ids');

@@ -1,6 +1,6 @@
 import { KintoneClient } from '@/lib/kintone/client';
 import { WorkNoRecord } from '@/types/kintone';
-import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 function getWorkNoClient() {
   return new KintoneClient(
@@ -12,13 +12,13 @@ function getWorkNoClient() {
 // GET: 工事番号の簡易一覧（選択用）
 export async function GET() {
   try {
-    const workNoClient = getWorkNoClient();
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    // 権限チェック
+    const permCheck = await requireAppPermission('work_numbers', 'can_view');
+    if (!permCheck.allowed) {
+      return Response.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const workNoClient = getWorkNoClient();
 
     // WorkNo, CS ID, 説明のみ取得（軽量化）
     const records = await workNoClient.getRecords<WorkNoRecord>(

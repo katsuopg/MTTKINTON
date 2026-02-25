@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { KintoneClient } from '@/lib/kintone/client';
 import { PORecord, KINTONE_APPS } from '@/types/kintone';
+import { requirePermission } from '@/lib/auth/permissions';
 
 type SupabaseAny = any;
 
@@ -10,12 +11,13 @@ const PAGE_SIZE = 500;
 // POデータをバッチでSupabaseに取り込むAPIルート
 // ?offset=0 で500件ずつ取得→upsert。hasMore=falseで完了。
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: '認証が必要です' }, { status: 401 });
+  // 権限チェック
+  const permCheck = await requirePermission('import_data');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
   }
+
+  const supabase = await createClient();
 
   const { searchParams } = new URL(request.url);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
