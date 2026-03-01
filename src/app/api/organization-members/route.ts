@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
 
       if (employees) {
         employeeMap = Object.fromEntries(
-          employees.map((e: { id: string; kintone_record_id: string }) => [e.kintone_record_id, e.id])
+          employees.map((e: { id: string; kintone_record_id: string | null }) => [e.kintone_record_id || '', e.id])
         );
       }
     }

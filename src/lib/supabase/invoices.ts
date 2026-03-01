@@ -8,14 +8,14 @@ export interface SupabaseInvoice {
   invoice_date: string | null;
   customer_id: string | null;
   customer_name: string | null;
-  sub_total: number;
-  discount: number;
-  after_discount: number;
-  vat: number;
-  grand_total: number;
+  sub_total: number | null;
+  discount: number | null;
+  after_discount: number | null;
+  vat: number | null;
+  grand_total: number | null;
   status: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 /**

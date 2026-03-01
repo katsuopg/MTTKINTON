@@ -14,8 +14,8 @@ export interface SupabaseCustomer {
   address: string | null;
   website_url: string | null;
   notes: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 /**

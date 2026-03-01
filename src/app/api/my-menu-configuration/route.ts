@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { COMMON_MENU_KEYS } from '@/lib/navigation/menu-items';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const from = (supabase: Awaited<ReturnType<typeof createClient>>, table: string) => supabase.from(table) as any;
+const from = (supabase: Awaited<ReturnType<typeof createClient>>, table: string) => (supabase as any).from(table);
 
 /**
  * 現在のユーザーに適用されるメニュー設定を取得

@@ -44,7 +44,7 @@ export default async function SuppliersPage({ params }: SuppliersPageProps) {
       userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
     >
       <div className={tableStyles.contentWrapper}>
-        <SuppliersTable suppliers={suppliers || []} locale={locale} language={language} />
+        <SuppliersTable suppliers={(suppliers || []) as any} locale={locale} language={language} />
       </div>
     </DashboardLayout>
   );

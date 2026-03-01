@@ -70,10 +70,10 @@ export default async function MachineDetailPage({ params }: MachineDetailPagePro
       <MachineDetailContent
         locale={locale}
         language={language}
-        machineRecord={machineRecord}
-        workNoRecords={workNoRecords}
-        quotationRecords={quotationRecords}
-        customerMachines={customerMachines}
+        machineRecord={machineRecord as any}
+        workNoRecords={workNoRecords as any}
+        quotationRecords={quotationRecords as any}
+        customerMachines={customerMachines as any}
       />
     </DashboardLayout>
   );
