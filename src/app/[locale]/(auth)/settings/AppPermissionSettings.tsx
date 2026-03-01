@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { tableStyles } from '@/components/ui/TableStyles';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { X } from 'lucide-react';
 
 interface AppPermissionSettingsProps {
   locale: string;
+  fixedAppCode?: string;
 }
 
 interface App {
@@ -62,15 +63,29 @@ interface Employee {
   employee_number: string;
 }
 
-export default function AppPermissionSettings({ locale }: AppPermissionSettingsProps) {
+const PERMISSION_KEYS = [
+  'can_view',
+  'can_add',
+  'can_edit',
+  'can_delete',
+  'can_manage',
+  'can_import',
+  'can_export',
+] as const;
+
+type PermissionKey = (typeof PERMISSION_KEYS)[number];
+
+export default function AppPermissionSettings({ locale, fixedAppCode }: AppPermissionSettingsProps) {
   const { toast } = useToast();
   const { confirmDialog } = useConfirmDialog();
   const [apps, setApps] = useState<App[]>([]);
   const [permissions, setPermissions] = useState<AppPermission[]>([]);
+  const [savedPermissions, setSavedPermissions] = useState<AppPermission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -95,6 +110,18 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
   const label = (ja: string, th: string, en: string) =>
     locale === 'ja' ? ja : locale === 'th' ? th : en;
 
+  const permLabel: Record<PermissionKey, string> = {
+    can_view: label('レコード閲覧', 'ดูเรคอร์ด', 'Record View'),
+    can_add: label('レコード追加', 'เพิ่มเรคอร์ด', 'Record Add'),
+    can_edit: label('レコード編集', 'แก้ไขเรคอร์ด', 'Record Edit'),
+    can_delete: label('レコード削除', 'ลบเรคอร์ด', 'Record Delete'),
+    can_manage: label('アプリ管理', 'จัดการแอป', 'App Manage'),
+    can_import: label('ファイル読み込み', 'นำเข้าไฟล์', 'File Import'),
+    can_export: label('ファイル書き出し', 'ส่งออกไฟล์', 'File Export'),
+  };
+
+  const inheritLabel = label('アクセス権の継承', 'สืบทอดสิทธิ์', 'Access Inherit');
+
   const getAppName = (app: App) => {
     if (locale === 'en' && app.name_en) return app.name_en;
     if (locale === 'th' && app.name_th) return app.name_th;
@@ -113,6 +140,17 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
     return org.name;
   };
 
+  // 未保存変更の検知
+  const hasUnsavedChanges = useCallback(() => {
+    if (permissions.length !== savedPermissions.length) return true;
+    return permissions.some((perm, i) => {
+      const saved = savedPermissions[i];
+      if (!saved || perm.id !== saved.id) return true;
+      return PERMISSION_KEYS.some((key) => perm[key] !== saved[key]) ||
+        perm.include_sub_organizations !== saved.include_sub_organizations;
+    });
+  }, [permissions, savedPermissions]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -130,20 +168,24 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
         empsRes.json(),
       ]);
 
-      setApps(appsData.apps || []);
+      const appsList = appsData.apps || [];
+      setApps(appsList);
       setRoles(rolesData.roles || []);
       setOrganizations(orgsData.organizations || []);
       setEmployees(empsData.employees || []);
 
-      if (appsData.apps?.length > 0) {
-        setSelectedApp(appsData.apps[0]);
+      if (fixedAppCode) {
+        const fixedApp = appsList.find((a: App) => a.code === fixedAppCode);
+        if (fixedApp) setSelectedApp(fixedApp);
+      } else if (appsList.length > 0) {
+        setSelectedApp(appsList[0]);
       }
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fixedAppCode]);
 
   const fetchPermissions = useCallback(async () => {
     if (!selectedApp) return;
@@ -152,7 +194,9 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
         cache: 'no-store',
       });
       const data = await res.json();
-      setPermissions(data.permissions || []);
+      const perms = data.permissions || [];
+      setPermissions(perms);
+      setSavedPermissions(JSON.parse(JSON.stringify(perms)));
     } catch (err) {
       console.error('Error fetching permissions:', err);
     }
@@ -167,6 +211,63 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
       fetchPermissions();
     }
   }, [selectedApp, fetchPermissions]);
+
+  // インラインチェックボックス変更
+  const handleInlineToggle = (permId: string, key: PermissionKey | 'include_sub_organizations') => {
+    setPermissions((prev) =>
+      prev.map((p) =>
+        p.id === permId ? { ...p, [key]: !p[key] } : p
+      )
+    );
+  };
+
+  // 一括保存
+  const handleSaveAll = async () => {
+    const changed = permissions.filter((perm, i) => {
+      const saved = savedPermissions[i];
+      if (!saved || perm.id !== saved.id) return true;
+      return PERMISSION_KEYS.some((key) => perm[key] !== saved[key]) ||
+        perm.include_sub_organizations !== saved.include_sub_organizations;
+    });
+
+    if (changed.length === 0) return;
+
+    setSaving(true);
+    try {
+      const results = await Promise.all(
+        changed.map((perm) =>
+          fetch('/api/app-permissions', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: perm.id,
+              can_view: perm.can_view,
+              can_add: perm.can_add,
+              can_edit: perm.can_edit,
+              can_delete: perm.can_delete,
+              can_manage: perm.can_manage,
+              can_export: perm.can_export,
+              can_import: perm.can_import,
+              include_sub_organizations: perm.include_sub_organizations,
+            }),
+          })
+        )
+      );
+
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length > 0) {
+        toast({ type: 'error', title: label('一部の保存に失敗しました', 'บันทึกบางรายการไม่สำเร็จ', 'Some updates failed') });
+      } else {
+        setSavedPermissions(JSON.parse(JSON.stringify(permissions)));
+        toast({ type: 'success', title: label('保存しました', 'บันทึกสำเร็จ', 'Saved') });
+      }
+    } catch (err) {
+      console.error('Error saving permissions:', err);
+      toast({ type: 'error', title: label('保存に失敗しました', 'บันทึกไม่สำเร็จ', 'Failed to save') });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // priority再計算 & API一括保存
   const savePriorities = async (reorderedPerms: AppPermission[]) => {
@@ -183,11 +284,13 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
       });
 
       if (!res.ok) throw new Error('Failed to save priorities');
+      // savedPermissionsも並び替え後の状態に更新
+      setSavedPermissions(JSON.parse(JSON.stringify(reorderedPerms)));
       toast({ type: 'success', title: label('並び順を保存しました', 'บันทึกลำดับสำเร็จ', 'Order saved') });
     } catch (err) {
       console.error('Error saving priorities:', err);
       toast({ type: 'error', title: label('並び順の保存に失敗しました', 'บันทึกลำดับไม่สำเร็จ', 'Failed to save order') });
-      fetchPermissions(); // 失敗時はサーバーの状態に戻す
+      fetchPermissions();
     }
   };
 
@@ -242,7 +345,6 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
   const handleAddPermission = async () => {
     if (!selectedApp) return;
 
-    // 新規追加は最高優先度（現在の件数）
     const newPriority = permissions.length;
 
     try {
@@ -292,9 +394,10 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
     });
     if (!confirmed) return;
 
-    // 楽観的更新: 先にUIから削除
     const previousPermissions = permissions;
+    const previousSaved = savedPermissions;
     setPermissions((prev) => prev.filter((p) => p.id !== id));
+    setSavedPermissions((prev) => prev.filter((p) => p.id !== id));
 
     try {
       const res = await fetch(`/api/app-permissions?id=${id}`, {
@@ -309,8 +412,8 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
       toast({ type: 'success', title: label('権限を削除しました', 'ลบสิทธิ์สำเร็จ', 'Permission deleted') });
     } catch (err) {
       console.error('Error deleting permission:', err);
-      // 失敗時はUIを元に戻す
       setPermissions(previousPermissions);
+      setSavedPermissions(previousSaved);
       toast({ type: 'error', title: label('権限の削除に失敗しました', 'ลบสิทธิ์ไม่สำเร็จ', 'Failed to delete permission') });
     }
   };
@@ -330,18 +433,6 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
     }
   };
 
-  const PermissionBadge = ({ enabled, text }: { enabled: boolean; text: string }) => (
-    <span
-      className={`px-2 py-0.5 text-xs rounded ${
-        enabled
-          ? 'bg-success-100 text-success-700 dark:bg-success-500/20 dark:text-success-400'
-          : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
-      }`}
-    >
-      {text}
-    </span>
-  );
-
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -350,41 +441,51 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
     );
   }
 
+  const unsaved = hasUnsavedChanges();
+
   return (
     <div className="space-y-6">
       {/* App Selection */}
       <div className="flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {label('アプリ', 'แอป', 'App')}:
-        </label>
-        <select
-          value={selectedApp?.id || ''}
-          onChange={(e) => {
-            const app = apps.find((a) => a.id === e.target.value);
-            setSelectedApp(app || null);
-          }}
-          className="flex-1 max-w-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500"
-        >
-          {apps.map((app) => (
-            <option key={app.id} value={app.id}>
-              {getAppName(app)} ({app.code})
-            </option>
-          ))}
-        </select>
+        {!fixedAppCode && (
+          <>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {label('アプリ', 'แอป', 'App')}:
+            </label>
+            <select
+              value={selectedApp?.id || ''}
+              onChange={(e) => {
+                const app = apps.find((a) => a.id === e.target.value);
+                setSelectedApp(app || null);
+              }}
+              className="flex-1 max-w-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500"
+            >
+              {apps.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {getAppName(app)} ({app.code})
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm font-medium"
+          className={`px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm font-medium${fixedAppCode ? ' ml-auto' : ''}`}
         >
           {label('権限を追加', 'เพิ่มสิทธิ์', 'Add Permission')}
         </button>
       </div>
 
-      {/* Permissions Table */}
+      {/* Permissions — Kintone-style inline checkboxes */}
       <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800/50">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="font-medium text-gray-800 dark:text-white/90">
-            {selectedApp && getAppName(selectedApp)} - {label('アプリ権限', 'สิทธิ์แอป', 'App Permissions')}
-          </h3>
+        {/* Header row */}
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-4">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-40 flex-shrink-0">
+            {label('ユーザー／組織／グループ', 'ผู้ใช้/องค์กร/กลุ่ม', 'User / Org / Group')}
+          </span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            {label('許可する操作', 'การดำเนินการที่อนุญาต', 'Allowed Operations')}
+          </span>
         </div>
 
         {permissions.length === 0 ? (
@@ -394,71 +495,107 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className={tableStyles.table}>
-              <thead className={tableStyles.thead}>
-                <tr>
-                  <th className={tableStyles.th} style={{ width: '44px' }}></th>
-                  <th className={tableStyles.th}>{label('対象種別', 'ประเภท', 'Target Type')}</th>
-                  <th className={tableStyles.th}>{label('対象', 'เป้าหมาย', 'Target')}</th>
-                  <th className={tableStyles.th}>{label('権限', 'สิทธิ์', 'Permissions')}</th>
-                  <th className={tableStyles.th} style={{ width: '80px' }}></th>
-                </tr>
-              </thead>
-              <tbody className={tableStyles.tbody}>
-                {permissions.map((perm, index) => (
-                  <tr
-                    key={perm.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragEnter={() => handleDragEnter(index)}
-                    onDragLeave={handleDragLeave}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop(index)}
-                    onDragEnd={handleDragEnd}
-                    className={`${tableStyles.tr} ${
-                      dragIndex === index ? 'opacity-50' : ''
-                    } ${
-                      dragOverIndex === index ? 'border-t-2 border-brand-500' : ''
-                    }`}
-                  >
-                    <td className={`${tableStyles.td} cursor-grab active:cursor-grabbing`}>
-                      <span className="text-gray-400 text-lg select-none">⠿</span>
-                    </td>
-                    <td className={tableStyles.td}>
-                      <span className={tableStyles.tag}>
-                        {perm.target_type === 'everyone' && label('全員', 'ทุกคน', 'Everyone')}
-                        {perm.target_type === 'user' && label('ユーザー', 'ผู้ใช้', 'User')}
-                        {perm.target_type === 'organization' && label('組織', 'องค์กร', 'Organization')}
-                        {perm.target_type === 'role' && label('ロール', 'Role', 'Role')}
+          <div>
+            {permissions.map((perm, index) => (
+              <div
+                key={perm.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragEnter={() => handleDragEnter(index)}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(index)}
+                onDragEnd={handleDragEnd}
+                className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800/30 ${
+                  dragIndex === index ? 'opacity-50' : ''
+                } ${
+                  dragOverIndex === index ? 'border-t-2 !border-t-brand-500' : ''
+                }`}
+              >
+                {/* Drag handle */}
+                <span className="text-gray-400 text-lg select-none cursor-grab active:cursor-grabbing flex-shrink-0">⠿</span>
+
+                {/* Target name */}
+                <div className="w-36 flex-shrink-0 flex items-center gap-1.5">
+                  <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                    {perm.target_type === 'everyone' && label('全員', 'ทุกคน', 'All')}
+                    {perm.target_type === 'user' && label('ユーザー', 'ผู้ใช้', 'User')}
+                    {perm.target_type === 'organization' && label('組織', 'องค์กร', 'Org')}
+                    {perm.target_type === 'role' && label('ロール', 'Role', 'Role')}
+                  </span>
+                  <span className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
+                    {getTargetName(perm)}
+                  </span>
+                </div>
+
+                {/* Inline checkboxes with labels */}
+                <div className="flex items-center gap-3 flex-wrap min-w-0">
+                  {PERMISSION_KEYS.map((key) => (
+                    <label key={key} className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={perm[key]}
+                        onChange={() => handleInlineToggle(perm.id, key)}
+                        className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 h-3.5 w-3.5"
+                      />
+                      <span className={`text-xs ${perm[key] ? 'text-gray-800 dark:text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {permLabel[key]}
                       </span>
-                    </td>
-                    <td className={`${tableStyles.td} ${tableStyles.tdPrimary}`}>
-                      {getTargetName(perm)}
-                    </td>
-                    <td className={tableStyles.td}>
-                      <div className="flex flex-wrap gap-1">
-                        <PermissionBadge enabled={perm.can_view} text={label('閲覧', 'ดู', 'View')} />
-                        <PermissionBadge enabled={perm.can_add} text={label('追加', 'เพิ่ม', 'Add')} />
-                        <PermissionBadge enabled={perm.can_edit} text={label('編集', 'แก้ไข', 'Edit')} />
-                        <PermissionBadge enabled={perm.can_delete} text={label('削除', 'ลบ', 'Delete')} />
-                        <PermissionBadge enabled={perm.can_manage} text={label('管理', 'จัดการ', 'Manage')} />
-                        <PermissionBadge enabled={perm.can_export} text={label('出力', 'ส่งออก', 'Export')} />
-                        <PermissionBadge enabled={perm.can_import} text={label('入力', 'นำเข้า', 'Import')} />
-                      </div>
-                    </td>
-                    <td className={tableStyles.td}>
-                      <button
-                        onClick={() => handleDeletePermission(perm.id)}
-                        className="text-error-500 hover:text-error-600 text-sm"
-                      >
-                        {label('削除', 'ลบ', 'Delete')}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </label>
+                  ))}
+                  {/* アクセス権の継承 — 組織の場合のみ */}
+                  {perm.target_type === 'organization' && (
+                    <label className="flex items-center gap-1 cursor-pointer whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={perm.include_sub_organizations}
+                        onChange={() => handleInlineToggle(perm.id, 'include_sub_organizations')}
+                        className="rounded border-gray-300 text-brand-500 focus:ring-brand-500 h-3.5 w-3.5"
+                      />
+                      <span className={`text-xs ${perm.include_sub_organizations ? 'text-gray-800 dark:text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {inheritLabel}
+                      </span>
+                    </label>
+                  )}
+                </div>
+
+                {/* Delete button */}
+                <button
+                  onClick={() => handleDeletePermission(perm.id)}
+                  className="ml-auto flex-shrink-0 text-gray-400 hover:text-error-500 transition-colors"
+                  title={label('削除', 'ลบ', 'Delete')}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Save / Cancel bar */}
+        {permissions.length > 0 && (
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
+            {unsaved && (
+              <span className="text-sm text-amber-600 dark:text-amber-400 mr-auto">
+                {label('未保存の変更があります', 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก', 'Unsaved changes')}
+              </span>
+            )}
+            <button
+              onClick={() => {
+                setPermissions(JSON.parse(JSON.stringify(savedPermissions)));
+              }}
+              disabled={!unsaved}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+            >
+              {label('キャンセル', 'ยกเลิก', 'Cancel')}
+            </button>
+            <button
+              onClick={handleSaveAll}
+              disabled={!unsaved || saving}
+              className="px-6 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              {saving ? label('保存中...', 'กำลังบันทึก...', 'Saving...') : label('保存', 'บันทึก', 'Save')}
+            </button>
           </div>
         )}
       </div>
@@ -522,31 +659,23 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
                   {label('権限', 'สิทธิ์', 'Permissions')}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { key: 'can_view', ja: '閲覧', th: 'ดู', en: 'View' },
-                    { key: 'can_add', ja: '追加', th: 'เพิ่ม', en: 'Add' },
-                    { key: 'can_edit', ja: '編集', th: 'แก้ไข', en: 'Edit' },
-                    { key: 'can_delete', ja: '削除', th: 'ลบ', en: 'Delete' },
-                    { key: 'can_manage', ja: '管理', th: 'จัดการ', en: 'Manage' },
-                    { key: 'can_export', ja: '書き出し', th: 'ส่งออก', en: 'Export' },
-                    { key: 'can_import', ja: '読み込み', th: 'นำเข้า', en: 'Import' },
-                  ].map((perm) => (
-                    <label key={perm.key} className="flex items-center gap-2">
+                  {PERMISSION_KEYS.map((key) => (
+                    <label key={key} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={formData[perm.key as keyof typeof formData] as boolean}
-                        onChange={(e) => setFormData({ ...formData, [perm.key]: e.target.checked })}
+                        checked={formData[key]}
+                        onChange={(e) => setFormData({ ...formData, [key]: e.target.checked })}
                         className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-300">
-                        {label(perm.ja, perm.th, perm.en)}
+                        {permLabel[key]}
                       </span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              {/* Include Sub Organizations */}
+              {/* アクセス権の継承 */}
               {formData.target_type === 'organization' && (
                 <label className="flex items-center gap-2">
                   <input
@@ -556,7 +685,7 @@ export default function AppPermissionSettings({ locale }: AppPermissionSettingsP
                     className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {label('サブ組織にも適用', 'ใช้กับองค์กรย่อย', 'Apply to sub-organizations')}
+                    {inheritLabel}
                   </span>
                 </label>
               )}

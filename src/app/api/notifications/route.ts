@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         related_table,
         related_id,
         metadata: metadata || {}
-      } as never)
+      })
       .select()
       .single()
 
@@ -125,7 +125,7 @@ export async function PATCH(request: NextRequest) {
       // 全て既読にする
       const { error } = await supabase
         .from('notifications')
-        .update({ is_read: true, read_at: new Date().toISOString() } as never)
+        .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('user_id', user.id)
         .eq('is_read', false)
 
@@ -147,7 +147,7 @@ export async function PATCH(request: NextRequest) {
     // 単一の通知を既読にする
     const { data, error } = await supabase
       .from('notifications')
-      .update({ is_read: true, read_at: new Date().toISOString() } as never)
+      .update({ is_read: true, read_at: new Date().toISOString() })
       .eq('id', notification_id)
       .eq('user_id', user.id)
       .select()

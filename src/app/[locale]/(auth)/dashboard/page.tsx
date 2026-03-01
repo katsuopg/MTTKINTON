@@ -1,10 +1,25 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { KintoneClient } from '@/lib/kintone/client';
-import { ProjectRecord, WorkNoRecord, EmployeeRecord, InvoiceRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import DashboardContent from './DashboardContent';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
+
+export interface SupabaseDashboardWorkOrder {
+  kintone_record_id: string;
+  work_no: string;
+  status: string;
+  sales_date: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  category: string | null;
+  description: string | null;
+  grand_total: number | null;
+}
+
+export interface SupabaseDashboardInvoice {
+  invoice_date: string | null;
+  sub_total: number | null;
+}
 
 interface DashboardPageProps {
   params: Promise<{
@@ -16,68 +31,66 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
   const supabase = await createClient();
   const { locale } = await params;
 
-  // 認証チェックはミドルウェアで実行されるため、ここではユーザー情報を取得のみ
   const { data: { user } } = await supabase.auth.getUser();
 
-  // kintoneからデータを取得
-  let workNoCount = 0;
-  let projectCount = 0;
-  let recentWorkNos: WorkNoRecord[] = [];
-  let fiscalYearWorkNos: WorkNoRecord[] = [];
-  let fiscalYearInvoices: InvoiceRecord[] = [];
-  let employeeName = '';
-
-  try {
-    // クライアントを初期化
-    const workNoClient = new KintoneClient(
-      '21',
-      process.env.KINTONE_API_TOKEN_WORKNO!
-    );
-    const projectClient = new KintoneClient(
-      '114',
-      process.env.KINTONE_API_TOKEN_PROJECT!
-    );
-    const employeeClient = new KintoneClient(
-      '106',
-      process.env.KINTONE_API_TOKEN_EMPLOYEE!
-    );
-    const invoiceClient = new KintoneClient(
-      '26',
-      process.env.KINTONE_API_TOKEN_INVOICE!
-    );
-
-    // 並列でAPI呼び出し
-    const userEmail = user?.email || '';
-    const [workNoRecords, projectRecords, employeeRecords, fiscalRecords, invoiceRecords] = await Promise.all([
-      workNoClient.getRecords<WorkNoRecord>('order by 更新日時 desc limit 200'),
-      projectClient.getRecords<ProjectRecord>('order by 更新日時 desc limit 200'),
-      userEmail ? employeeClient.getRecords<EmployeeRecord>(`メールアドレス = "${userEmail}"`) : Promise.resolve([]),
-      // 第14期の全レコード取得（月別売上チャート用）
-      workNoClient.getRecords<WorkNoRecord>('WorkNo like "14-" order by WorkNo desc limit 500'),
-      // 第14期の請求書取得（実績用）
-      invoiceClient.getRecords<InvoiceRecord>('文字列__1行_ like "14-" order by 日付 desc limit 500'),
-    ]);
-
-    // クライアント側でWIPフィルタリング
-    const wipRecords = workNoRecords.filter(record =>
-      record.Status?.value === 'Working' || record.Status?.value === 'WIP'
-    );
-
-    workNoCount = wipRecords.length;
-    recentWorkNos = wipRecords;
-    projectCount = projectRecords.length;
-    fiscalYearWorkNos = fiscalRecords;
-    fiscalYearInvoices = invoiceRecords;
-
-    // 従業員名を取得
-    if (employeeRecords.length > 0) {
-      employeeName = employeeRecords[0].氏名?.value || '';
-    }
-  } catch (error) {
-    console.error('Error fetching kintone data:', error);
+  if (!user) {
+    redirect(`/${locale}/auth/login`);
   }
 
-  // 共通ユーティリティでユーザー情報を取得（ニックネーム、アバター含む）
+  let workNoCount = 0;
+  let projectCount = 0;
+  let recentWorkNos: SupabaseDashboardWorkOrder[] = [];
+  let fiscalYearWorkNos: SupabaseDashboardWorkOrder[] = [];
+  let fiscalYearInvoices: SupabaseDashboardInvoice[] = [];
+
+  try {
+    // 並列でSupabaseクエリを実行
+    const [wipResult, projectResult, fiscalWoResult, fiscalInvResult] = await Promise.all([
+      // WIP工事番号（Working/WIPステータス）
+      supabase
+        .from('work_orders')
+        .select('kintone_record_id, work_no, status, sales_date, customer_id, customer_name, category, description, grand_total')
+        .in('status', ['Working', 'WIP', 'Wating PO', 'Pending', 'Stock'])
+        .order('kintone_record_id', { ascending: false })
+        .limit(200),
+      // プロジェクト件数
+      supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true }),
+      // 第14期の工事番号（月別売上チャート用）
+      supabase
+        .from('work_orders')
+        .select('kintone_record_id, work_no, status, sales_date, customer_id, customer_name, category, description, grand_total')
+        .ilike('work_no', '14-%')
+        .order('work_no', { ascending: false })
+        .limit(500),
+      // 第14期の請求書（実績用）
+      supabase
+        .from('invoices')
+        .select('invoice_date, sub_total')
+        .ilike('work_no', '14-%')
+        .order('invoice_date', { ascending: false })
+        .limit(500),
+    ]);
+
+    if (!wipResult.error) {
+      recentWorkNos = wipResult.data || [];
+      workNoCount = recentWorkNos.filter(r => r.status === 'Working' || r.status === 'WIP').length;
+    }
+
+    projectCount = projectResult.count || 0;
+
+    if (!fiscalWoResult.error) {
+      fiscalYearWorkNos = fiscalWoResult.data || [];
+    }
+
+    if (!fiscalInvResult.error) {
+      fiscalYearInvoices = fiscalInvResult.data || [];
+    }
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+  }
+
   const currentUserInfo = await getCurrentUserInfo();
 
   const userInfo = currentUserInfo ? {
@@ -86,7 +99,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     avatarUrl: currentUserInfo.avatarUrl,
   } : {
     email: user?.email || '',
-    name: employeeName || user?.user_metadata?.nickname || '',
+    name: user?.user_metadata?.nickname || '',
     avatarUrl: user?.user_metadata?.avatar_url || '',
   };
 

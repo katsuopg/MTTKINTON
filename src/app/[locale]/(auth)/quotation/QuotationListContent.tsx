@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { QuotationRecord } from '@/types/kintone';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
 import { tableStyles } from '@/components/ui/TableStyles';
@@ -10,31 +9,72 @@ import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { extractCsName } from '@/lib/utils/customer-name';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
+
+export interface SupabaseQuotation {
+  id: string;
+  kintone_record_id: string;
+  quotation_no: string | null;
+  quotation_date: string | null;
+  expected_order_date: string | null;
+  delivery_date: string | null;
+  valid_until: string | null;
+  sales_staff: string | null;
+  status: string | null;
+  probability: string | null;
+  title: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  company_name: string | null;
+  project_name: string | null;
+  work_no: string | null;
+  type: string | null;
+  vendor: string | null;
+  model: string | null;
+  machine_no: string | null;
+  serial_no: string | null;
+  contact_person: string | null;
+  cc: string | null;
+  sales_forecast: string | null;
+  sub_total: number | null;
+  discount: number | null;
+  grand_total: number | null;
+  gross_profit: number | null;
+  gross_profit_rate: string | null;
+  sales_profit: number | null;
+  sales_profit_rate: string | null;
+  cost_total: number | null;
+  other_total: number | null;
+  payment_terms_1: string | null;
+  payment_terms_2: string | null;
+  payment_terms_3: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface QuotationListContentProps {
-  quotations: QuotationRecord[];
+  quotations: SupabaseQuotation[];
   locale: string;
 }
 
 export default function QuotationListContent({ quotations, locale }: QuotationListContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
+  const { canManageApp } = useNavPermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSalesStaff, setSelectedSalesStaff] = useState('');
   const router = useRouter();
-  
-  // 日付フォーマット関数
-  const formatDate = (dateString: string | undefined) => {
+
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
+
     if (language === 'ja') {
-      // 日本語: YYYY-MM-DD
       return dateString;
     } else {
-      // 英語・タイ語: DD/MM/YYYY
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const year = date.getFullYear();
@@ -42,50 +82,35 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
     }
   };
 
-  // ステータスの選択肢を取得（重複を排除）
   const statusOptions = useMemo(() => {
     const statuses = new Set<string>();
     quotations.forEach(qt => {
-      if (qt.ドロップダウン?.value) {
-        statuses.add(qt.ドロップダウン.value);
+      if (qt.status) {
+        statuses.add(qt.status);
       }
     });
     return Array.from(statuses).sort();
   }, [quotations]);
 
-  // sales_staffのvalueから表示名を抽出（string or {code, name}対応）
-  const getSalesStaffName = (value: unknown): string => {
-    if (!value) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'object' && value !== null && 'name' in value) {
-      return String((value as { name: string }).name);
-    }
-    return String(value);
-  };
-
-  // 営業担当者の選択肢を取得（重複を排除）
   const salesStaffOptions = useMemo(() => {
     const staff = new Set<string>();
     quotations.forEach(qt => {
-      const name = getSalesStaffName(qt.sales_staff?.value);
-      if (name) {
-        staff.add(name);
+      if (qt.sales_staff) {
+        staff.add(qt.sales_staff);
       }
     });
     return Array.from(staff).sort();
   }, [quotations]);
 
-  // フィルタリングされた見積もりリスト
   const filteredQuotations = useMemo(() => {
     return quotations.filter(quotation => {
-      // 検索クエリでフィルタリング
       if (searchQuery && searchQuery.trim() !== '') {
         const searchLower = searchQuery.toLowerCase();
-        const qtNo = quotation.qtno2?.value?.toLowerCase() || '';
-        const csId = quotation.文字列__1行__10?.value?.toLowerCase() || '';
-        const customerName = quotation.name?.value?.toLowerCase() || '';
-        const title = quotation.文字列__1行__4?.value?.toLowerCase() || '';
-        const projectName = quotation.ドロップダウン_0?.value?.toLowerCase() || '';
+        const qtNo = (quotation.quotation_no || '').toLowerCase();
+        const csId = (quotation.customer_id || '').toLowerCase();
+        const customerName = (quotation.customer_name || '').toLowerCase();
+        const title = (quotation.title || '').toLowerCase();
+        const projectName = (quotation.project_name || '').toLowerCase();
 
         if (!qtNo.includes(searchLower) &&
             !csId.includes(searchLower) &&
@@ -96,16 +121,12 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
         }
       }
 
-      // ステータスでフィルタリング
-      if (selectedStatus && quotation.ドロップダウン?.value !== selectedStatus) {
+      if (selectedStatus && quotation.status !== selectedStatus) {
         return false;
       }
 
-      // 営業担当者でフィルタリング
-      if (selectedSalesStaff) {
-        if (getSalesStaffName(quotation.sales_staff?.value) !== selectedSalesStaff) {
-          return false;
-        }
+      if (selectedSalesStaff && quotation.sales_staff !== selectedSalesStaff) {
+        return false;
       }
 
       return true;
@@ -114,9 +135,7 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
 
   const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredQuotations);
 
-  // ステータスの表示ラベルを取得
   const getStatusLabel = (status: string) => {
-    // TailAdmin badge style
     const statusColors: { [key: string]: string } = {
       '見積中': 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500',
       '提出済': 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400',
@@ -134,7 +153,6 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
     );
   };
 
-  // 確率の表示
   const getProbabilityLabel = (probability: string) => {
     const probColors: { [key: string]: string } = {
       '90%': 'text-success-600 dark:text-success-500',
@@ -152,7 +170,6 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
 
   return (
       <div className={tableStyles.contentWrapper}>
-        {/* 見積もりリスト */}
         <div className={tableStyles.tableContainer}>
           <ListPageHeader
             searchValue={searchQuery}
@@ -196,12 +213,13 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
                 </select>
               </>
             }
+            settingsHref={canManageApp('quotations') ? `/${locale}/settings/apps/quotations` : undefined}
           />
           {filteredQuotations.length === 0 ? (
             <div className={tableStyles.emptyRow}>
               <p>
-                {language === 'ja' ? '該当する見積もりが見つかりません' : 
-                 language === 'th' ? 'ไม่พบใบเสนอราคาที่ตรงกัน' : 
+                {language === 'ja' ? '該当する見積もりが見つかりません' :
+                 language === 'th' ? 'ไม่พบใบเสนอราคาที่ตรงกัน' :
                  'No quotations found'}
               </p>
             </div>
@@ -238,45 +256,45 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
               <tbody className={tableStyles.tbody}>
                 {paginatedItems.map((quotation) => (
                   <tr
-                    key={quotation.$id.value}
+                    key={quotation.id}
                     className={tableStyles.trClickable}
-                    onClick={() => router.push(`/${locale}/quotation/${quotation.$id.value}`)}
+                    onClick={() => router.push(`/${locale}/quotation/${quotation.kintone_record_id}`)}
                   >
                     <td className={tableStyles.td}>
-                      {formatDate(quotation.日付?.value)}
+                      {formatDate(quotation.quotation_date)}
                     </td>
                     <td className={tableStyles.td}>
-                      {quotation.qtno2?.value || '-'}
+                      {quotation.quotation_no || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {quotation.文字列__1行__10?.value ? (
+                      {quotation.customer_id ? (
                         <Link
-                          href={`/${locale}/customers/${quotation.文字列__1行__10.value}`}
+                          href={`/${locale}/customers/${quotation.customer_id}`}
                           className={tableStyles.tdLink}
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {extractCsName(quotation.文字列__1行__10.value)}
+                          {extractCsName(quotation.customer_id)}
                         </Link>
                       ) : '-'}
                     </td>
                     <td className={tableStyles.td}>
                       <div>
-                        {quotation.文字列__1行__4?.value || '-'}
+                        {quotation.title || '-'}
                       </div>
-                      {quotation.ドロップダウン_0?.value && (
+                      {quotation.project_name && (
                         <div className="text-sm text-gray-500">
-                          {quotation.ドロップダウン_0.value}
+                          {quotation.project_name}
                         </div>
                       )}
                     </td>
                     <td className={tableStyles.td}>
-                      {quotation.ドロップダウン?.value ? getStatusLabel(quotation.ドロップダウン.value) : '-'}
+                      {quotation.status ? getStatusLabel(quotation.status) : '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {quotation.Drop_down?.value ? getProbabilityLabel(quotation.Drop_down.value) : '-'}
+                      {quotation.probability ? getProbabilityLabel(quotation.probability) : '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {getSalesStaffName(quotation.sales_staff?.value) || '-'}
+                      {quotation.sales_staff || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-right`}>
                       <span className="text-sm text-gray-400">›</span>

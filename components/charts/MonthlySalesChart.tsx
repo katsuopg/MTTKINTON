@@ -12,12 +12,12 @@ import {
   Cell,
   ResponsiveContainer,
 } from 'recharts';
-import { WorkNoRecord, InvoiceRecord } from '@/types/kintone';
 import type { Language } from '@/lib/kintone/field-mappings';
+import type { SupabaseDashboardWorkOrder, SupabaseDashboardInvoice } from '@/app/[locale]/(auth)/dashboard/page';
 
 interface MonthlySalesChartProps {
-  workNos: WorkNoRecord[];
-  invoices: InvoiceRecord[];
+  workNos: SupabaseDashboardWorkOrder[];
+  invoices: SupabaseDashboardInvoice[];
   language: Language;
   locale: string;
 }
@@ -55,7 +55,7 @@ function getCurrentFiscalIndex(): number {
 }
 
 /** Date文字列 → FISCAL_MONTHS のインデックス (-1 = 範囲外) */
-function toFiscalIndex(dateStr: string | undefined): number {
+function toFiscalIndex(dateStr: string | null | undefined): number {
   if (!dateStr) return -1;
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return -1;
@@ -86,19 +86,19 @@ export default function MonthlySalesChart({ workNos, invoices, language }: Month
       isActual: currentIdx >= 0 ? i < currentIdx : false,
     }));
 
-    // --- 実績: 請求書の日付(日付)ベースで月別集計 ---
+    // --- 実績: 請求書の日付ベースで月別集計 ---
     invoices.forEach((inv) => {
-      const idx = toFiscalIndex(inv.日付?.value);
+      const idx = toFiscalIndex(inv.invoice_date);
       if (idx === -1 || !buckets[idx].isActual) return;
-      buckets[idx].actual += parseFloat(inv.total?.value || '0');
+      buckets[idx].actual += inv.sub_total || 0;
       buckets[idx].actualCount += 1;
     });
 
-    // --- 予定: 工事番号のSalesdateベースで当月以降を集計 ---
+    // --- 予定: 工事番号のsales_dateベースで当月以降を集計 ---
     workNos.forEach((record) => {
-      const idx = toFiscalIndex(record.Salesdate?.value);
+      const idx = toFiscalIndex(record.sales_date);
       if (idx === -1 || buckets[idx].isActual) return;
-      buckets[idx].forecast += parseFloat(record.grand_total?.value || '0');
+      buckets[idx].forecast += record.grand_total || 0;
       buckets[idx].forecastCount += 1;
     });
 
@@ -265,7 +265,6 @@ export default function MonthlySalesChart({ workNos, invoices, language }: Month
           <span className="text-gray-500 dark:text-gray-400">{t.count}</span>
         </div>
       </div>
-      {/* TODO: 今後、見積データ（QuotationRecord）を予測として追加予定 */}
     </div>
   );
 }

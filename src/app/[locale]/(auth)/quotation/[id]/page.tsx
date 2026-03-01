@@ -1,7 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { KintoneClient } from '@/lib/kintone/client';
-import { QuotationRecord } from '@/types/kintone';
 import QuotationDetailContent from './QuotationDetailContent';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -28,19 +26,10 @@ export default async function QuotationDetailPage({ params }: QuotationDetailPag
   const pageTitle = language === 'ja' ? '見積もり詳細' : language === 'th' ? 'รายละเอียดใบเสนอราคา' : 'Quotation Details';
   const userInfo = await getCurrentUserInfo();
 
-  // 見積もり詳細を取得
-  let quotation: QuotationRecord | null = null;
-
-  try {
-    const quotationClient = new KintoneClient(
-      process.env.KINTONE_APP_QUOTATION!,
-      process.env.KINTONE_API_TOKEN_QUOTATION!
-    );
-
-    quotation = await quotationClient.getRecord<QuotationRecord>(id);
-  } catch (error) {
-    console.error('Error fetching quotation detail:', error);
-  }
+  const { data: quotation } = await (supabase.from('quotations') as any)
+    .select('*')
+    .eq('kintone_record_id', id)
+    .single();
 
   if (!quotation) {
     return (

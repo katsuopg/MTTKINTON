@@ -44,9 +44,13 @@ export const KINTONE_APPS = {
     appId: 106, 
     name: 'Employee Management' 
   },
-  INVOICE_MANAGEMENT: { 
-    appId: 26, 
-    name: 'Invoice Management' 
+  INVOICE_MANAGEMENT: {
+    appId: 26,
+    name: 'Invoice Management'
+  },
+  MACHINE_MANAGEMENT: {
+    appId: 89,
+    name: 'Machine Management'
   }
 } as const;
 

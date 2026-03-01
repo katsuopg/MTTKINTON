@@ -9,6 +9,9 @@ interface PageProps {
   searchParams: Promise<{
     work_no?: string;
     project_code?: string;
+    dom_header_id?: string;
+    mech_ids?: string;
+    elec_ids?: string;
   }>;
 }
 
@@ -50,6 +53,11 @@ export default async function NewQuoteRequestPage({
           work_no: searchParamsResolved.work_no,
           project_code: searchParamsResolved.project_code,
         }}
+        domParams={searchParamsResolved.dom_header_id ? {
+          dom_header_id: searchParamsResolved.dom_header_id,
+          mech_ids: searchParamsResolved.mech_ids,
+          elec_ids: searchParamsResolved.elec_ids,
+        } : undefined}
       />
     </DashboardLayout>
   );

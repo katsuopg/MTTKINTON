@@ -1,11 +1,30 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { KintoneClient } from '@/lib/kintone/client';
-import { MachineRecord, QuotationRecord, WorkNoRecord, KINTONE_APPS } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
 import MachineListContent from './MachineListContent';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
+
+export interface SupabaseMachine {
+  id: string;
+  kintone_record_id: string;
+  customer_id: string;
+  customer_name: string | null;
+  machine_category: string | null;
+  machine_type: string | null;
+  vendor: string | null;
+  model: string | null;
+  serial_number: string | null;
+  machine_number: string | null;
+  machine_item: string | null;
+  install_date: string | null;
+  manufacture_date: string | null;
+  remarks: string | null;
+  quotation_count: number | null;
+  work_order_count: number | null;
+  report_count: number | null;
+  quotation_history: any | null;
+}
 
 interface MachinesPageProps {
   params: Promise<{
@@ -23,116 +42,44 @@ export default async function MachinesPage({ params, searchParams }: MachinesPag
   const searchParamsResolved = await searchParams;
   const supabase = await createClient();
 
-  // 認証チェック
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     redirect(`/${locale}/auth/login`);
   }
 
-  // Convert locale to Language type
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
-  
-  // kintoneから機械管理データを取得
-  let machineRecords: MachineRecord[] = [];
-  const machineQtCounts: Record<string, number> = {};
-  const machineWnCounts: Record<string, number> = {};
-  
+
+  // Supabaseから機械データを取得
+  let machineRecords: SupabaseMachine[] = [];
+
   try {
-    const machineClient = new KintoneClient(
-      '89', // Machine ManagementアプリID
-      'T4MEIBEiCBZ0ksOY6aL8qEHHVdRMN5nPWU4szZJj'
-    );
-    
-    // クエリを構築
-    let query = '';
-    const conditions: string[] = [];
-    
+    let query = supabase
+      .from('machines')
+      .select('id, kintone_record_id, customer_id, customer_name, machine_category, machine_type, vendor, model, serial_number, machine_number, machine_item, install_date, manufacture_date, remarks, quotation_count, work_order_count, report_count, quotation_history')
+      .order('kintone_record_id', { ascending: false })
+      .limit(200);
+
+    // サーバーサイド検索
     if (searchParamsResolved.search) {
       const search = searchParamsResolved.search;
-      conditions.push(`(CsName like "${search}" or CsId_db like "${search}" or Moldel like "${search}" or SrialNo like "${search}" or McItem like "${search}")`);
+      query = query.or(`customer_name.ilike.%${search}%,customer_id.ilike.%${search}%,model.ilike.%${search}%,serial_number.ilike.%${search}%,machine_item.ilike.%${search}%`);
     }
-    
+
     if (searchParamsResolved.category && searchParamsResolved.category !== 'all') {
-      conditions.push(`MachineCategory = "${searchParamsResolved.category}"`);
+      query = query.eq('machine_category', searchParamsResolved.category);
     }
-    
+
     if (searchParamsResolved.vendor && searchParamsResolved.vendor !== 'all') {
-      conditions.push(`Vender = "${searchParamsResolved.vendor}"`);
+      query = query.eq('vendor', searchParamsResolved.vendor);
     }
-    
-    if (conditions.length > 0) {
-      query = conditions.join(' and ') + ' ';
-    }
-    
-    query += 'order by Record_number desc limit 200';
-    
-    machineRecords = await machineClient.getRecords<MachineRecord>(query);
-    console.log(`Found ${machineRecords.length} machine records`);
-    // デバッグ: CsNameフィールドの確認
-    if (machineRecords.length > 0) {
-      console.log('First 3 records CsId_db/CsName:', machineRecords.slice(0, 3).map(r => ({
-        CsId_db: r.CsId_db?.value,
-        CsName: r.CsName?.value
-      })));
-    }
-    
-    // 見積管理アプリからQT（見積回数）を取得
-    try {
-      const quotationApiToken = process.env.KINTONE_API_TOKEN_QUOTATION;
-      if (quotationApiToken) {
-        const quotationClient = new KintoneClient(
-          String(KINTONE_APPS.QUOTATION.appId), // QuotationアプリID
-          quotationApiToken
-        );
-        
-        // 各機械のMcItemごとに見積数をカウント
-        for (const machine of machineRecords) {
-          if (machine.McItem?.value) {
-            try {
-              const qtQuery = `McItem = "${machine.McItem.value}" order by レコード番号 desc`;
-              const quotations = await quotationClient.getRecords<QuotationRecord>(qtQuery);
-              machineQtCounts[machine.$id.value] = quotations.length;
-            } catch (error) {
-              console.error(`Error fetching quotations for ${machine.McItem.value}:`, error);
-              machineQtCounts[machine.$id.value] = 0;
-            }
-          }
-        }
-      } else {
-        console.warn('KINTONE_API_TOKEN_QUOTATION is not set');
-      }
-    } catch (error) {
-      console.error('Error fetching quotation counts:', error);
-    }
-    
-    // 工事番号管理アプリからWN（工事番号数）を取得
-    try {
-      const workNoApiToken = process.env.KINTONE_API_TOKEN_WORKNO;
-      if (workNoApiToken) {
-        const workNoClient = new KintoneClient(
-          String(KINTONE_APPS.WORK_NO.appId), // Work Number ManagementアプリID
-          workNoApiToken
-        );
-        
-        // 各機械のMcItemごとに工事番号数をカウント
-        for (const machine of machineRecords) {
-          if (machine.McItem?.value) {
-            try {
-              const wnQuery = `McItem = "${machine.McItem.value}" order by レコード番号 desc`;
-              const workNos = await workNoClient.getRecords<WorkNoRecord>(wnQuery);
-              machineWnCounts[machine.$id.value] = workNos.length;
-            } catch (error) {
-              console.error(`Error fetching work numbers for ${machine.McItem.value}:`, error);
-              machineWnCounts[machine.$id.value] = 0;
-            }
-          }
-        }
-      } else {
-        console.warn('KINTONE_API_TOKEN_WORKNO is not set');
-      }
-    } catch (error) {
-      console.error('Error fetching work number counts:', error);
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching machines from Supabase:', error);
+    } else {
+      machineRecords = data || [];
     }
   } catch (error) {
     console.error('Error fetching machine data:', error);
@@ -156,8 +103,6 @@ export default async function MachinesPage({ params, searchParams }: MachinesPag
         initialSearch={searchParamsResolved.search || ''}
         initialCategory={searchParamsResolved.category || 'all'}
         initialVendor={searchParamsResolved.vendor || 'all'}
-        qtCounts={machineQtCounts}
-        wnCounts={machineWnCounts}
       />
     </DashboardLayout>
   );

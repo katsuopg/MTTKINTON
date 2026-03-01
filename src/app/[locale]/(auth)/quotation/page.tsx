@@ -1,4 +1,3 @@
-import { fetchAllQuotations } from '@/lib/kintone/api';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -22,9 +21,9 @@ export default async function QuotationListPage({ params }: QuotationListPagePro
     redirect(`/${locale}/auth/login`);
   }
 
-  // 見積もり一覧を取得
-  const quotations = await fetchAllQuotations();
-  console.log('Fetched quotations:', quotations.length);
+  const { data: quotations } = await (supabase.from('quotations') as any)
+    .select('*')
+    .order('quotation_date', { ascending: false });
 
   const userInfo = await getCurrentUserInfo();
 
@@ -38,7 +37,7 @@ export default async function QuotationListPage({ params }: QuotationListPagePro
       title={pageTitle}
       userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
     >
-      <QuotationListContent quotations={quotations} locale={locale} />
+      <QuotationListContent quotations={quotations || []} locale={locale} />
     </DashboardLayout>
   );
 }

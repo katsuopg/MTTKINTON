@@ -20,6 +20,7 @@ interface LoginFormProps {
       error: {
         employeeNumberRequired: string;
         passwordMin: string;
+        invalidCredentials: string;
         generic: string;
       };
     };
@@ -51,10 +52,18 @@ export function LoginForm({ locale, messages }: LoginFormProps) {
     setError(null);
 
     try {
-      await login(data.identifier, data.password);
-    } catch (err) {
+      await login(data.identifier, data.password, locale);
+    } catch (err: unknown) {
+      // Next.js redirect()は内部的にエラーをthrowする — 再throwして正常にリダイレクトさせる
+      if (err && typeof err === 'object' && 'digest' in err && typeof (err as { digest: string }).digest === 'string' && (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')) {
+        throw err;
+      }
       if (err instanceof Error) {
-        setError(err.message);
+        const errorMap: Record<string, string> = {
+          'INVALID_CREDENTIALS': t.error.invalidCredentials,
+          'LOGIN_FAILED': t.error.generic,
+        };
+        setError(errorMap[err.message] || t.error.generic);
       } else {
         setError(t.error.generic);
       }

@@ -1,7 +1,8 @@
 'use client';
 
 import { ReactNode, useState, useEffect, useCallback } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Settings, Download } from 'lucide-react';
+import Link from 'next/link';
 
 interface ListPageHeaderProps {
   searchValue: string;
@@ -15,6 +16,9 @@ interface ListPageHeaderProps {
     onClick: () => void;
     icon?: ReactNode;
   };
+  settingsHref?: string;
+  exportHref?: string;
+  exportLabel?: string;
 }
 
 export function ListPageHeader({
@@ -25,6 +29,9 @@ export function ListPageHeader({
   countLabel,
   filters,
   addButton,
+  settingsHref,
+  exportHref,
+  exportLabel,
 }: ListPageHeaderProps) {
   const [inputValue, setInputValue] = useState(searchValue);
 
@@ -90,12 +97,35 @@ export function ListPageHeader({
           )}
         </div>
 
+        {/* CSVエクスポート */}
+        {exportHref && (
+          <a
+            href={exportHref}
+            download
+            className="inline-flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-white/[0.05] transition-colors flex-shrink-0"
+            title={exportLabel || 'Export CSV'}
+          >
+            <Download size={18} />
+          </a>
+        )}
+
+        {/* 設定アイコン */}
+        {settingsHref && (
+          <Link
+            href={settingsHref}
+            className="sm:ml-auto inline-flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-[36px] sm:min-h-[36px] rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-gray-500 dark:hover:text-gray-300 dark:hover:bg-white/[0.05] transition-colors flex-shrink-0"
+            title="Settings"
+          >
+            <Settings size={18} />
+          </Link>
+        )}
+
         {/* 追加ボタン */}
         {addButton && (
           <button
             type="button"
             onClick={addButton.onClick}
-            className="sm:ml-auto inline-flex items-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 justify-center sm:px-4 sm:py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 whitespace-nowrap flex-shrink-0"
+            className={`${settingsHref ? '' : 'sm:ml-auto '}inline-flex items-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 justify-center sm:px-4 sm:py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-brand-500 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 whitespace-nowrap flex-shrink-0`}
           >
             {/* モバイル: アイコンのみ */}
             <span className="sm:hidden">{addButton.icon || <span className="text-lg">+</span>}</span>

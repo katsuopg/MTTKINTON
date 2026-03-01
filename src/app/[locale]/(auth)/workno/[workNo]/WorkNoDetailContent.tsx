@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { WorkNoRecord, CustomerRecord, QuotationRecord, InvoiceRecord } from '@/types/kintone';
+import type { SupabaseWorkOrder } from '../page';
+import type { SupabaseInvoiceForDetail, SupabaseCustomerForDetail, SupabaseQuoteRequestForDetail } from './page';
 
 interface SupabasePORecord {
   id: string;
@@ -76,32 +77,39 @@ import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 
 interface WorkNoDetailContentProps {
-  record: WorkNoRecord;
-  customer: CustomerRecord | null;
+  record: SupabaseWorkOrder;
+  customer: SupabaseCustomerForDetail | null;
   poRecords?: SupabasePORecord[];
-  quotationRecords?: QuotationRecord[];
+  quoteRequests?: SupabaseQuoteRequestForDetail[];
   costRecords?: SupabaseCostRecord[];
-  invoiceRecords?: InvoiceRecord[];
+  invoiceRecords?: SupabaseInvoiceForDetail[];
   locale: string;
 }
 
-export function WorkNoDetailContent({ record, customer, poRecords = [], quotationRecords = [], costRecords = [], invoiceRecords = [], locale }: WorkNoDetailContentProps) {
+export function WorkNoDetailContent({ record, customer, poRecords = [], quoteRequests = [], costRecords = [], invoiceRecords = [], locale }: WorkNoDetailContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const pageTitle = getFieldLabel('WorkNo', language);
   const [activeTab, setActiveTab] = useState('detail');
   const poPagination = usePagination(poRecords);
   const costPagination = usePagination(costRecords);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rec = record as any; // Type assertion for kintone dynamic fields
+
+  // 計算フィールド
+  const grandTotal = record.grand_total || 0;
+  const costTotal = record.cost_total || 0;
+  const profit = grandTotal - costTotal;
+  const overheadRate = record.overhead_rate || 5;
+  const overhead = grandTotal * (overheadRate / 100);
+  const operationProfit = profit - overhead;
+  const comRate = record.commission_rate || 3;
 
   // PO記録でArrived状態なのに必須フィールドが未入力の警告チェック
   const checkPOWarnings = (po: SupabasePORecord) => {
     const statusValue = po.po_status || '';
     const isArrived = statusValue.includes('Arrived') || statusValue === 'Arrived';
 
-    if (!isArrived) return { hasWarning: false, missingFields: [] };
+    if (!isArrived) return { hasWarning: false, missingFields: [] as string[] };
 
-    const missingFields = [];
+    const missingFields: string[] = [];
     if (!po.date_3) missingFields.push('Arrival date');
     if (!po.date_4) missingFields.push('Invoice date');
     if (!po.date_5) missingFields.push('Payment date');
@@ -118,14 +126,13 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
   // 日付フォーマット関数
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '-';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
+
     if (language === 'ja') {
       return dateString; // YYYY-MM-DD
     } else {
-      // DD/MM/YYYY for English and Thai
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const year = date.getFullYear();
@@ -134,45 +141,35 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
   };
 
   // 数値フォーマット関数
-  const formatNumber = (value: string | undefined) => {
-    if (!value || value === '0' || value === '') return '-';
-    const number = parseFloat(value);
-    if (isNaN(number)) return '-';
-    return number.toLocaleString();
+  const formatNumber = (value: number | null | undefined) => {
+    if (value == null || value === 0) return '-';
+    return value.toLocaleString();
   };
 
-  // ステータスによる行の色分け
-  const getRowColorClass = (status: string | undefined) => {
-    if (!status) return '';
-    
-    const normalizedStatus = status.trim();
-    if (normalizedStatus.includes('Working')) {
-      return 'bg-blue-50';
-    } else if (normalizedStatus.includes('Arrived')) {
-      return 'bg-green-50';
-    }
-    return '';
+  // 通貨フォーマット
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value == null || value === 0) return '0 B';
+    return `${value.toLocaleString('en-US', { maximumFractionDigits: 0 })} B`;
   };
-
 
   return (
       <div className={detailStyles.pageWrapper}>
         <DetailPageHeader
           backHref={`/${locale}/workno`}
           title={[
-            record.WorkNo?.value,
-            extractCsName(record.文字列__1行__8?.value),
-            record.文字列__1行__1?.value,
-            record.文字列__1行__2?.value,
+            record.work_no,
+            extractCsName(record.customer_id),
+            record.category,
+            record.description,
           ].filter(Boolean).join(' - ')}
           statusBadge={
-            <span className={getStatusBadgeClass(record.Status?.value || '')}>
-              {getStatusLabel(record.Status?.value, language)}
+            <span className={getStatusBadgeClass(record.status || '')}>
+              {getStatusLabel(record.status, language)}
             </span>
           }
           actions={
             <Link
-              href={`/${locale}/workno/${record.WorkNo?.value}/edit`}
+              href={`/${locale}/workno/${record.work_no}/edit`}
               className={detailStyles.secondaryButton}
             >
               <Pencil size={16} className="mr-1.5" />
@@ -183,7 +180,6 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
 
         {/* タブエリアセクション */}
         <div className={detailStyles.card}>
-          {/* タブナビゲーション - TailAdmin underline style */}
           <Tabs
             variant="underline"
             size="lg"
@@ -202,7 +198,6 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
             ]}
           />
 
-          {/* タブコンテンツ */}
           <div>
 
             {activeTab === 'detail' && (
@@ -215,163 +210,106 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                       <tbody>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>開始日</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.日付_6?.value?.replace(/-/g, '/') || 'TBD'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.start_date?.replace(/-/g, '/') || 'TBD'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>売上予定日</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.Salesdate?.value?.replace(/-/g, '/') || 'TBD'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.sales_date?.replace(/-/g, '/') || 'TBD'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>終了日</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{rec.日付_5?.value?.replace(/-/g, '/') || 'TBD'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.finish_date?.replace(/-/g, '/') || 'TBD'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>注文書番号</td>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                            {rec.ルックアップ?.value ? (
+                            {record.po_list ? (
                               <Link
-                                href={`/${locale}/po-management?search=${rec.ルックアップ.value}`}
+                                href={`/${locale}/po-management?search=${record.po_list}`}
                                 className={detailStyles.link}
                               >
-                                {rec.ルックアップ.value}
+                                {record.po_list}
                               </Link>
                             ) : '-'}
                           </td>
                         </tr>
                         <tr>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>注文書受取日</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{rec.日付_0?.value?.replace(/-/g, '/') || '-'}</td>
-                        </tr>
-                        <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>請求書番号</td>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                            {invoiceRecords.length > 0 && invoiceRecords[0].文字列__1行__0?.value
-                              ? invoiceRecords[0].文字列__1行__0.value
-                              : record.文字列__1行__3?.value || record.文字列__1行__4?.value || record.文字列__1行__6?.value || record.文字列__1行__7?.value || '-'
+                            {invoiceRecords.length > 0 && invoiceRecords[0].invoice_no
+                              ? invoiceRecords[0].invoice_no
+                              : record.invoice_no_1 || record.invoice_no_2 || record.invoice_no_3 || record.invoice_no_4 || '-'
                             }
                           </td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>請求書発行日</td>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                            {invoiceRecords.length > 0 && invoiceRecords[0].日付?.value
-                              ? invoiceRecords[0].日付.value.replace(/-/g, '/')
-                              : record.日付_7?.value?.replace(/-/g, '/') || record.日付_8?.value?.replace(/-/g, '/') || record.日付_9?.value?.replace(/-/g, '/') || '-'
+                            {invoiceRecords.length > 0 && invoiceRecords[0].invoice_date
+                              ? invoiceRecords[0].invoice_date.replace(/-/g, '/')
+                              : record.invoice_date_1?.replace(/-/g, '/') || record.invoice_date_2?.replace(/-/g, '/') || record.invoice_date_3?.replace(/-/g, '/') || '-'
                             }
                           </td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>担当営業</td>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                            {record.Salesstaff?.value && record.Salesstaff.value.length > 0
-                              ? record.Salesstaff.value.map(staff => staff.name).join(', ')
-                              : '-'
-                            }
+                            {record.sales_staff || '-'}
                           </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
-                  {/* 2. 見積もり詳細 */}
+                  {/* 2. 見積依頼 */}
                   <div className={detailStyles.summaryCard} style={{ flex: '1', minWidth: '220px' }}>
-                    <h3 className={detailStyles.summaryCardTitle}>見積もり詳細</h3>
+                    <h3 className={detailStyles.summaryCardTitle}>見積依頼</h3>
                     <table className={detailStyles.summaryTable}>
                       <tbody>
-                        {quotationRecords.length > 0 ? (
-                          quotationRecords.map((quotation) => (
-                            <React.Fragment key={quotation.$id.value}>
-                              <tr>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>見積番号</td>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                                  <Link
-                                    href={`/${locale}/quotation/${quotation.$id.value}`}
-                                    className="text-blue-600 hover:text-blue-800 underline"
-                                  >
-                                    {quotation.qtno2?.value || '-'}
-                                  </Link>
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>小計</td>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                                  {quotation.Sub_total?.value
-                                    ? `${parseFloat(quotation.Sub_total.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                                    : '0 B'
-                                  }
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>値引き</td>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                                  {quotation.Discount?.value
-                                    ? `${parseFloat(quotation.Discount.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                                    : '0 B'
-                                  }
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>合計</td>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue} font-medium`}>
-                                  {(() => {
-                                    const subtotal = quotation.Sub_total?.value ? parseFloat(quotation.Sub_total.value) : 0;
-                                    const discount = quotation.Discount?.value ? parseFloat(quotation.Discount.value) : 0;
-                                    const total = subtotal - discount;
-                                    return `${total.toLocaleString('en-US', { maximumFractionDigits: 0 })} B`;
-                                  })()}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>予想コスト</td>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                                  {quotation.costtotal?.value
-                                    ? `${parseFloat(quotation.costtotal.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                                    : '0 B'
-                                  }
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>予想利益</td>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                                  {(() => {
-                                    const subtotal = quotation.Sub_total?.value ? parseFloat(quotation.Sub_total.value) : 0;
-                                    const discount = quotation.Discount?.value ? parseFloat(quotation.Discount.value) : 0;
-                                    const total = subtotal - discount;
-                                    const forecast = quotation.costtotal?.value ? parseFloat(quotation.costtotal.value) : 0;
-                                    const expectedProfit = total - forecast;
-                                    return `${expectedProfit.toLocaleString('en-US', { maximumFractionDigits: 0 })} B`;
-                                  })()}
-                                </td>
-                              </tr>
-                              <tr>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>利益率</td>
-                                <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
-                                  {(() => {
-                                    const subtotal = quotation.Sub_total?.value ? parseFloat(quotation.Sub_total.value) : 0;
-                                    const discount = quotation.Discount?.value ? parseFloat(quotation.Discount.value) : 0;
-                                    const total = subtotal - discount;
-                                    const forecast = quotation.costtotal?.value ? parseFloat(quotation.costtotal.value) : 0;
-                                    const expectedProfit = total - forecast;
-
-                                    if (total > 0) {
-                                      const percentage = (expectedProfit / total) * 100;
-                                      return `${percentage.toFixed(1)}%`;
-                                    }
-                                    return '0%';
-                                  })()}
-                                </td>
-                              </tr>
-                            </React.Fragment>
-                          ))
+                        {quoteRequests.length > 0 ? (
+                          quoteRequests.map((qr) => {
+                            const awardedTotal = qr.items?.reduce((sum, item) => {
+                              const awarded = item.offers?.find(o => o.is_awarded);
+                              return sum + (awarded?.quoted_price || 0);
+                            }, 0) || 0;
+                            return (
+                              <React.Fragment key={qr.id}>
+                                <tr>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>依頼番号</td>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
+                                    <Link
+                                      href={`/${locale}/quote-requests/${qr.id}`}
+                                      className="text-blue-600 hover:text-blue-800 underline"
+                                    >
+                                      {qr.request_no}
+                                    </Link>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>ステータス</td>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
+                                    {qr.status?.name || '-'}
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>明細数</td>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{qr.items?.length || 0}</td>
+                                </tr>
+                                <tr>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>採用合計</td>
+                                  <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue} font-medium`}>
+                                    {awardedTotal > 0 ? `${awardedTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })} B` : '-'}
+                                  </td>
+                                </tr>
+                              </React.Fragment>
+                            );
+                          })
                         ) : (
                           <>
-                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>見積番号</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>-</td></tr>
-                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>小計</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td></tr>
-                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>値引き</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td></tr>
-                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>合計</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td></tr>
-                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>予想コスト</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td></tr>
-                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>予想利益</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td></tr>
-                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>利益率</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0%</td></tr>
+                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>依頼番号</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>-</td></tr>
+                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>ステータス</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>-</td></tr>
+                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>明細数</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0</td></tr>
+                            <tr><td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>採用合計</td><td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>-</td></tr>
                           </>
                         )}
                       </tbody>
@@ -385,27 +323,27 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                       <tbody>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Type</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.Type?.value || '-'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.machine_type || '-'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Vender</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.文字列__1行__5?.value || '-'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.vendor || '-'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Model</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.文字列__1行__9?.value || 'TBD'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.model || 'TBD'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Serial No.</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.文字列__1行__10?.value || 'TBD'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.serial_number || 'TBD'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>M/C No.</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.文字列__1行__11?.value || '-'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.machine_number || '-'}</td>
                         </tr>
                         <tr>
                           <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>M/C Item</td>
-                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.McItem?.value || '-'}</td>
+                          <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.machine_item || '-'}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -417,53 +355,23 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                     <div className="space-y-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Sub total</span>
-                        <span className="font-medium">
-                          {quotationRecords.length > 0 && quotationRecords[0].Sub_total?.value
-                            ? `${parseFloat(quotationRecords[0].Sub_total.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                            : '0 B'
-                          }
-                        </span>
+                        <span className="font-medium">{formatCurrency(record.sub_total)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Discount</span>
-                        <span className="font-medium">
-                          {quotationRecords.length > 0 && quotationRecords[0].Discount?.value
-                            ? `${parseFloat(quotationRecords[0].Discount.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                            : '0 B'
-                          }
-                        </span>
+                        <span className="font-medium">{formatCurrency(record.discount)}</span>
                       </div>
                       <div className="flex justify-between border-t pt-2">
                         <span className="font-medium text-gray-900">Grand total</span>
-                        <span className="font-bold">
-                          {(() => {
-                            if (quotationRecords.length > 0) {
-                              const subtotal = quotationRecords[0].Sub_total?.value ? parseFloat(quotationRecords[0].Sub_total.value) : 0;
-                              const discount = quotationRecords[0].Discount?.value ? parseFloat(quotationRecords[0].Discount.value) : 0;
-                              const total = subtotal - discount;
-                              return `${total.toLocaleString('en-US', { maximumFractionDigits: 0 })} B`;
-                            }
-                            return '0 B';
-                          })()}
-                        </span>
+                        <span className="font-bold">{formatCurrency(grandTotal)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Purchase cost</span>
-                        <span className="font-medium">
-                          {record.cost?.value
-                            ? `${parseFloat(record.cost.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                            : '0 B'
-                          }
-                        </span>
+                        <span className="font-medium">{formatCurrency(record.purchase_cost)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Labor cost</span>
-                        <span className="font-medium">
-                          {record.Labor_cost?.value
-                            ? `${parseFloat(record.Labor_cost.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                            : '0 B'
-                          }
-                        </span>
+                        <span className="font-medium">{formatCurrency(record.labor_cost)}</span>
                       </div>
                       <div className="flex justify-between border-t pt-2">
                         <span className="font-medium text-gray-900">Cost Total</span>
@@ -482,58 +390,30 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Gross Profit (Actual)</span>
-                        <span className="font-medium">
-                          {record.profit?.value
-                            ? `${parseFloat(record.profit.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                            : '0 B'
-                          }
-                        </span>
+                        <span className="font-medium">{formatCurrency(profit)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">profit %</span>
                         <span className="font-medium">
-                          {(() => {
-                            const grossProfit = record.profit?.value ? parseFloat(record.profit.value) : 0;
-                            const grandTotal = quotationRecords.length > 0 && quotationRecords[0].Sub_total?.value ? parseFloat(quotationRecords[0].Sub_total.value) : 0;
-                            if (grandTotal > 0) {
-                              const percentage = (grossProfit / grandTotal) * 100;
-                              return `${percentage.toFixed(1)}%`;
-                            }
-                            return '0%';
-                          })()}
+                          {grandTotal > 0 ? `${((profit / grandTotal) * 100).toFixed(1)}%` : '0%'}
                         </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">
-                          Over Head Fee ({record.OverRate?.value ? `${record.OverRate.value}%` : '5%'})
+                          Over Head Fee ({overheadRate}%)
                         </span>
-                        <span className="font-medium">
-                          {record.OverHead?.value
-                            ? `${parseFloat(record.OverHead.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                            : '0 B'
-                          }
-                        </span>
+                        <span className="font-medium">{formatCurrency(overhead)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Operation Profit</span>
-                        <span className="font-medium">
-                          {record.OperationProfit?.value
-                            ? `${parseFloat(record.OperationProfit.value).toLocaleString('en-US', { maximumFractionDigits: 0 })} B`
-                            : '0 B'
-                          }
-                        </span>
+                        <span className="font-medium">{formatCurrency(operationProfit)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">
-                          Commition ({record.ComRate?.value ? `${record.ComRate.value}%` : '3%'})
+                          Commition ({comRate}%)
                         </span>
                         <span className="font-medium">
-                          {(() => {
-                            const operationProfit = record.OperationProfit?.value ? parseFloat(record.OperationProfit.value) : 0;
-                            const comRate = record.ComRate?.value ? parseFloat(record.ComRate.value) : 3;
-                            const commition = operationProfit * (comRate / 100);
-                            return `${commition.toLocaleString('en-US', { maximumFractionDigits: 0 })} B`;
-                          })()}
+                          {formatCurrency(operationProfit * (comRate / 100))}
                         </span>
                       </div>
                     </div>
@@ -739,36 +619,20 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                                     </span>
                                   )}
                                 </td>
-                                <td className={`${tableStyles.td} text-center`}>
-                                  {formatDate(cost.arrival_date)}
-                                </td>
-                                <td className={`${tableStyles.td} text-center`}>
-                                  {formatDate(cost.invoice_date)}
-                                </td>
-                                <td className={`${tableStyles.td} text-center`}>
-                                  {formatDate(cost.payment_date)}
-                                </td>
-                                <td className={tableStyles.td}>
-                                  {cost.description || '-'}
-                                </td>
-                                <td className={tableStyles.td}>
-                                  {cost.model_type || '-'}
-                                </td>
-                                <td className={`${tableStyles.td} text-right`}>
-                                  {cost.quantity != null ? cost.quantity.toLocaleString() : '-'}
-                                </td>
-                                <td className={tableStyles.td}>
-                                  {cost.unit || '-'}
-                                </td>
+                                <td className={`${tableStyles.td} text-center`}>{formatDate(cost.arrival_date)}</td>
+                                <td className={`${tableStyles.td} text-center`}>{formatDate(cost.invoice_date)}</td>
+                                <td className={`${tableStyles.td} text-center`}>{formatDate(cost.payment_date)}</td>
+                                <td className={tableStyles.td}>{cost.description || '-'}</td>
+                                <td className={tableStyles.td}>{cost.model_type || '-'}</td>
+                                <td className={`${tableStyles.td} text-right`}>{cost.quantity != null ? cost.quantity.toLocaleString() : '-'}</td>
+                                <td className={tableStyles.td}>{cost.unit || '-'}</td>
                                 <td className={`${tableStyles.td} text-right`}>
                                   {cost.unit_price != null ? cost.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                 </td>
                                 <td className={`${tableStyles.td} text-right font-medium`}>
                                   {cost.total_amount != null ? cost.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                                 </td>
-                                <td className={tableStyles.td}>
-                                  {cost.supplier_name || '-'}
-                                </td>
+                                <td className={tableStyles.td}>{cost.supplier_name || '-'}</td>
                               </tr>
                             );
                           })}
@@ -811,49 +675,41 @@ export function WorkNoDetailContent({ record, customer, poRecords = [], quotatio
                           <th className={`${tableStyles.th} text-center`}>Invoice No.</th>
                           <th className={`${tableStyles.th} text-center`}>Invoice Date</th>
                           <th className={tableStyles.th}>Customer Name</th>
-                          <th className={`${tableStyles.th} text-right`}>Tax Excluded</th>
-                          <th className={`${tableStyles.th} text-right`}>Total (inc. VAT)</th>
+                          <th className={`${tableStyles.th} text-right`}>Sub Total</th>
+                          <th className={`${tableStyles.th} text-right`}>Grand Total</th>
                           <th className={`${tableStyles.th} text-center`}>Status</th>
                         </tr>
                       </thead>
                       <tbody className={tableStyles.tbody}>
-                        {invoiceRecords.map((invoice) => {
-                          const fmtDate = (dateStr: string | undefined) => {
-                            if (!dateStr) return '-';
-                            return dateStr.replace(/-/g, '/');
-                          };
-                          const fmtCurrency = (value: string | undefined) => {
-                            if (!value) return '0';
-                            const num = parseFloat(value);
-                            return num.toLocaleString('en-US', { maximumFractionDigits: 0 });
-                          };
-
-                          return (
-                            <tr key={invoice.$id?.value || 'unknown'} className={tableStyles.tr}>
-                              <td className={tableStyles.td}>{invoice.$id?.value || '-'}</td>
-                              <td className={`${tableStyles.td} text-center`}>{invoice.文字列__1行_?.value || '-'}</td>
-                              <td className={`${tableStyles.td} text-center`}>{invoice.文字列__1行__0?.value || '-'}</td>
-                              <td className={`${tableStyles.td} text-center`}>{fmtDate(invoice.日付?.value)}</td>
-                              <td className={tableStyles.td}>{invoice.CS_name?.value || '-'}</td>
-                              <td className={`${tableStyles.td} text-right`}>{fmtCurrency(invoice.total?.value)}</td>
-                              <td className={`${tableStyles.td} text-right`}>{fmtCurrency(invoice.計算?.value)}</td>
-                              <td className={`${tableStyles.td} text-center`}>
-                                <span className={`${tableStyles.statusBadge} bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500`}>
-                                  {invoice.ラジオボタン?.value ? invoice.ラジオボタン.value.split('/')[0] : '-'}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {invoiceRecords.map((invoice) => (
+                          <tr key={invoice.kintone_record_id} className={tableStyles.tr}>
+                            <td className={tableStyles.td}>{invoice.kintone_record_id || '-'}</td>
+                            <td className={`${tableStyles.td} text-center`}>{invoice.work_no || '-'}</td>
+                            <td className={`${tableStyles.td} text-center`}>{invoice.invoice_no || '-'}</td>
+                            <td className={`${tableStyles.td} text-center`}>{invoice.invoice_date?.replace(/-/g, '/') || '-'}</td>
+                            <td className={tableStyles.td}>{invoice.customer_name || '-'}</td>
+                            <td className={`${tableStyles.td} text-right`}>
+                              {invoice.sub_total != null ? invoice.sub_total.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
+                            </td>
+                            <td className={`${tableStyles.td} text-right`}>
+                              {invoice.grand_total != null ? invoice.grand_total.toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
+                            </td>
+                            <td className={`${tableStyles.td} text-center`}>
+                              <span className={`${tableStyles.statusBadge} bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500`}>
+                                {invoice.status || '-'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                       <tfoot className="border-t border-gray-100 dark:border-white/[0.05]">
                         <tr>
                           <td colSpan={5} className={`${tableStyles.td} text-right font-semibold text-gray-900 dark:text-white`}>Total:</td>
                           <td className={`${tableStyles.td} text-right font-semibold text-gray-900 dark:text-white`}>
-                            {invoiceRecords.reduce((sum, invoice) => sum + (invoice.total?.value ? parseFloat(invoice.total.value) : 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                            {invoiceRecords.reduce((sum, inv) => sum + (inv.sub_total ?? 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
                           </td>
                           <td className={`${tableStyles.td} text-right font-semibold text-gray-900 dark:text-white`}>
-                            {invoiceRecords.reduce((sum, invoice) => sum + (invoice.計算?.value ? parseFloat(invoice.計算.value) : 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                            {invoiceRecords.reduce((sum, inv) => sum + (inv.grand_total ?? 0), 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
                           </td>
                           <td></td>
                         </tr>

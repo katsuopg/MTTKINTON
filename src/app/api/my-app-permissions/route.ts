@@ -9,8 +9,8 @@ import { NextResponse } from 'next/server';
  * {
  *   isAdmin: true,
  *   appPermissions: {
- *     employees: { can_view: true },
- *     customers: { can_view: true },
+ *     employees: { can_view: true, can_manage: true },
+ *     customers: { can_view: true, can_manage: true },
  *     ...
  *   }
  * }
@@ -82,9 +82,9 @@ export async function GET() {
         .select('code')
         .eq('is_active', true);
 
-      const appPermissions: Record<string, { can_view: boolean }> = {};
+      const appPermissions: Record<string, { can_view: boolean; can_manage: boolean }> = {};
       for (const app of apps || []) {
-        appPermissions[app.code] = { can_view: false };
+        appPermissions[app.code] = { can_view: false, can_manage: false };
       }
 
       return NextResponse.json({ isAdmin: false, appPermissions });
@@ -110,11 +110,11 @@ export async function GET() {
       .select('id, code')
       .eq('is_active', true);
 
-    // 管理者は全アプリにアクセス可能
+    // 管理者は全アプリにアクセス・管理可能
     if (isAdmin) {
-      const appPermissions: Record<string, { can_view: boolean }> = {};
+      const appPermissions: Record<string, { can_view: boolean; can_manage: boolean }> = {};
       for (const app of apps || []) {
-        appPermissions[app.code] = { can_view: true };
+        appPermissions[app.code] = { can_view: true, can_manage: true };
       }
       return NextResponse.json({ isAdmin: true, appPermissions });
     }
@@ -131,12 +131,12 @@ export async function GET() {
 
     // 全アプリの権限を取得
     const { data: allPermissions } = await appPermissionsTable
-      .select('app_id, target_type, target_id, can_view')
+      .select('app_id, target_type, target_id, can_view, can_manage')
       .eq('is_active', true)
       .order('priority', { ascending: false });
 
     // アプリごとに権限を集約
-    const appPermissions: Record<string, { can_view: boolean }> = {};
+    const appPermissions: Record<string, { can_view: boolean; can_manage: boolean }> = {};
 
     for (const app of apps || []) {
       const appPerms = (allPermissions || []).filter(
@@ -144,6 +144,7 @@ export async function GET() {
       );
 
       let canView = false;
+      let canManage = false;
 
       for (const perm of appPerms) {
         let matches = false;
@@ -163,13 +164,14 @@ export async function GET() {
             break;
         }
 
-        if (matches && perm.can_view) {
-          canView = true;
-          break;
+        if (matches) {
+          if (perm.can_view) canView = true;
+          if (perm.can_manage) canManage = true;
+          if (canView && canManage) break;
         }
       }
 
-      appPermissions[app.code] = { can_view: canView };
+      appPermissions[app.code] = { can_view: canView, can_manage: canManage };
     }
 
     return NextResponse.json({ isAdmin: false, appPermissions });

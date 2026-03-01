@@ -1,10 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { KintoneClient } from '@/lib/kintone/client';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
-import OrderManagementContent, { type OrderRecord } from './OrderManagementContent';
+import OrderManagementContent from './OrderManagementContent';
 
 interface OrderManagementPageProps {
   params: Promise<{
@@ -33,31 +32,17 @@ export default async function OrderManagementPage({ params, searchParams }: Orde
   const selectedFiscalYear = fiscalYearParam ? parseInt(fiscalYearParam) : 14;
   const keyword = keywordParam || '';
 
-  // kintoneから注文書管理アプリのレコードを取得
-  let orderRecords: OrderRecord[] = [];
+  let query = (supabase.from('customer_orders') as any)
+    .select('*')
+    .ilike('work_no', `${selectedFiscalYear}-%`);
 
-  try {
-    const orderClient = new KintoneClient(
-      process.env.KINTONE_APP_ORDER_MANAGEMENT!,
-      process.env.KINTONE_API_TOKEN_ORDER!
+  if (keyword) {
+    query = query.or(
+      `po_number.ilike.%${keyword}%,customer_name.ilike.%${keyword}%,work_no.ilike.%${keyword}%,quotation_no.ilike.%${keyword}%`
     );
-
-    let queryParts = [`文字列__1行__2 like "${selectedFiscalYear}-"`];
-
-    if (keyword) {
-      queryParts.push(`(
-        文字列__1行_ like "${keyword}" or
-        文字列__1行__4 like "${keyword}" or
-        文字列__1行__2 like "${keyword}" or
-        ルックアップ like "${keyword}"
-      )`);
-    }
-
-    const query = queryParts.join(' and ') + ' order by 日付 desc limit 200';
-    orderRecords = await orderClient.getRecords<OrderRecord>(query);
-  } catch (error) {
-    console.error('Error fetching order data:', error);
   }
+
+  const { data: orderRecords } = await query.order('order_date', { ascending: false }).limit(200);
 
   const userInfo = await getCurrentUserInfo();
 
@@ -68,7 +53,7 @@ export default async function OrderManagementPage({ params, searchParams }: Orde
       userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}
     >
       <OrderManagementContent
-        orderRecords={orderRecords}
+        orderRecords={orderRecords || []}
         locale={locale}
         language={language}
         currentFiscalYear={selectedFiscalYear}

@@ -162,6 +162,8 @@ export async function POST(request: NextRequest) {
       const itemsToInsert = body.items.map((item, index) => ({
         quote_request_id: quoteRequest.id,
         part_list_item_id: item.part_list_item_id,
+        dom_mech_item_id: item.dom_mech_item_id || null,
+        dom_elec_item_id: item.dom_elec_item_id || null,
         model_number: item.model_number,
         manufacturer: item.manufacturer,
         quantity: item.quantity,
@@ -181,6 +183,25 @@ export async function POST(request: NextRequest) {
           .delete()
           .eq('id', quoteRequest.id);
         throw itemsError;
+      }
+
+      // DOM連携: アイテムのstatusを quote_requesting に更新
+      const mechItemIds = body.items
+        .filter((item) => item.dom_mech_item_id)
+        .map((item) => item.dom_mech_item_id!);
+      const elecItemIds = body.items
+        .filter((item) => item.dom_elec_item_id)
+        .map((item) => item.dom_elec_item_id!);
+
+      if (mechItemIds.length > 0) {
+        await (supabase.from('dom_mech_items') as SupabaseAny)
+          .update({ status: 'quote_requesting' })
+          .in('id', mechItemIds);
+      }
+      if (elecItemIds.length > 0) {
+        await (supabase.from('dom_elec_items') as SupabaseAny)
+          .update({ status: 'quote_requesting' })
+          .in('id', elecItemIds);
       }
     }
 

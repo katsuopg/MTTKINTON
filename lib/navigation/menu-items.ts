@@ -98,6 +98,31 @@ export function applyMenuConfig<T extends { key: string }>(
  * 上部共通項目 → 組織グループ → 下部共通項目 の順で配置
  * 重複項目は最初のグループにのみ表示
  */
+/**
+ * 動的アプリからメニュー項目を生成
+ */
+export function buildDynamicMenuItems(
+  dynamicApps: Array<{
+    code: string;
+    name: string;
+    name_en: string | null;
+    name_th: string | null;
+    icon: string | null;
+  }>
+): MenuItemDef[] {
+  return dynamicApps.map((app) => ({
+    key: app.code,
+    path: `apps/${app.code}`,
+    name: {
+      ja: app.name,
+      en: app.name_en || app.name,
+      th: app.name_th || app.name,
+    },
+    icon: app.icon || 'fileText',
+    appCode: app.code,
+  }));
+}
+
 export function applyGroupedMenuConfig<T extends { key: string }>(
   allItems: T[],
   groupedConfig: GroupedMenuConfig,

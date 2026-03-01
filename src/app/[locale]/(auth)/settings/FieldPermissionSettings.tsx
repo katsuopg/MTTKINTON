@@ -7,6 +7,7 @@ import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface FieldPermissionSettingsProps {
   locale: string;
+  fixedAppCode?: string;
 }
 
 interface App {
@@ -69,7 +70,7 @@ const APP_FIELDS: Record<string, { name: string; label_ja: string; label_en: str
   ],
 };
 
-export default function FieldPermissionSettings({ locale }: FieldPermissionSettingsProps) {
+export default function FieldPermissionSettings({ locale, fixedAppCode }: FieldPermissionSettingsProps) {
   const { toast } = useToast();
   const { confirmDialog } = useConfirmDialog();
   const [apps, setApps] = useState<App[]>([]);
@@ -123,19 +124,23 @@ export default function FieldPermissionSettings({ locale }: FieldPermissionSetti
         orgsRes.json(),
       ]);
 
-      setApps(appsData.apps || []);
+      const appsList = appsData.apps || [];
+      setApps(appsList);
       setRoles(rolesData.roles || []);
       setOrganizations(orgsData.organizations || []);
 
-      if (appsData.apps?.length > 0) {
-        setSelectedApp(appsData.apps[0]);
+      if (fixedAppCode) {
+        const fixedApp = appsList.find((a: App) => a.code === fixedAppCode);
+        if (fixedApp) setSelectedApp(fixedApp);
+      } else if (appsList.length > 0) {
+        setSelectedApp(appsList[0]);
       }
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fixedAppCode]);
 
   const fetchPermissions = useCallback(async () => {
     if (!selectedApp) return;
@@ -333,26 +338,30 @@ export default function FieldPermissionSettings({ locale }: FieldPermissionSetti
     <div className="space-y-6">
       {/* App Selection */}
       <div className="flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          {label('アプリ', 'แอป', 'App')}:
-        </label>
-        <select
-          value={selectedApp?.id || ''}
-          onChange={(e) => {
-            const app = apps.find((a) => a.id === e.target.value);
-            setSelectedApp(app || null);
-          }}
-          className="flex-1 max-w-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500"
-        >
-          {apps.map((app) => (
-            <option key={app.id} value={app.id}>
-              {getAppName(app)} ({app.code})
-            </option>
-          ))}
-        </select>
+        {!fixedAppCode && (
+          <>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {label('アプリ', 'แอป', 'App')}:
+            </label>
+            <select
+              value={selectedApp?.id || ''}
+              onChange={(e) => {
+                const app = apps.find((a) => a.id === e.target.value);
+                setSelectedApp(app || null);
+              }}
+              className="flex-1 max-w-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500"
+            >
+              {apps.map((app) => (
+                <option key={app.id} value={app.id}>
+                  {getAppName(app)} ({app.code})
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm font-medium"
+          className={`px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm font-medium${fixedAppCode ? ' ml-auto' : ''}`}
         >
           {label('フィールド権限を追加', 'เพิ่มสิทธิ์ฟิลด์', 'Add Field Permission')}
         </button>

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requirePermission } from '@/lib/auth/permissions';
 
 /**
  * メニュー設定CRUD API（設定画面用）
@@ -11,12 +12,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get('organization_id');
@@ -50,12 +51,12 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const body = await request.json();
     const { organization_id, items } = body as {
@@ -110,12 +111,12 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const permCheck = await requirePermission('manage_settings');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
+
+    const supabase = await createClient();
 
     const { searchParams } = new URL(request.url);
     const organizationId = searchParams.get('organization_id');

@@ -357,3 +357,144 @@ export function filterFieldsByPermission<T extends Record<string, unknown>>(
 
   return filteredRecord;
 }
+
+/**
+ * レコード権限ルール型
+ */
+export interface RecordPermissionRule {
+  id: string;
+  condition: {
+    logic?: 'AND' | 'OR';
+    conditions?: RecordPermissionCondition[];
+    // 旧形式: 単一条件
+    field?: string;
+    operator?: string;
+    value?: string | number | boolean;
+    values?: (string | number)[];
+  };
+  target_type: 'user' | 'organization' | 'role' | 'creator' | 'field_value';
+  target_id: string | null;
+  target_field: string | null;
+  can_view: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
+  priority: number;
+}
+
+/**
+ * レコード権限ルールの条件をチェック（AND/OR対応）
+ */
+export function checkRecordRuleCondition(
+  record: Record<string, unknown>,
+  condition: RecordPermissionRule['condition']
+): boolean {
+  // 条件配列がある場合
+  if (condition.conditions && condition.conditions.length > 0) {
+    const logic = condition.logic || 'AND';
+    if (logic === 'AND') {
+      return condition.conditions.every((c) => checkRecordCondition(record, c));
+    } else {
+      return condition.conditions.some((c) => checkRecordCondition(record, c));
+    }
+  }
+
+  // 旧形式: 単一条件
+  if (condition.field && condition.operator) {
+    return checkRecordCondition(record, condition as RecordPermissionCondition);
+  }
+
+  // 条件なし: 全レコードに一致
+  return true;
+}
+
+/**
+ * レコードに対するユーザーのレコード権限を評価
+ * @returns { can_view, can_edit, can_delete } or null（ルールが存在しない場合）
+ */
+export function evaluateRecordPermissions(
+  record: Record<string, unknown>,
+  rules: RecordPermissionRule[],
+  userId: string,
+  userRoles: string[],
+  userOrgIds: string[]
+): { can_view: boolean; can_edit: boolean; can_delete: boolean } | null {
+  if (!rules || rules.length === 0) return null;
+
+  // priority降順でソート済みを期待
+  // マッチするルールのうち最も優先度が高いものを適用
+  for (const rule of rules) {
+    // 条件チェック
+    if (!checkRecordRuleCondition(record, rule.condition)) continue;
+
+    // 対象チェック
+    let isTarget = false;
+    switch (rule.target_type) {
+      case 'creator':
+        isTarget = record.created_by === userId;
+        break;
+      case 'user':
+        isTarget = rule.target_id === userId;
+        break;
+      case 'role':
+        isTarget = rule.target_id ? userRoles.includes(rule.target_id) : false;
+        break;
+      case 'organization':
+        isTarget = rule.target_id ? userOrgIds.includes(rule.target_id) : false;
+        break;
+      case 'field_value':
+        if (rule.target_field) {
+          const fieldVal = record.data
+            ? (record.data as Record<string, unknown>)[rule.target_field]
+            : record[rule.target_field];
+          isTarget = fieldVal === userId;
+        }
+        break;
+    }
+
+    if (isTarget) {
+      return {
+        can_view: rule.can_view,
+        can_edit: rule.can_edit,
+        can_delete: rule.can_delete,
+      };
+    }
+  }
+
+  return null; // マッチするルールなし
+}
+
+/**
+ * レコード権限ルールを取得（サーバー側ユーティリティ）
+ */
+export async function getRecordPermissionRules(appId: string): Promise<RecordPermissionRule[]> {
+  const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rules } = await (supabase.from('record_permission_rules') as any)
+    .select('*')
+    .eq('app_id', appId)
+    .eq('is_active', true)
+    .order('priority', { ascending: false });
+
+  return (rules || []) as RecordPermissionRule[];
+}
+
+/**
+ * 現在のユーザーのロールIDと組織IDを取得
+ */
+export async function getUserContext(userId: string): Promise<{ roleIds: string[]; orgIds: string[] }> {
+  const supabase = await createClient();
+
+  const [rolesRes, orgsRes] = await Promise.all([
+    (supabase.from('user_roles') as any)
+      .select('role_id')
+      .eq('user_id', userId),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase.rpc('get_user_organization_ids' as any, { p_user_id: userId }),
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const roleIds = (rolesRes.data || []).map((r: any) => r.role_id);
+  const orgIds = (orgsRes.data || []) as string[];
+
+  return { roleIds, orgIds };
+}

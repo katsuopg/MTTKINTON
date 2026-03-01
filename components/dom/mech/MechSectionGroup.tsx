@@ -25,6 +25,9 @@ interface MechSectionGroupProps {
   onDeleteSection?: (sectionId: string) => void;
   onReorder?: (sectionId: string, category: DomItemCategory, fromIndex: number, toIndex: number) => void;
   onFileNotify?: (type: 'success' | 'error', message: string) => void;
+  quoteSelecting?: boolean;
+  selectedQuoteItems?: Set<string>;
+  onToggleQuoteItem?: (id: string) => void;
 }
 
 // 製作品カラム定義                  ☐+⠿  No  品名   図番   Rev  図面  材質   熱処理  表面処理 数量  単位  単価   金額   LT   ステータス 備考
@@ -70,6 +73,9 @@ export default function MechSectionGroup({
   onDeleteSection,
   onReorder,
   onFileNotify,
+  quoteSelecting,
+  selectedQuoteItems,
+  onToggleQuoteItem,
 }: MechSectionGroupProps) {
   const { confirmDialog } = useConfirmDialog();
   const [collapsed, setCollapsed] = useState(false);
@@ -277,6 +283,9 @@ export default function MechSectionGroup({
                     onDragEnd={handleDragEnd}
                     isDragging={dragIndex === idx}
                     isDragOver={dragOverIndex === idx}
+                    quoteSelecting={quoteSelecting}
+                    quoteSelected={item.id ? selectedQuoteItems?.has(item.id) : false}
+                    onToggleQuoteSelect={item.id ? () => onToggleQuoteItem?.(item.id!) : undefined}
                   />
                 ))}
                 {currentNewItems.map((item, newIdx) => {

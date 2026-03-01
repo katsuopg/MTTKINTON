@@ -8,16 +8,9 @@ type DataSource = 'kintone' | 'supabase' | 'hybrid' | 'none';
 type MigrationStage = 'completed' | 'in-progress' | 'planned';
 
 type KintoneStatusKey =
-  | 'dashboard'
-  | 'workno'
   | 'project'
   | 'quotation'
-  | 'po'
-  | 'order'
-  | 'cost'
-  | 'employees'
-  | 'suppliers'
-  | 'staff';
+  | 'order';
 
 interface ActionResultDetail {
   label: string;
@@ -97,10 +90,9 @@ const BASE_APP_STATUSES: BaseAppStatus[] = [
     name: 'ダッシュボード',
     route: '/dashboard',
     description: '工事番号とプロジェクトの状況を集計表示します。',
-    dataTarget: { read: 'kintone', write: 'none' },
-    migration: 'planned',
-    notes: 'Work No.アプリからリアルタイム参照',
-    action: { kind: 'kintone-load', appKey: 'dashboard', label: 'kintone読み込み' },
+    dataTarget: { read: 'supabase', write: 'none' },
+    migration: 'completed',
+    notes: 'work_orders・invoices・projectsテーブルから集計',
   },
   {
     id: 'project-management',
@@ -116,30 +108,30 @@ const BASE_APP_STATUSES: BaseAppStatus[] = [
     name: '工事番号管理',
     route: '/workno',
     description: '工事番号の進捗・請求状況を監視します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'in-progress',
-    notes: 'Work No.アプリと請求書キャッシュを使用',
-    action: { kind: 'kintone-load', appKey: 'workno', label: 'kintone読み込み' },
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
+    notes: 'Kintone→Supabase同期済み（work_ordersテーブル）',
+    action: { kind: 'supabase-import', endpoint: '/api/import-workorders', label: '再取り込み' },
   },
   {
     id: 'quotation',
     name: '見積管理',
     route: '/quotation',
-    description: '見積一覧・編集をkintoneアプリで実行します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'in-progress',
-    notes: '編集フォームはkintoneレコードを直接更新',
-    action: { kind: 'kintone-load', appKey: 'quotation', label: 'kintone読み込み' },
+    description: 'Supabaseに移行した見積データを表示します。',
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
+    notes: 'Kintone→Supabase同期済み（quotationsテーブル）',
+    action: { kind: 'supabase-import', endpoint: '/api/import-quotations', label: '再取り込み' },
   },
   {
     id: 'order-management',
     name: '注文書管理',
     route: '/order-management',
-    description: '注文書の履歴をkintoneから取得して表示します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'planned',
-    notes: '注文書アプリ（PO管理）と連携',
-    action: { kind: 'kintone-load', appKey: 'order', label: 'kintone読み込み' },
+    description: 'Supabaseに移行した注文書データを表示します。',
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
+    notes: 'Kintone→Supabase同期済み（customer_ordersテーブル）',
+    action: { kind: 'supabase-import', endpoint: '/api/import-orders', label: '再取り込み' },
   },
   {
     id: 'po-management',
@@ -185,11 +177,11 @@ const BASE_APP_STATUSES: BaseAppStatus[] = [
     id: 'staff',
     name: '顧客担当者',
     route: '/staff',
-    description: '顧客別担当者リストをkintoneで管理します。',
-    dataTarget: { read: 'kintone', write: 'kintone' },
-    migration: 'planned',
-    notes: '顧客情報と連動した担当者データ',
-    action: { kind: 'kintone-load', appKey: 'staff', label: 'kintone読み込み' },
+    description: '顧客別担当者リストを管理します。',
+    dataTarget: { read: 'supabase', write: 'supabase' },
+    migration: 'completed',
+    notes: 'Kintone→Supabase同期済み（customer_staffテーブル）',
+    action: { kind: 'supabase-import', endpoint: '/api/import-customer-staff', label: '再取り込み' },
   },
   {
     id: 'customers',
@@ -219,6 +211,7 @@ const BASE_APP_STATUSES: BaseAppStatus[] = [
     dataTarget: { read: 'supabase', write: 'supabase' },
     migration: 'completed',
     notes: 'Quotation/WorkNo件数をSupabase集計で表示',
+    action: { kind: 'supabase-import', endpoint: '/api/import-machines', label: '再取り込み' },
   },
 ];
 

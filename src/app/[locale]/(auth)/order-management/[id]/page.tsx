@@ -12,7 +12,7 @@ interface OrderDetailPageProps {
 }
 
 export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
-  const { locale } = await params;
+  const { locale, id } = await params;
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,9 +24,14 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   const pageTitle = locale === 'ja' ? '注文書詳細' : 'Order Detail';
   const userInfo = await getCurrentUserInfo();
 
+  const { data: order } = await (supabase.from('customer_orders') as any)
+    .select('*')
+    .eq('kintone_record_id', id)
+    .single();
+
   return (
     <DashboardLayout locale={locale} title={pageTitle} userInfo={userInfo ? { email: userInfo.email, name: userInfo.name, avatarUrl: userInfo.avatarUrl } : undefined}>
-      <OrderDetailContent />
+      <OrderDetailContent order={order} />
     </DashboardLayout>
   );
 }

@@ -1,34 +1,30 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { CustomerStaffRecord } from '@/types/kintone';
-import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
-import { MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { tableStyles } from '@/components/ui/TableStyles';
+import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/ui/Pagination';
+import type { SupabaseCustomerStaff } from './page';
 
 interface StaffListContentProps {
-  staffList: CustomerStaffRecord[];
+  staffList: SupabaseCustomerStaff[];
   locale: string;
-  userEmail: string;
-  userInfo?: { email: string; name: string; avatarUrl?: string };
 }
 
-export default function StaffListContent({ staffList, locale, userEmail, userInfo }: StaffListContentProps) {
+export default function StaffListContent({ staffList, locale }: StaffListContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState('');
-  
-  console.log('Total staff records loaded:', staffList.length);
-  console.log('Sample companies:', staffList.slice(0, 5).map(s => s.ルックアップ?.value));
 
   // 部署の一覧を取得
   const divisions = useMemo(() => {
     const divisionSet = new Set<string>();
     staffList.forEach(staff => {
-      if (staff.Divison?.value) {
-        divisionSet.add(staff.Divison.value);
+      if (staff.division) {
+        divisionSet.add(staff.division);
       }
     });
     return Array.from(divisionSet).sort();
@@ -36,73 +32,58 @@ export default function StaffListContent({ staffList, locale, userEmail, userInf
 
   // 検索とフィルタリング
   const filteredStaff = useMemo(() => {
-    const results = staffList.filter(staff => {
-      // 検索クエリでフィルタリング
+    return staffList.filter(staff => {
       if (searchQuery && searchQuery.trim() !== '') {
         const searchLower = searchQuery.toLowerCase().trim();
-        
-        // 各フィールドの値を安全に取得して小文字に変換し、余分な空白を正規化
-        const name = staff.担当者名?.value?.toLowerCase().replace(/\s+/g, ' ').trim() || '';
-        const company = staff.ルックアップ?.value?.toLowerCase().replace(/\s+/g, ' ').trim() || '';
-        const position = staff.Position?.value?.toLowerCase().replace(/\s+/g, ' ').trim() || '';
-        const email = staff.メールアドレス?.value?.toLowerCase().replace(/\s+/g, ' ').trim() || '';
-        const division = staff.Divison?.value?.toLowerCase().replace(/\s+/g, ' ').trim() || '';
-        
-        // 検索クエリも余分な空白を正規化
         const normalizedSearchQuery = searchLower.replace(/\s+/g, ' ').trim();
-        
-        // いずれかのフィールドに検索文字列が含まれているかチェック
-        const matches = name.includes(normalizedSearchQuery) || 
-                       company.includes(normalizedSearchQuery) || 
-                       position.includes(normalizedSearchQuery) || 
+
+        const name = (staff.staff_name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const company = (staff.company_name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const position = (staff.position || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const email = (staff.email || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        const division = (staff.division || '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+        const matches = name.includes(normalizedSearchQuery) ||
+                       company.includes(normalizedSearchQuery) ||
+                       position.includes(normalizedSearchQuery) ||
                        email.includes(normalizedSearchQuery) ||
                        division.includes(normalizedSearchQuery);
-        
-        if (!matches) {
-          return false;
-        }
+
+        if (!matches) return false;
       }
 
-      // 部署でフィルタリング
-      if (selectedDivision && staff.Divison?.value !== selectedDivision) {
+      if (selectedDivision && staff.division !== selectedDivision) {
         return false;
       }
 
       return true;
     });
-    
-    return results;
   }, [staffList, searchQuery, selectedDivision]);
 
-  const pageTitle = language === 'ja' ? '顧客担当者管理' : language === 'th' ? 'จัดการผู้ติดต่อ' : 'Staff Management';
+  const { paginatedItems: paginatedStaff, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredStaff);
 
   return (
-    <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
-      <div className={tableStyles.contentWrapper}>
-        {/* 検索バー */}
-        <div className={tableStyles.searchWrapper}>
-          <div className={tableStyles.searchForm}>
-            {/* 検索ボックス */}
-            <div className="flex-1 relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  language === 'ja' ? '名前、会社名、メールアドレスで検索...' : 
-                  language === 'th' ? 'ค้นหาด้วยชื่อ, บริษัท, อีเมล...' :
-                  'Search by name, company, email...'
-                }
-                className={`${tableStyles.searchInput} pl-10`}
-              />
-            </div>
-
-            {/* 部署フィルター */}
+    <div className={tableStyles.contentWrapper}>
+      <div className={tableStyles.tableContainer}>
+        <ListPageHeader
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={
+            language === 'ja' ? '名前、会社名、メールアドレスで検索...' :
+            language === 'th' ? 'ค้นหาด้วยชื่อ, บริษัท, อีเมล...' :
+            'Search by name, company, email...'
+          }
+          totalCount={filteredStaff.length}
+          countLabel={
+            language === 'ja' ? '件の担当者' :
+            language === 'th' ? ' ผู้ติดต่อ' :
+            ' staff members'
+          }
+          filters={
             <select
               value={selectedDivision}
               onChange={(e) => setSelectedDivision(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 bg-transparent px-3 py-2.5 text-theme-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
+              className="h-9 px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
             >
               <option value="">
                 {language === 'ja' ? '全部署' : language === 'th' ? 'ทุกแผนก' : 'All Divisions'}
@@ -113,22 +94,48 @@ export default function StaffListContent({ staffList, locale, userEmail, userInf
                 </option>
               ))}
             </select>
-          </div>
+          }
+        />
+
+        {/* モバイル: カードビュー */}
+        <div className={tableStyles.mobileCardList}>
+          {paginatedStaff.length === 0 ? (
+            <div className={tableStyles.emptyRow}>
+              {language === 'ja' ? '該当する担当者が見つかりません' :
+               language === 'th' ? 'ไม่พบผู้ติดต่อที่ตรงกัน' :
+               'No staff members found'}
+            </div>
+          ) : (
+            paginatedStaff.map((staff) => (
+              <div
+                key={staff.id}
+                className={tableStyles.mobileCard}
+              >
+                <div className={tableStyles.mobileCardTitle}>
+                  {staff.staff_name}
+                </div>
+                <div className={tableStyles.mobileCardSubtitle}>
+                  {staff.company_name || '-'}
+                </div>
+                <div className={tableStyles.mobileCardFields}>
+                  {staff.division && (
+                    <span className={tableStyles.mobileCardFieldValue}>{staff.division}</span>
+                  )}
+                  {staff.email && (
+                    <a href={`mailto:${staff.email}`} className="text-brand-500 text-xs">
+                      {staff.email}
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
-        {/* フィルターバー */}
-        <div className={tableStyles.filterBar}>
-          <p className={tableStyles.recordCount}>
-            {language === 'ja' ? `${filteredStaff.length}件の担当者` : 
-             language === 'th' ? `${filteredStaff.length} ผู้ติดต่อ` : 
-             `${filteredStaff.length} staff members`}
-          </p>
-        </div>
-
-        {/* 担当者リスト */}
-        <div className={tableStyles.tableContainer}>
+        {/* デスクトップ: テーブルビュー */}
+        <div className={tableStyles.desktopOnly}>
           <div className="max-w-full overflow-x-auto">
-            {filteredStaff.length === 0 ? (
+            {paginatedStaff.length === 0 ? (
               <div className={tableStyles.emptyRow}>
                 {language === 'ja' ? '該当する担当者が見つかりません' :
                  language === 'th' ? 'ไม่พบผู้ติดต่อที่ตรงกัน' :
@@ -159,27 +166,27 @@ export default function StaffListContent({ staffList, locale, userEmail, userInf
                   </tr>
                 </thead>
                 <tbody className={tableStyles.tbody}>
-                  {filteredStaff.map((staff) => (
-                    <tr key={staff.$id.value} className={tableStyles.tr}>
+                  {paginatedStaff.map((staff) => (
+                    <tr key={staff.id} className={tableStyles.tr}>
                       <td className={`${tableStyles.td} text-gray-800 dark:text-white/90 font-medium`}>
-                        {staff.担当者名?.value}
+                        {staff.staff_name}
                       </td>
                       <td className={tableStyles.td}>
-                        {staff.ルックアップ?.value}
+                        {staff.company_name || '-'}
                       </td>
                       <td className={`${tableStyles.td} hidden md:table-cell`}>
-                        {staff.Divison?.value || '-'}
+                        {staff.division || '-'}
                       </td>
                       <td className={`${tableStyles.td} hidden lg:table-cell`}>
-                        {staff.Position?.value || '-'}
+                        {staff.position || '-'}
                       </td>
                       <td className={tableStyles.td}>
-                        {staff.メールアドレス?.value ? (
+                        {staff.email ? (
                           <a
-                            href={`mailto:${staff.メールアドレス.value}`}
+                            href={`mailto:${staff.email}`}
                             className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
                           >
-                            {staff.メールアドレス.value}
+                            {staff.email}
                           </a>
                         ) : (
                           '-'
@@ -187,7 +194,7 @@ export default function StaffListContent({ staffList, locale, userEmail, userInf
                       </td>
                       <td className={`${tableStyles.td} text-end`}>
                         <Link
-                          href={`/${locale}/staff/${staff.$id.value}`}
+                          href={`/${locale}/staff/${staff.kintone_record_id}`}
                           className={tableStyles.tdLink}
                         >
                           {language === 'ja' ? '詳細' : language === 'th' ? 'รายละเอียด' : 'View'}
@@ -200,7 +207,16 @@ export default function StaffListContent({ staffList, locale, userEmail, userInf
             )}
           </div>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          pageSize={pageSize}
+          onPageChange={goToPage}
+          locale={locale}
+        />
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

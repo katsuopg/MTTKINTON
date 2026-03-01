@@ -32,6 +32,10 @@ interface MechItemRowProps {
   onDragEnd?: () => void;
   isDragging?: boolean;
   isDragOver?: boolean;
+  // 見積依頼選択モード
+  quoteSelecting?: boolean;
+  quoteSelected?: boolean;
+  onToggleQuoteSelect?: () => void;
 }
 
 const UNIT_EN_MAP: Record<string, string> = {
@@ -81,6 +85,9 @@ export default function MechItemRow({
   onDragEnd,
   isDragging = false,
   isDragOver = false,
+  quoteSelecting = false,
+  quoteSelected = false,
+  onToggleQuoteSelect,
 }: MechItemRowProps) {
   const amount = (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -191,16 +198,37 @@ export default function MechItemRow({
       {/* ドラッグハンドル + チェックボックス */}
       <td className="px-0.5 py-1">
         <div className="flex items-center justify-center gap-0">
-          {draggable && (
-            <span className="cursor-grab text-gray-300 dark:text-gray-600 hover:text-gray-500 select-none text-[10px] leading-none" title="Drag">⠿</span>
-          )}
-          {!readOnly && !isNew && onToggleSelect && (
+          {quoteSelecting && !isNew && item.id ? (
+            /* 見積依頼選択モード: designingステータスのみ選択可 */
             <input
               type="checkbox"
-              checked={selected}
-              onChange={onToggleSelect}
-              className="h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600"
+              checked={quoteSelected}
+              onChange={onToggleQuoteSelect}
+              disabled={item.status !== 'designing'}
+              className={`h-3.5 w-3.5 rounded ${
+                item.status === 'designing'
+                  ? 'border-orange-400 text-orange-500 focus:ring-orange-500 cursor-pointer'
+                  : 'border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-30'
+              }`}
+              title={item.status !== 'designing'
+                ? (language === 'ja' ? '設計中のアイテムのみ選択可' : language === 'th' ? 'เลือกได้เฉพาะรายการที่กำลังออกแบบ' : 'Only designing items can be selected')
+                : undefined
+              }
             />
+          ) : (
+            <>
+              {draggable && (
+                <span className="cursor-grab text-gray-300 dark:text-gray-600 hover:text-gray-500 select-none text-[10px] leading-none" title="Drag">⠿</span>
+              )}
+              {!readOnly && !isNew && onToggleSelect && (
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  onChange={onToggleSelect}
+                  className="h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600"
+                />
+              )}
+            </>
           )}
         </div>
       </td>

@@ -6,6 +6,7 @@ import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { Pagination } from '@/components/ui/Pagination';
 import { ClickableRow } from '@/components/ui/ClickableRow';
 import { usePagination } from '@/hooks/usePagination';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
 import type { Language } from '@/lib/kintone/field-mappings';
 
 interface Supplier {
@@ -28,6 +29,7 @@ interface SuppliersTableProps {
 }
 
 export default function SuppliersTable({ suppliers, locale, language, initialSearch = '' }: SuppliersTableProps) {
+  const { canManageApp } = useNavPermissions();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
 
   const filteredSuppliers = useMemo(() => {
@@ -54,6 +56,7 @@ export default function SuppliersTable({ suppliers, locale, language, initialSea
         }
         totalCount={filteredSuppliers.length}
         countLabel={language === 'ja' ? '件の仕入業者' : language === 'th' ? ' ซัพพลายเออร์' : ' suppliers'}
+        settingsHref={canManageApp('suppliers') ? `/${locale}/settings/apps/suppliers` : undefined}
       />
       {/* モバイル: カードビュー */}
       <div className={tableStyles.mobileCardList}>

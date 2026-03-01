@@ -4,15 +4,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { MenuConfigItem, GroupedMenuConfig } from '@/lib/navigation/menu-items';
 
+interface DynamicApp {
+  code: string;
+  name: string;
+  name_en: string | null;
+  name_th: string | null;
+  icon: string | null;
+}
+
 interface NavPermissionsState {
-  /** 各app_codeのcan_view権限 */
-  appPermissions: Record<string, { can_view: boolean }>;
+  /** 各app_codeのcan_view/can_manage権限 */
+  appPermissions: Record<string, { can_view: boolean; can_manage: boolean }>;
   /** システム管理者かどうか */
   isAdmin: boolean;
   /** メニュー設定（フラットモード用） */
   menuConfig: MenuConfigItem[] | null;
   /** グループ化メニュー設定 */
   groupedMenuConfig: GroupedMenuConfig | null;
+  /** 動的アプリ一覧 */
+  dynamicApps: DynamicApp[];
   /** ロード中かどうか */
   loading: boolean;
 }
@@ -31,18 +41,21 @@ export function useNavPermissions() {
     isAdmin: false,
     menuConfig: null,
     groupedMenuConfig: null,
+    dynamicApps: [],
     loading: true,
   });
 
   const fetchAppPermissions = useCallback(async () => {
     try {
-      const [appPermsRes, menuConfigRes] = await Promise.all([
+      const [appPermsRes, menuConfigRes, dynamicAppsRes] = await Promise.all([
         fetch('/api/my-app-permissions'),
         fetch('/api/my-menu-configuration'),
+        fetch('/api/apps/dynamic'),
       ]);
 
       const appPermsData = appPermsRes.ok ? await appPermsRes.json() : { appPermissions: {}, isAdmin: false };
       const menuConfigData = menuConfigRes.ok ? await menuConfigRes.json() : { items: [] };
+      const dynamicAppsData = dynamicAppsRes.ok ? await dynamicAppsRes.json() : { apps: [] };
 
       let menuConfig: MenuConfigItem[] | null = null;
       let groupedMenuConfig: GroupedMenuConfig | null = null;
@@ -63,11 +76,18 @@ export function useNavPermissions() {
         isAdmin: appPermsData.isAdmin || false,
         menuConfig,
         groupedMenuConfig,
+        dynamicApps: (dynamicAppsData.apps || []).map((a: DynamicApp) => ({
+          code: a.code,
+          name: a.name,
+          name_en: a.name_en,
+          name_th: a.name_th,
+          icon: a.icon,
+        })),
         loading: false,
       });
     } catch (err) {
       console.error('Error fetching nav permissions:', err);
-      setState({ appPermissions: {}, isAdmin: false, menuConfig: null, groupedMenuConfig: null, loading: false });
+      setState({ appPermissions: {}, isAdmin: false, menuConfig: null, groupedMenuConfig: null, dynamicApps: [], loading: false });
     }
   }, []);
 
@@ -106,10 +126,26 @@ export function useNavPermissions() {
     [state.loading, state.isAdmin, state.appPermissions, permLoading, isPermAdmin, hasPermission]
   );
 
+  /**
+   * 指定アプリを管理できるかどうかを判定
+   * @param appCode - アプリコード
+   */
+  const canManageApp = useCallback(
+    (appCode: string): boolean => {
+      if (state.loading || permLoading) return false;
+      if (state.isAdmin || isPermAdmin) return true;
+      if (hasPermission('manage_settings')) return true;
+      const perm = state.appPermissions[appCode];
+      return perm?.can_manage ?? false;
+    },
+    [state.loading, state.isAdmin, state.appPermissions, permLoading, isPermAdmin, hasPermission]
+  );
+
   return {
     ...state,
     loading: state.loading || permLoading,
     canShowNavItem,
+    canManageApp,
     refetch: fetchAppPermissions,
   };
 }

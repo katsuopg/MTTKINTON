@@ -21,6 +21,9 @@ interface MechItemsTabProps {
   masters: DomMasters;
   language: Language;
   onRefresh: () => void | Promise<void>;
+  quoteSelecting?: boolean;
+  selectedQuoteItems?: Set<string>;
+  onToggleQuoteItem?: (id: string) => void;
 }
 
 const UI_LABELS: Record<Language, Record<string, string>> = {
@@ -53,7 +56,7 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
   },
 };
 
-export default function MechItemsTab({ dom, masters, language, onRefresh }: MechItemsTabProps) {
+export default function MechItemsTab({ dom, masters, language, onRefresh, quoteSelecting, selectedQuoteItems, onToggleQuoteItem }: MechItemsTabProps) {
   const { toast } = useToast();
   const { confirmDialog } = useConfirmDialog();
   const [editing, setEditing] = useState(false);
@@ -407,6 +410,9 @@ export default function MechItemsTab({ dom, masters, language, onRefresh }: Mech
           onDeleteSection={handleDeleteSection}
           onReorder={handleReorder}
           onFileNotify={(type, message) => toast({ type, title: message })}
+          quoteSelecting={quoteSelecting}
+          selectedQuoteItems={selectedQuoteItems}
+          onToggleQuoteItem={onToggleQuoteItem}
         />
       ))}
 

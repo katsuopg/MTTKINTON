@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { WorkNoRecord, InvoiceRecord } from '@/types/kintone';
 import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
 import { getStatusColor } from '@/lib/kintone/utils';
 import { tableStyles } from '@/components/ui/TableStyles';
@@ -10,14 +9,15 @@ import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import MonthlySalesChart from '@/components/charts/MonthlySalesChart';
 import { FileText, ClipboardList, AlertTriangle, Filter, Package, ShoppingCart } from 'lucide-react';
+import type { SupabaseDashboardWorkOrder, SupabaseDashboardInvoice } from './page';
 
 interface DashboardContentProps {
   locale: string;
   workNoCount: number;
   projectCount: number;
-  recentWorkNos: WorkNoRecord[];
-  fiscalYearWorkNos: WorkNoRecord[];
-  fiscalYearInvoices: InvoiceRecord[];
+  recentWorkNos: SupabaseDashboardWorkOrder[];
+  fiscalYearWorkNos: SupabaseDashboardWorkOrder[];
+  fiscalYearInvoices: SupabaseDashboardInvoice[];
 }
 
 // ステータスフィルターのタブ
@@ -34,7 +34,7 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
 
   const [activeTab, setActiveTab] = useState('all');
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '未定';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
@@ -48,17 +48,15 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
     }
   };
 
-  const formatNumber = (value: string | undefined) => {
-    if (!value) return '-';
-    const num = parseFloat(value);
-    if (isNaN(num)) return value;
-    return num.toLocaleString();
+  const formatNumber = (value: number | null | undefined) => {
+    if (value == null) return '-';
+    return value.toLocaleString();
   };
 
   // フィルタリングされたデータ
   const filteredWorkNos = useMemo(() => {
     if (activeTab === 'all') return recentWorkNos;
-    return recentWorkNos.filter(record => record.Status?.value === activeTab);
+    return recentWorkNos.filter(record => record.status === activeTab);
   }, [recentWorkNos, activeTab]);
 
   const { paginatedItems: paginatedWorkNos, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredWorkNos);
@@ -230,50 +228,50 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
               </thead>
               <tbody className={tableStyles.tbody}>
                 {paginatedWorkNos.map((record) => (
-                  <tr key={record.$id.value} className={tableStyles.trClickable}>
+                  <tr key={record.kintone_record_id} className={tableStyles.trClickable}>
                     <td className={tableStyles.td}>
                       <div className="flex items-center gap-2">
                         <a
-                          href={`/${locale}/projects/${record.WorkNo?.value}`}
+                          href={`/${locale}/workno/${record.work_no}`}
                           className="font-medium text-gray-800 text-theme-sm hover:text-brand-500 dark:text-white/90 dark:hover:text-brand-400"
                         >
-                          {record.WorkNo?.value}
+                          {record.work_no}
                         </a>
-                        {record.Salesdate?.value &&
-                         new Date(record.Salesdate.value) < new Date() &&
-                         record.Status?.value !== 'Finished' &&
-                         record.Status?.value !== 'Cancel' && (
+                        {record.sales_date &&
+                         new Date(record.sales_date) < new Date() &&
+                         record.status !== 'Finished' &&
+                         record.status !== 'Cancel' && (
                           <span className="text-yellow-500" title={language === 'ja' ? '売上予定日が過ぎています' : 'Overdue'}>⚠️</span>
                         )}
                       </div>
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__1?.value || '-'}
+                      {record.category || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {extractCsName(record.文字列__1行__8?.value) || '-'}
+                      {extractCsName(record.customer_id) || record.customer_name || '-'}
                     </td>
                     <td className={tableStyles.td}>
                       <span className={
-                        record.Salesdate?.value &&
-                        new Date(record.Salesdate.value) < new Date() &&
-                        record.Status?.value !== 'Finished' &&
-                        record.Status?.value !== 'Cancel'
+                        record.sales_date &&
+                        new Date(record.sales_date) < new Date() &&
+                        record.status !== 'Finished' &&
+                        record.status !== 'Cancel'
                           ? 'text-error-500 font-medium'
                           : ''
                       }>
-                        {formatDate(record.Salesdate?.value)}
+                        {formatDate(record.sales_date)}
                       </span>
                     </td>
                     <td className={`${tableStyles.td} max-w-[200px] truncate`}>
-                      {record.文字列__1行__2?.value || '-'}
+                      {record.description || '-'}
                     </td>
                     <td className={`${tableStyles.td} font-medium text-right`}>
-                      {formatNumber(record.grand_total?.value)}
+                      {formatNumber(record.grand_total)}
                     </td>
                     <td className={tableStyles.td}>
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(record.Status?.value || '')}`}>
-                        {getStatusLabel(record.Status?.value || '', language)}
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(record.status || '')}`}>
+                        {getStatusLabel(record.status || '', language)}
                       </span>
                     </td>
                   </tr>

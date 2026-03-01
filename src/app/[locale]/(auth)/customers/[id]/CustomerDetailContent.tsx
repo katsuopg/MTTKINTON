@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CustomerRecord, WorkNoRecord, QuotationRecord, MachineRecord, CustomerStaffRecord, InvoiceRecord } from '@/types/kintone';
-import { OrderRecord } from '@/lib/kintone/order';
-import { type Language, getStatusLabel } from '@/lib/kintone/field-mappings';
+import type { Language } from '@/lib/kintone/field-mappings';
 import SalesChart from '@/components/charts/SalesChart';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { detailStyles } from '@/components/ui/DetailStyles';
@@ -13,39 +11,47 @@ import Tabs, { TabPanel } from '@/components/ui/Tabs';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { Pencil, FileText, ClipboardList, ShoppingCart, Wrench, Users } from 'lucide-react';
-import { getStatusColor } from '@/lib/kintone/utils';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FiscalPeriodSelect } from '@/components/ui/FiscalPeriodSelect';
+import type {
+  SupabaseCustomer,
+  SupabaseWorkOrder,
+  SupabaseInvoice,
+  SupabaseMachine,
+  SupabaseCustomerStaff,
+  SupabasePORecord,
+  SupabaseQuoteRequest,
+} from './page';
 
 interface CustomerDetailContentProps {
   locale: string;
   language: Language;
-  customerRecord: CustomerRecord;
-  workNoRecords: WorkNoRecord[];
-  quotationRecords: QuotationRecord[];
-  orderRecords: OrderRecord[];
-  machineRecords: MachineRecord[];
-  customerStaffRecords: CustomerStaffRecord[];
-  invoiceRecords: InvoiceRecord[];
-  allInvoiceRecords?: InvoiceRecord[];
-  allWorkNoRecords?: WorkNoRecord[];
-  allQuotationRecords?: QuotationRecord[];
+  customer: SupabaseCustomer;
+  workOrders: SupabaseWorkOrder[];
+  invoices: SupabaseInvoice[];
+  poRecords: SupabasePORecord[];
+  machines: SupabaseMachine[];
+  customerStaff: SupabaseCustomerStaff[];
+  quoteRequests: SupabaseQuoteRequest[];
+  allWorkOrders?: SupabaseWorkOrder[];
+  allInvoices?: SupabaseInvoice[];
+  allQuoteRequests?: SupabaseQuoteRequest[];
 }
 
 export function CustomerDetailContent({
   locale,
   language,
-  customerRecord,
-  workNoRecords = [],
-  quotationRecords = [],
-  orderRecords = [],
-  machineRecords = [],
-  customerStaffRecords = [],
-  invoiceRecords = [],
-  allInvoiceRecords = [],
-  allWorkNoRecords = [],
-  allQuotationRecords = [],
+  customer,
+  workOrders = [],
+  invoices = [],
+  poRecords = [],
+  machines = [],
+  customerStaff = [],
+  quoteRequests = [],
+  allWorkOrders = [],
+  allInvoices = [],
+  allQuoteRequests = [],
 }: CustomerDetailContentProps) {
   const [activeTab, setActiveTab] = useState('workno');
   const currentPeriod = '14';
@@ -54,10 +60,10 @@ export function CustomerDetailContent({
   const [selectedPOPeriod, setSelectedPOPeriod] = useState(currentPeriod);
   const [selectedInvoicePeriod, setSelectedInvoicePeriod] = useState(currentPeriod);
 
-  const [workNoData, setWorkNoData] = useState(workNoRecords || []);
-  const [quotationData, setQuotationData] = useState(quotationRecords || []);
-  const [poData, setPOData] = useState(orderRecords || []);
-  const [invoiceData, setInvoiceData] = useState(invoiceRecords || []);
+  const [workNoData, setWorkNoData] = useState(workOrders);
+  const [quoteRequestData, setQuoteRequestData] = useState(quoteRequests);
+  const [poData, setPOData] = useState(poRecords);
+  const [invoiceData, setInvoiceData] = useState(invoices);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
   const [lastFetchedWorkNoPeriod, setLastFetchedWorkNoPeriod] = useState(currentPeriod);
@@ -65,23 +71,22 @@ export function CustomerDetailContent({
   const [lastFetchedPOPeriod, setLastFetchedPOPeriod] = useState(currentPeriod);
   const [lastFetchedInvoicePeriod, setLastFetchedInvoicePeriod] = useState(currentPeriod);
 
-  // Pagination for each tab
   const workNoPagination = usePagination(workNoData);
-  const quotationPagination = usePagination(quotationData);
+  const quoteRequestPagination = usePagination(quoteRequestData);
   const poPagination = usePagination(poData);
   const invoicePagination = usePagination(invoiceData);
-  const machinePagination = usePagination(machineRecords);
-  const staffPagination = usePagination(customerStaffRecords);
+  const machinePagination = usePagination(machines);
+  const staffPagination = usePagination(customerStaff);
 
   const iconClass = 'w-4 h-4';
 
   const tabs = [
     { key: 'workno', label: language === 'ja' ? '工事番号一覧' : 'Work No.', badge: workNoData.length, icon: <FileText className={iconClass} /> },
-    { key: 'quotation', label: language === 'ja' ? '見積一覧' : 'Quotations', badge: quotationData.length, icon: <ClipboardList className={iconClass} /> },
+    { key: 'quotation', label: language === 'ja' ? '見積依頼一覧' : 'Quote Requests', badge: quoteRequestData.length, icon: <ClipboardList className={iconClass} /> },
     { key: 'po', label: language === 'ja' ? 'PO一覧' : 'PO List', badge: poData.length, icon: <ShoppingCart className={iconClass} /> },
     { key: 'invoice', label: language === 'ja' ? '請求書一覧' : 'Invoices', badge: invoiceData.length, icon: <FileText className={iconClass} /> },
-    { key: 'machine', label: language === 'ja' ? '保有機械一覧' : 'Machines', badge: machineRecords.length, icon: <Wrench className={iconClass} /> },
-    { key: 'staff', label: language === 'ja' ? '顧客担当者一覧' : 'Contacts', badge: customerStaffRecords.length, icon: <Users className={iconClass} /> },
+    { key: 'machine', label: language === 'ja' ? '保有機械一覧' : 'Machines', badge: machines.length, icon: <Wrench className={iconClass} /> },
+    { key: 'staff', label: language === 'ja' ? '顧客担当者一覧' : 'Contacts', badge: customerStaff.length, icon: <Users className={iconClass} /> },
   ];
 
   const formatDate = (dateString: string | null | undefined) => {
@@ -91,20 +96,19 @@ export function CustomerDetailContent({
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
-  const formatNumber = (value: string | undefined) => {
-    if (!value) return '-';
-    const numericValue = value.replace(/[^\d.-]/g, '');
-    const number = parseFloat(numericValue);
-    if (isNaN(number)) return '-';
-    return number.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + 'B';
+  const formatCurrency = (value: number | null | undefined) => {
+    if (value == null) return '-';
+    return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + 'B';
   };
 
   useEffect(() => {
     const fetchData = async () => {
+      const customerId = customer.customer_id;
+
       if (activeTab === 'workno' && selectedPeriod !== lastFetchedWorkNoPeriod) {
         setIsLoadingData(true);
         try {
-          const response = await fetch(`/api/customer/${customerRecord.文字列__1行_.value}/data?period=${selectedPeriod}&type=workno`);
+          const response = await fetch(`/api/customer/${customerId}/data?period=${selectedPeriod}&type=workno`);
           if (response.ok) {
             const data = await response.json();
             setWorkNoData(data);
@@ -120,10 +124,10 @@ export function CustomerDetailContent({
       if (activeTab === 'quotation' && selectedQuotePeriod !== lastFetchedQuotePeriod) {
         setIsLoadingData(true);
         try {
-          const response = await fetch(`/api/customer/${customerRecord.文字列__1行_.value}/data?period=${selectedQuotePeriod}&type=quotation`);
+          const response = await fetch(`/api/customer/${customerId}/data?period=${selectedQuotePeriod}&type=quotation`);
           if (response.ok) {
             const data = await response.json();
-            setQuotationData(data);
+            setQuoteRequestData(data);
             setLastFetchedQuotePeriod(selectedQuotePeriod);
           }
         } catch (error) {
@@ -136,7 +140,7 @@ export function CustomerDetailContent({
       if (activeTab === 'po' && selectedPOPeriod !== lastFetchedPOPeriod) {
         setIsLoadingData(true);
         try {
-          const response = await fetch(`/api/customer/${customerRecord.文字列__1行_.value}/data?period=${selectedPOPeriod}&type=po`);
+          const response = await fetch(`/api/customer/${customerId}/data?period=${selectedPOPeriod}&type=po`);
           if (response.ok) {
             const data = await response.json();
             setPOData(data);
@@ -152,7 +156,7 @@ export function CustomerDetailContent({
       if (activeTab === 'invoice' && selectedInvoicePeriod !== lastFetchedInvoicePeriod) {
         setIsLoadingData(true);
         try {
-          const response = await fetch(`/api/customer/${customerRecord.文字列__1行_.value}/data?period=${selectedInvoicePeriod}&type=invoice`);
+          const response = await fetch(`/api/customer/${customerId}/data?period=${selectedInvoicePeriod}&type=invoice`);
           if (response.ok) {
             const data = await response.json();
             setInvoiceData(data);
@@ -167,7 +171,33 @@ export function CustomerDetailContent({
     };
 
     fetchData();
-  }, [activeTab, selectedPeriod, selectedQuotePeriod, selectedPOPeriod, selectedInvoicePeriod, customerRecord.文字列__1行_.value, lastFetchedWorkNoPeriod, lastFetchedQuotePeriod, lastFetchedPOPeriod, lastFetchedInvoicePeriod]);
+  }, [activeTab, selectedPeriod, selectedQuotePeriod, selectedPOPeriod, selectedInvoicePeriod, customer.customer_id, lastFetchedWorkNoPeriod, lastFetchedQuotePeriod, lastFetchedPOPeriod, lastFetchedInvoicePeriod]);
+
+  const getWorkOrderStatusColor = (status: string) => {
+    switch (status) {
+      case '完了': case 'Completed': return 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400';
+      case '進行中': case 'In Progress': return 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400';
+      case '見積中': case 'Quoting': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-500/15 dark:text-gray-400';
+    }
+  };
+
+  const getQuoteStatusLabel = (status: { code: string; name: string } | null) => {
+    if (!status) return '-';
+    if (language === 'ja') return status.name;
+    return status.code;
+  };
+
+  const getQuoteStatusColor = (code: string) => {
+    switch (code) {
+      case 'quoted': return 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400';
+      case 'quoting': case 'requested': return 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400';
+      case 'order_requested': case 'po_issued': return 'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400';
+      case 'completed': return 'bg-gray-100 text-gray-800 dark:bg-gray-500/15 dark:text-gray-400';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-500/15 dark:text-gray-400';
+    }
+  };
 
   const TabHeader = ({ title, children }: { title: string; children?: React.ReactNode }) => (
     <div className="flex justify-between items-center mb-4">
@@ -178,30 +208,30 @@ export function CustomerDetailContent({
 
   return (
     <div className={detailStyles.pageWrapper}>
-      {/* Header: 1行構成 [←] [Rank badge] [タイトル] ... [編集] */}
+      {/* Header */}
       <DetailPageHeader
         backHref={`/${locale}/customers`}
         title={[
-          customerRecord.会社名?.value,
-          customerRecord.文字列__1行_?.value,
-          customerRecord.文字列__1行__4?.value,
+          customer.company_name,
+          customer.customer_id,
+          customer.country,
         ].filter(Boolean).join(' - ')}
-        statusBadge={customerRecord.顧客ランク?.value ? (
+        statusBadge={customer.customer_rank ? (
           <span className={`${detailStyles.badge} ${
-            customerRecord.顧客ランク.value === 'VIP'
+            customer.customer_rank === 'VIP'
               ? 'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400'
-              : customerRecord.顧客ランク.value === 'A'
+              : customer.customer_rank === 'A'
               ? detailStyles.badgeSuccess
-              : customerRecord.顧客ランク.value === 'B'
+              : customer.customer_rank === 'B'
               ? detailStyles.badgeInfo
               : detailStyles.badgeDefault
           }`}>
-            Rank: {customerRecord.顧客ランク.value}
+            Rank: {customer.customer_rank}
           </span>
         ) : undefined}
         actions={
           <Link
-            href={`/${locale}/customers/${customerRecord.$id.value}/edit`}
+            href={`/${locale}/customers/${customer.customer_id}/edit`}
             className={detailStyles.secondaryButton}
           >
             <Pencil size={16} className="mr-1.5" />
@@ -210,7 +240,7 @@ export function CustomerDetailContent({
         }
       />
 
-      {/* Customer Information Card - 1枚に集約、3カラム */}
+      {/* Customer Information Card */}
       <div className={detailStyles.card}>
         <div className={detailStyles.cardHeaderWithBg}>
           <h3 className={detailStyles.cardTitle}>
@@ -220,21 +250,21 @@ export function CustomerDetailContent({
         <div className={`${detailStyles.cardContent} ${detailStyles.grid3}`}>
           <div>
             <label className={detailStyles.fieldLabel}>{language === 'ja' ? '住所' : 'Address'}</label>
-            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customerRecord.住所?.value || '-'}</p>
+            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customer.address || '-'}</p>
           </div>
           <div>
             <label className={detailStyles.fieldLabel}>{language === 'ja' ? '郵便番号' : 'Postal Code'}</label>
-            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customerRecord.郵便番号?.value || '-'}</p>
+            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customer.postal_code || '-'}</p>
           </div>
           <div>
             <label className={detailStyles.fieldLabel}>TAX ID</label>
-            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customerRecord.文字列__1行__6?.value || '-'}</p>
+            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customer.tax_id || '-'}</p>
           </div>
           <div>
             <label className={detailStyles.fieldLabel}>{language === 'ja' ? '電話番号' : 'Phone'}</label>
-            {customerRecord.TEL?.value ? (
-              <a href={`tel:${customerRecord.TEL.value}`} className={`mt-1 block ${detailStyles.link}`}>
-                {customerRecord.TEL.value}
+            {customer.phone_number ? (
+              <a href={`tel:${customer.phone_number}`} className={`mt-1 block ${detailStyles.link}`}>
+                {customer.phone_number}
               </a>
             ) : (
               <p className={`mt-1 ${detailStyles.fieldValue}`}>-</p>
@@ -242,17 +272,17 @@ export function CustomerDetailContent({
           </div>
           <div>
             <label className={detailStyles.fieldLabel}>FAX</label>
-            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customerRecord.FAX?.value || '-'}</p>
+            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customer.fax_number || '-'}</p>
           </div>
           <div>
             <label className={detailStyles.fieldLabel}>{language === 'ja' ? '国' : 'Country'}</label>
-            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customerRecord.文字列__1行__4?.value || '-'}</p>
+            <p className={`mt-1 ${detailStyles.fieldValue}`}>{customer.country || '-'}</p>
           </div>
         </div>
       </div>
 
       {/* Sales Chart */}
-      {allInvoiceRecords && allInvoiceRecords.length > 0 && (
+      {allInvoices && allInvoices.length > 0 && (
         <div className={detailStyles.card}>
           <div className={detailStyles.cardHeader}>
             <h3 className={detailStyles.cardTitle}>
@@ -261,9 +291,9 @@ export function CustomerDetailContent({
           </div>
           <div className={detailStyles.cardContent}>
             <SalesChart
-              invoiceRecords={allInvoiceRecords}
-              workNoRecords={allWorkNoRecords}
-              quotationRecords={allQuotationRecords}
+              invoices={allInvoices}
+              workOrders={allWorkOrders}
+              quoteRequests={allQuoteRequests}
               language={language}
             />
           </div>
@@ -297,30 +327,27 @@ export function CustomerDetailContent({
                       <tr>
                         <th className={tableStyles.th}>{language === 'ja' ? '工事番号' : 'Work No.'}</th>
                         <th className={tableStyles.th}>{language === 'ja' ? 'ステータス' : 'Status'}</th>
-                        <th className={tableStyles.th}>{language === 'ja' ? 'プロジェクト名' : 'Project'}</th>
-                        <th className={tableStyles.th}>{language === 'ja' ? '受注日' : 'Order Date'}</th>
+                        <th className={tableStyles.th}>{language === 'ja' ? '説明' : 'Description'}</th>
+                        <th className={tableStyles.th}>{language === 'ja' ? '開始日' : 'Start Date'}</th>
                       </tr>
                     </thead>
                     <tbody className={tableStyles.tbody}>
-                      {workNoPagination.paginatedItems.map((record) => {
-                        if (!record?.$id) return null;
-                        return (
-                          <tr key={record.$id.value} className={tableStyles.tr}>
-                            <td className={tableStyles.td}>
-                              <Link href={`/${locale}/workno/${record.WorkNo?.value}`} className={tableStyles.tdLink}>
-                                {record.WorkNo?.value || '-'}
-                              </Link>
-                            </td>
-                            <td className={tableStyles.td}>
-                              <span className={`${tableStyles.statusBadge} ${getStatusColor(record.Status?.value || '')}`}>
-                                {getStatusLabel(record.Status?.value || '', language)}
-                              </span>
-                            </td>
-                            <td className={tableStyles.td}>{record.文字列__1行__2?.value || '-'}</td>
-                            <td className={tableStyles.td}>{formatDate(record.日付_6?.value)}</td>
-                          </tr>
-                        );
-                      })}
+                      {workNoPagination.paginatedItems.map((record) => (
+                        <tr key={record.id} className={tableStyles.tr}>
+                          <td className={tableStyles.td}>
+                            <Link href={`/${locale}/workno/${record.work_no}`} className={tableStyles.tdLink}>
+                              {record.work_no}
+                            </Link>
+                          </td>
+                          <td className={tableStyles.td}>
+                            <span className={`${tableStyles.statusBadge} ${getWorkOrderStatusColor(record.status)}`}>
+                              {record.status || '-'}
+                            </span>
+                          </td>
+                          <td className={tableStyles.td}>{record.description || '-'}</td>
+                          <td className={tableStyles.td}>{formatDate(record.start_date)}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -336,52 +363,48 @@ export function CustomerDetailContent({
             )}
           </TabPanel>
 
-          {/* Quotation Tab */}
+          {/* Quote Request Tab */}
           <TabPanel value="quotation" activeValue={activeTab}>
-            <TabHeader title={language === 'ja' ? '関連する見積' : 'Related Quotations'}>
+            <TabHeader title={language === 'ja' ? '関連する見積依頼' : 'Related Quote Requests'}>
               <FiscalPeriodSelect value={selectedQuotePeriod} onChange={setSelectedQuotePeriod} locale={locale} />
             </TabHeader>
-            {isLoadingData && activeTab === 'quotation' ? <LoadingSpinner /> : quotationData.length === 0 ? <EmptyState locale={locale} /> : (
+            {isLoadingData && activeTab === 'quotation' ? <LoadingSpinner /> : quoteRequestData.length === 0 ? <EmptyState locale={locale} /> : (
               <>
                 <div className="overflow-x-auto">
                   <table className={tableStyles.table}>
                     <thead className={tableStyles.thead}>
                       <tr>
-                        <th className={tableStyles.th}>{language === 'ja' ? '見積番号' : 'Quote No.'}</th>
+                        <th className={tableStyles.th}>{language === 'ja' ? '依頼番号' : 'Request No.'}</th>
                         <th className={tableStyles.th}>{language === 'ja' ? '工事番号' : 'Work No.'}</th>
                         <th className={tableStyles.th}>{language === 'ja' ? 'ステータス' : 'Status'}</th>
-                        <th className={tableStyles.th}>{language === 'ja' ? '件名' : 'Subject'}</th>
-                        <th className={`${tableStyles.th} text-right`}>{language === 'ja' ? '金額' : 'Amount'}</th>
-                        <th className={tableStyles.th}>{language === 'ja' ? '提出日' : 'Date'}</th>
+                        <th className={tableStyles.th}>{language === 'ja' ? '依頼者' : 'Requester'}</th>
+                        <th className={tableStyles.th}>{language === 'ja' ? '作成日' : 'Created'}</th>
                       </tr>
                     </thead>
                     <tbody className={tableStyles.tbody}>
-                      {quotationPagination.paginatedItems.map((record) => {
-                        const status = record.ドロップダウン?.value || '';
+                      {quoteRequestPagination.paginatedItems.map((record) => {
+                        const statusCode = record.status?.code || '';
                         return (
-                          <tr key={record.$id.value} className={tableStyles.tr}>
+                          <tr key={record.id} className={tableStyles.tr}>
                             <td className={tableStyles.td}>
-                              <Link href={`/${locale}/quotations/${record.$id.value}`} className={tableStyles.tdLink}>
-                                {record.qtno2?.value || '-'}
+                              <Link href={`/${locale}/quote-requests/${record.id}`} className={tableStyles.tdLink}>
+                                {record.request_no}
                               </Link>
                             </td>
                             <td className={tableStyles.td}>
-                              {record.Text_0?.value ? (
-                                <Link href={`/${locale}/workno/${record.Text_0.value}`} className={tableStyles.tdLink}>
-                                  {record.Text_0.value}
+                              {record.work_no ? (
+                                <Link href={`/${locale}/workno/${record.work_no}`} className={tableStyles.tdLink}>
+                                  {record.work_no}
                                 </Link>
                               ) : '-'}
                             </td>
                             <td className={tableStyles.td}>
-                              <span className={`${tableStyles.statusBadge} ${getStatusColor(status)}`}>
-                                {getStatusLabel(status, language)}
+                              <span className={`${tableStyles.statusBadge} ${getQuoteStatusColor(statusCode)}`}>
+                                {getQuoteStatusLabel(record.status)}
                               </span>
                             </td>
-                            <td className={tableStyles.td}>{record.文字列__1行__4?.value || '-'}</td>
-                            <td className={`${tableStyles.td} text-right font-medium`}>
-                              {record.grand_total?.value ? formatNumber(record.grand_total.value) : '-'}
-                            </td>
-                            <td className={tableStyles.td}>{formatDate(record.日付?.value)}</td>
+                            <td className={tableStyles.td}>{record.requester_name || '-'}</td>
+                            <td className={tableStyles.td}>{formatDate(record.created_at)}</td>
                           </tr>
                         );
                       })}
@@ -389,11 +412,11 @@ export function CustomerDetailContent({
                   </table>
                 </div>
                 <Pagination
-                  currentPage={quotationPagination.currentPage}
-                  totalPages={quotationPagination.totalPages}
-                  totalItems={quotationPagination.totalItems}
-                  pageSize={quotationPagination.pageSize}
-                  onPageChange={quotationPagination.goToPage}
+                  currentPage={quoteRequestPagination.currentPage}
+                  totalPages={quoteRequestPagination.totalPages}
+                  totalItems={quoteRequestPagination.totalItems}
+                  pageSize={quoteRequestPagination.pageSize}
+                  onPageChange={quoteRequestPagination.goToPage}
                   locale={locale}
                 />
               </>
@@ -411,27 +434,25 @@ export function CustomerDetailContent({
                   <table className={tableStyles.table}>
                     <thead className={tableStyles.thead}>
                       <tr>
-                        <th className={tableStyles.th}>Date</th>
-                        <th className={tableStyles.th}>Work No.</th>
+                        <th className={tableStyles.th}>{language === 'ja' ? '日付' : 'Date'}</th>
+                        <th className={tableStyles.th}>{language === 'ja' ? '工事番号' : 'Work No.'}</th>
                         <th className={tableStyles.th}>PO No.</th>
-                        <th className={`${tableStyles.th} text-right`}>Amount</th>
+                        <th className={`${tableStyles.th} text-right`}>{language === 'ja' ? '金額' : 'Amount'}</th>
                       </tr>
                     </thead>
                     <tbody className={tableStyles.tbody}>
                       {poPagination.paginatedItems.map((record) => (
-                        <tr key={record.$id.value} className={tableStyles.tr}>
-                          <td className={tableStyles.td}>{formatDate(record.日付?.value)}</td>
+                        <tr key={record.id} className={tableStyles.tr}>
+                          <td className={tableStyles.td}>{formatDate(record.po_date)}</td>
                           <td className={tableStyles.td}>
-                            <Link href={`/${locale}/workno/${record.文字列__1行__2?.value}`} className={tableStyles.tdLink}>
-                              {record.文字列__1行__2?.value || '-'}
-                            </Link>
+                            {record.work_no ? (
+                              <Link href={`/${locale}/workno/${record.work_no}`} className={tableStyles.tdLink}>
+                                {record.work_no}
+                              </Link>
+                            ) : '-'}
                           </td>
-                          <td className={tableStyles.td}>
-                            <Link href={`/${locale}/order-management/${record.$id.value}`} className={tableStyles.tdLink}>
-                              {record.文字列__1行_?.value || '-'}
-                            </Link>
-                          </td>
-                          <td className={`${tableStyles.td} text-right font-medium`}>{record.amount?.value ? formatNumber(record.amount.value) : '-'}</td>
+                          <td className={tableStyles.td}>{record.po_no || '-'}</td>
+                          <td className={`${tableStyles.td} text-right font-medium`}>{formatCurrency(record.grand_total ? Number(record.grand_total) : null)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -468,21 +489,17 @@ export function CustomerDetailContent({
                     </thead>
                     <tbody className={tableStyles.tbody}>
                       {invoicePagination.paginatedItems.map((record) => (
-                        <tr key={record.$id.value} className={tableStyles.tr}>
+                        <tr key={record.id} className={tableStyles.tr}>
                           <td className={tableStyles.td}>
-                            {record.文字列__1行_?.value ? (
-                              <Link href={`/${locale}/workno/${record.文字列__1行_.value}`} className={tableStyles.tdLink}>
-                                {record.文字列__1行_.value}
+                            {record.work_no ? (
+                              <Link href={`/${locale}/workno/${record.work_no}`} className={tableStyles.tdLink}>
+                                {record.work_no}
                               </Link>
                             ) : '-'}
                           </td>
-                          <td className={tableStyles.td}>
-                            <Link href={`/${locale}/invoices/${record.$id.value}`} className={tableStyles.tdLink}>
-                              {record.文字列__1行__0?.value || '-'}
-                            </Link>
-                          </td>
-                          <td className={tableStyles.td}>{formatDate(record.日付?.value)}</td>
-                          <td className={`${tableStyles.td} text-right font-medium`}>{formatNumber(record.計算?.value)}</td>
+                          <td className={tableStyles.td}>{record.invoice_no || '-'}</td>
+                          <td className={tableStyles.td}>{formatDate(record.invoice_date)}</td>
+                          <td className={`${tableStyles.td} text-right font-medium`}>{formatCurrency(record.grand_total)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -503,7 +520,7 @@ export function CustomerDetailContent({
           {/* Machine Tab */}
           <TabPanel value="machine" activeValue={activeTab}>
             <TabHeader title={language === 'ja' ? '保有機械一覧' : 'Machine List'} />
-            {machineRecords.length === 0 ? <EmptyState locale={locale} /> : (
+            {machines.length === 0 ? <EmptyState locale={locale} /> : (
               <>
                 <div className="overflow-x-auto">
                   <table className={tableStyles.table}>
@@ -517,15 +534,15 @@ export function CustomerDetailContent({
                     </thead>
                     <tbody className={tableStyles.tbody}>
                       {machinePagination.paginatedItems.map((record) => (
-                        <tr key={record.$id.value} className={tableStyles.tr}>
+                        <tr key={record.id} className={tableStyles.tr}>
                           <td className={tableStyles.td}>
-                            <Link href={`/${locale}/machines/${record.$id.value}`} className={tableStyles.tdLink}>
-                              {record.McItem?.value || '-'}
+                            <Link href={`/${locale}/machines/${record.id}`} className={tableStyles.tdLink}>
+                              {record.machine_item || '-'}
                             </Link>
                           </td>
-                          <td className={tableStyles.td}>{record.Vender?.value || '-'}</td>
-                          <td className={tableStyles.td}>{record.Moldel?.value || '-'}</td>
-                          <td className={tableStyles.td}>{record.MCNo?.value || '-'}</td>
+                          <td className={tableStyles.td}>{record.vendor || '-'}</td>
+                          <td className={tableStyles.td}>{record.model || '-'}</td>
+                          <td className={tableStyles.td}>{record.machine_number || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -546,7 +563,7 @@ export function CustomerDetailContent({
           {/* Staff Tab */}
           <TabPanel value="staff" activeValue={activeTab}>
             <TabHeader title={language === 'ja' ? '顧客担当者一覧' : 'Customer Contacts'} />
-            {customerStaffRecords.length === 0 ? <EmptyState locale={locale} /> : (
+            {customerStaff.length === 0 ? <EmptyState locale={locale} /> : (
               <>
                 <div className="overflow-x-auto">
                   <table className={tableStyles.table}>
@@ -561,23 +578,23 @@ export function CustomerDetailContent({
                     </thead>
                     <tbody className={tableStyles.tbody}>
                       {staffPagination.paginatedItems.map((record) => (
-                        <tr key={record.$id.value} className={tableStyles.tr}>
+                        <tr key={record.id} className={tableStyles.tr}>
                           <td className={`${tableStyles.td} font-medium text-gray-800 dark:text-white/90`}>
-                            {record.Name?.value || record.担当者名?.value || '-'}
+                            {record.staff_name || '-'}
                           </td>
-                          <td className={tableStyles.td}>{record.Department?.value || record.Divison?.value || '-'}</td>
-                          <td className={tableStyles.td}>{record.Position?.value || '-'}</td>
+                          <td className={tableStyles.td}>{record.division || '-'}</td>
+                          <td className={tableStyles.td}>{record.position || '-'}</td>
                           <td className={tableStyles.td}>
-                            {(record.Email?.value || record.メールアドレス?.value) ? (
-                              <a href={`mailto:${record.Email?.value || record.メールアドレス?.value}`} className={tableStyles.tdLink}>
-                                {record.Email?.value || record.メールアドレス?.value}
+                            {record.email ? (
+                              <a href={`mailto:${record.email}`} className={tableStyles.tdLink}>
+                                {record.email}
                               </a>
                             ) : '-'}
                           </td>
                           <td className={tableStyles.td}>
-                            {(record.Telephone?.value || record.TEL?.value) ? (
-                              <a href={`tel:${record.Telephone?.value || record.TEL?.value}`} className={tableStyles.tdLink}>
-                                {record.Telephone?.value || record.TEL?.value}
+                            {record.telephone ? (
+                              <a href={`tel:${record.telephone}`} className={tableStyles.tdLink}>
+                                {record.telephone}
                               </a>
                             ) : '-'}
                           </td>

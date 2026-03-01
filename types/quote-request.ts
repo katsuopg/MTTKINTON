@@ -86,6 +86,10 @@ export interface QuoteRequestItem {
   quote_request_id: string;
   part_list_item_id: string | null;
 
+  // DOM連携
+  dom_mech_item_id: string | null;
+  dom_elec_item_id: string | null;
+
   // 依頼情報
   model_number: string;
   manufacturer: string;
@@ -159,9 +163,15 @@ export interface QuoteRequestItemOrder {
   order_quantity: number;
   order_amount: number | null;
   order_date: string | null;
+  delivery_date: string | null;
+  remarks: string | null;
 
   // ステータス
   order_status: 'ordered' | 'delivered' | 'completed';
+
+  // 納品情報
+  delivered_at: string | null;
+  delivered_by: string | null;
 
   // メタ情報
   created_at: string;
@@ -241,6 +251,8 @@ export interface QuoteRequestCreate {
  */
 export interface QuoteRequestItemCreate {
   part_list_item_id?: string | null;
+  dom_mech_item_id?: string | null;
+  dom_elec_item_id?: string | null;
   model_number: string;
   manufacturer: string;
   quantity: number;
@@ -272,6 +284,8 @@ export interface QuoteRequestItemOrderCreate {
   order_quantity: number;
   order_amount?: number | null;
   order_date?: string | null;
+  delivery_date?: string | null;
+  remarks?: string | null;
 }
 
 // ============================================

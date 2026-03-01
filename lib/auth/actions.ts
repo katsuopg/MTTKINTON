@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 import { employeeNumberToEmail } from './utils';
 
 // ログイン処理（従業員番号 または 既存メールアドレスで認証）
-export async function login(identifier: string, password: string) {
+export async function login(identifier: string, password: string, locale: string = 'ja') {
   const supabase = await createActionClient();
 
   // @を含む場合は既存のメールアドレスとして扱う（後方互換性）
@@ -20,19 +20,18 @@ export async function login(identifier: string, password: string) {
   });
 
   if (error) {
-    // より分かりやすいエラーメッセージに変換
     if (error.message === 'Invalid login credentials') {
-      throw new Error('従業員番号またはパスワードが正しくありません');
+      throw new Error('INVALID_CREDENTIALS');
     }
-    throw new Error(error.message);
+    throw new Error('LOGIN_FAILED');
   }
 
   revalidatePath('/');
-  redirect('/ja/dashboard');
+  redirect(`/${locale}/dashboard`);
 }
 
 // ログアウト処理
-export async function logout() {
+export async function logout(locale: string = 'ja') {
   const supabase = await createActionClient();
 
   const { error } = await supabase.auth.signOut();
@@ -42,7 +41,7 @@ export async function logout() {
   }
 
   revalidatePath('/');
-  redirect('/ja/auth/login');
+  redirect(`/${locale}/auth/login`);
 }
 
 // サインアップ処理（従業員番号で登録）

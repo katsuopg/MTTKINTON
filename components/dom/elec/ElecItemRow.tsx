@@ -16,6 +16,9 @@ interface ElecItemRowProps {
   selected?: boolean;
   onToggleSelect?: () => void;
   onChange: (field: string, value: string | number | null) => void;
+  quoteSelecting?: boolean;
+  quoteSelected?: boolean;
+  onToggleQuoteSelect?: () => void;
 }
 
 // 日本語単位→英語表示マップ（en/thで使用）
@@ -64,6 +67,9 @@ export default function ElecItemRow({
   selected = false,
   onToggleSelect,
   onChange,
+  quoteSelecting = false,
+  quoteSelected = false,
+  onToggleQuoteSelect,
 }: ElecItemRowProps) {
   const amount = (Number(item.quantity) || 0) * (Number(item.unit_price) || 0);
   const categoryLabel = CATEGORY_OPTIONS.find((o) => o.value === item.category)?.labels[language] || '';
@@ -71,13 +77,31 @@ export default function ElecItemRow({
   return (
     <tr className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
       <td className="px-1 py-1 w-8">
-        {!readOnly && !isNew && onToggleSelect && (
+        {quoteSelecting && !isNew && item.id ? (
           <input
             type="checkbox"
-            checked={selected}
-            onChange={onToggleSelect}
-            className="rounded border-gray-300 dark:border-gray-600"
+            checked={quoteSelected}
+            onChange={onToggleQuoteSelect}
+            disabled={item.status !== 'designing'}
+            className={`rounded ${
+              item.status === 'designing'
+                ? 'border-orange-400 text-orange-500 focus:ring-orange-500 cursor-pointer'
+                : 'border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-30'
+            }`}
+            title={item.status !== 'designing'
+              ? (language === 'ja' ? '設計中のアイテムのみ選択可' : language === 'th' ? 'เลือกได้เฉพาะรายการที่กำลังออกแบบ' : 'Only designing items can be selected')
+              : undefined
+            }
           />
+        ) : (
+          !readOnly && !isNew && onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelect}
+              className="rounded border-gray-300 dark:border-gray-600"
+            />
+          )
         )}
       </td>
 

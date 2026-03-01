@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { InvoiceRecord } from '@/types/kintone';
 import { useToast } from '@/components/ui/Toast';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
+import type { SupabaseInvoice } from './page';
 
 interface InvoiceManagementClientProps {
   locale: string;
   language: Language;
   initialSearchQuery: string;
-  initialInvoiceRecords: InvoiceRecord[];
+  initialInvoiceRecords: SupabaseInvoice[];
 }
 
 export default function InvoiceManagementClient({
@@ -26,11 +27,8 @@ export default function InvoiceManagementClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
-  
-  console.log('=== InvoiceManagementClient ===');
-  console.log('Initial records count:', initialInvoiceRecords?.length || 0);
-  console.log('First record:', initialInvoiceRecords?.[0]);
-  
+  const { canManageApp } = useNavPermissions();
+
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [selectedPeriod, setSelectedPeriod] = useState(searchParams.get('period') || '14');
   const [invoiceRecords, setInvoiceRecords] = useState(initialInvoiceRecords);
@@ -44,33 +42,30 @@ export default function InvoiceManagementClient({
       const data = await response.json();
       if (data.records) {
         setInvoiceRecords(data.records);
-        console.log(`第${period}期のデータ取得完了:`, data.records.length);
       }
     } catch (error) {
       console.error('Error fetching invoice records:', error);
       toast({ type: 'error', title: language === 'ja' ? 'データの取得に失敗しました' : language === 'th' ? 'ดึงข้อมูลไม่สำเร็จ' : 'Failed to fetch data' });
     }
     setIsLoading(false);
-  }, []);
+  }, [language, toast]);
 
-  // URL更新のデバウンス処理
+  // URL更新
   const updateURL = useCallback((search: string, period?: string) => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (period) params.set('period', period);
-    
+
     const query = params.toString();
     const newURL = `/${locale}/invoice-management${query ? `?${query}` : ''}`;
     router.replace(newURL, { scroll: false });
   }, [locale, router]);
 
-  // 検索処理
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     updateURL(value, selectedPeriod);
   }, [updateURL, selectedPeriod]);
 
-  // 会計期処理
   const handlePeriodChange = useCallback(async (value: string) => {
     setSelectedPeriod(value);
     updateURL(searchQuery, value);
@@ -79,45 +74,27 @@ export default function InvoiceManagementClient({
     }
   }, [updateURL, searchQuery, fetchInvoiceRecords]);
 
-  // 会計期を計算するヘルパー関数
-  const getFiscalYear = (dateString: string): string => {
-    const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    
-    // 7月始まりの会計期
-    if (month >= 7) {
-      return `${year - 2011}`;
-    } else {
-      return `${year - 2012}`;
-    }
-  };
-
-  // 利用可能な会計期を生成
   const availablePeriods = (): string[] => {
-    // 第9期から第14期までを固定で表示
     return ['14', '13', '12', '11', '10', '9'];
   };
 
-  // フィルタリング処理（検索のみ、会計期間フィルタはAPIで実行済み）
+  // フィルタリング処理
   const filteredInvoices = invoiceRecords.filter(record => {
-    // 検索キーワードフィルター
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      const matchesSearch = 
-        record.文字列__1行_?.value?.toLowerCase().includes(query) ||
-        record.文字列__1行__0?.value?.toLowerCase().includes(query) ||
-        record.CS_name?.value?.toLowerCase().includes(query);
+      const matchesSearch =
+        record.work_no?.toLowerCase().includes(query) ||
+        record.invoice_no?.toLowerCase().includes(query) ||
+        record.customer_name?.toLowerCase().includes(query);
       if (!matchesSearch) return false;
     }
-    
     return true;
   });
 
-  const searchPlaceholder = language === 'ja' 
-    ? 'キーワード' 
-    : language === 'th' 
-    ? 'คำค้นหา' 
+  const searchPlaceholder = language === 'ja'
+    ? 'キーワード'
+    : language === 'th'
+    ? 'คำค้นหา'
     : 'Keyword';
 
   const countLabel = language === 'ja'
@@ -128,17 +105,22 @@ export default function InvoiceManagementClient({
 
   const { paginatedItems: paginatedInvoices, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredInvoices);
 
-  // 数値フォーマット
-  const formatNumber = (value: string | undefined): string => {
-    if (!value) return '-';
-    const num = parseFloat(value);
-    if (isNaN(num)) return '-';
-    return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + 'B';
+  const formatNumber = (value: number | null | undefined): string => {
+    if (value == null) return '-';
+    return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + 'B';
+  };
+
+  const getStatusClass = (status: string | null) => {
+    if (!status) return 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400';
+    if (status.includes('Payment date confirmed') || status.includes('ชำระ'))
+      return 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500';
+    if (status.includes('Pending') || status.includes('รอ'))
+      return 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500';
+    return 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400';
   };
 
   return (
     <div className={tableStyles.contentWrapper}>
-      {/* テーブル表示 */}
       <div className={tableStyles.tableContainer}>
         <ListPageHeader
           searchValue={searchQuery}
@@ -165,6 +147,7 @@ export default function InvoiceManagementClient({
               </select>
             </div>
           }
+          settingsHref={canManageApp('invoices') ? `/${locale}/settings/apps/invoices` : undefined}
         />
         {isLoading ? (
           <div className={tableStyles.emptyRow}>
@@ -181,40 +164,33 @@ export default function InvoiceManagementClient({
           <>
             {/* モバイル: カードビュー */}
             <div className={tableStyles.mobileCardList}>
-              {paginatedInvoices.map((record) => {
-                const statusClass = record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
-                  ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
-                  : record.ラジオボタン?.value?.includes('Pending') || record.ラジオボタン?.value?.includes('รอ')
-                  ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
-                  : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400';
-                return (
-                  <div
-                    key={record.$id.value}
-                    className={tableStyles.mobileCard}
-                    onClick={() => window.location.href = `/${locale}/workno/${record.文字列__1行_?.value}`}
-                  >
-                    <div className={tableStyles.mobileCardHeader}>
-                      <span className={`${tableStyles.statusBadge} ${statusClass}`}>
-                        {record.ラジオボタン?.value || '-'}
-                      </span>
-                      <span className={tableStyles.mobileCardMeta}>
-                        {record.日付?.value?.replace(/-/g, '/') || '-'}
-                      </span>
-                    </div>
-                    <div className={tableStyles.mobileCardTitle}>
-                      {record.文字列__1行__0?.value || '-'} / {record.文字列__1行_?.value || '-'}
-                    </div>
-                    <div className={tableStyles.mobileCardFields}>
-                      <span className={tableStyles.mobileCardFieldValue}>
-                        {record.CS_name?.value || '-'}
-                      </span>
-                      <span className={tableStyles.mobileCardFieldValue}>
-                        {formatNumber(record.計算?.value || record.total?.value)}
-                      </span>
-                    </div>
+              {paginatedInvoices.map((record) => (
+                <div
+                  key={record.id}
+                  className={tableStyles.mobileCard}
+                  onClick={() => window.location.href = `/${locale}/workno/${record.work_no}`}
+                >
+                  <div className={tableStyles.mobileCardHeader}>
+                    <span className={`${tableStyles.statusBadge} ${getStatusClass(record.status)}`}>
+                      {record.status || '-'}
+                    </span>
+                    <span className={tableStyles.mobileCardMeta}>
+                      {record.invoice_date?.replace(/-/g, '/') || '-'}
+                    </span>
                   </div>
-                );
-              })}
+                  <div className={tableStyles.mobileCardTitle}>
+                    {record.invoice_no || '-'} / {record.work_no || '-'}
+                  </div>
+                  <div className={tableStyles.mobileCardFields}>
+                    <span className={tableStyles.mobileCardFieldValue}>
+                      {record.customer_name || '-'}
+                    </span>
+                    <span className={tableStyles.mobileCardFieldValue}>
+                      {formatNumber(record.grand_total)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
 
             {/* デスクトップ: テーブルビュー */}
@@ -245,33 +221,27 @@ export default function InvoiceManagementClient({
                 </thead>
                 <tbody className={tableStyles.tbody}>
                   {paginatedInvoices.map((record) => (
-                    <tr key={record.$id.value} className={tableStyles.tr}>
+                    <tr key={record.id} className={tableStyles.tr}>
                       <td className={tableStyles.td}>
-                        <a href={`/${locale}/workno/${record.文字列__1行_?.value}`} className={tableStyles.tdLink}>
-                          {record.文字列__1行_?.value || '-'}
+                        <a href={`/${locale}/workno/${record.work_no}`} className={tableStyles.tdLink}>
+                          {record.work_no || '-'}
                         </a>
                       </td>
                       <td className={`${tableStyles.td} text-gray-800 dark:text-white/90`}>
-                        {record.文字列__1行__0?.value || '-'}
+                        {record.invoice_no || '-'}
                       </td>
                       <td className={tableStyles.td}>
-                        {record.日付?.value?.replace(/-/g, '/') || '-'}
+                        {record.invoice_date?.replace(/-/g, '/') || '-'}
                       </td>
                       <td className={tableStyles.td}>
-                        {record.CS_name?.value || '-'}
+                        {record.customer_name || '-'}
                       </td>
                       <td className={`${tableStyles.td} text-end font-medium text-gray-800 dark:text-white/90`}>
-                        {formatNumber(record.計算?.value || record.total?.value)}
+                        {formatNumber(record.grand_total)}
                       </td>
                       <td className={`${tableStyles.td} text-center`}>
-                        <span className={`inline-flex px-2.5 py-0.5 text-theme-xs font-medium rounded-full ${
-                          record.ラジオボタン?.value?.includes('Payment date confirmed') || record.ラジオボタン?.value?.includes('ชำระ')
-                            ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500'
-                            : record.ラジオボタン?.value?.includes('Pending') || record.ラジオボタン?.value?.includes('รอ')
-                            ? 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-500'
-                            : 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-400'
-                        }`}>
-                          {record.ラジオボタン?.value || '-'}
+                        <span className={`inline-flex px-2.5 py-0.5 text-theme-xs font-medium rounded-full ${getStatusClass(record.status)}`}>
+                          {record.status || '-'}
                         </span>
                       </td>
                     </tr>

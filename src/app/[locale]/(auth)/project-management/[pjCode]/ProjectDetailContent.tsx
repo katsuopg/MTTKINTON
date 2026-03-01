@@ -718,6 +718,8 @@ export default function ProjectDetailContent({
               locale={locale}
               customerName={project.customer_name || undefined}
               machineName={project.project_name || undefined}
+              workNo={project.work_no || undefined}
+              projectCode={project.project_code || undefined}
             />
           </TabPanel>
         </div>

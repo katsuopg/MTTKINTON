@@ -1,15 +1,51 @@
 import { createClient } from '../../../../../lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { KintoneClient } from '@/lib/kintone/client';
-import { WorkNoRecord, InvoiceRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { invoiceCache } from '@/lib/kintone/invoice-cache';
 import { type Language } from '@/lib/kintone/field-mappings';
 import WorkNoClient from './WorkNoClient';
 import { getCurrentUserInfo } from '@/lib/auth/user-info';
 
 // ページレベルのキャッシュ設定（5分）
 export const revalidate = 300;
+
+export interface SupabaseWorkOrder {
+  id: string;
+  kintone_record_id: string;
+  work_no: string;
+  status: string;
+  start_date: string | null;
+  finish_date: string | null;
+  sales_date: string | null;
+  sales_staff: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  category: string | null;
+  description: string | null;
+  machine_type: string | null;
+  vendor: string | null;
+  model: string | null;
+  serial_number: string | null;
+  machine_number: string | null;
+  machine_item: string | null;
+  invoice_no_1: string | null;
+  invoice_no_2: string | null;
+  invoice_no_3: string | null;
+  invoice_no_4: string | null;
+  invoice_date_1: string | null;
+  invoice_date_2: string | null;
+  invoice_date_3: string | null;
+  sub_total: number | null;
+  discount: number | null;
+  grand_total: number | null;
+  purchase_cost: number | null;
+  labor_cost: number | null;
+  cost_total: number | null;
+  overhead_rate: number | null;
+  commission_rate: number | null;
+  person_in_charge: string | null;
+  po_list: string | null;
+  inv_list: string | null;
+}
 
 interface ProjectsPageProps {
   params: Promise<{
@@ -26,74 +62,59 @@ export default async function ProjectsPage({ params, searchParams }: ProjectsPag
   const searchParamsResolved = await searchParams;
   const supabase = await createClient();
 
-  // 認証チェック
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     redirect(`/${locale}/auth/login`);
   }
 
-  // Convert locale to Language type
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
-  
-  // 会計期間の取得（デフォルトは25-26年度）
+
   const selectedFiscalYear = searchParamsResolved.fiscalYear ? parseInt(searchParamsResolved.fiscalYear) : 14;
   const searchQuery = searchParamsResolved.search || '';
-  
-  // kintoneからWork No.アプリのレコードを取得
-  let workNoRecords: WorkNoRecord[] = [];
-  
+
+  // Supabaseからwork_ordersを取得
+  let workOrders: SupabaseWorkOrder[] = [];
+
   try {
-    // Work No.アプリから受注後のプロジェクトを取得
-    const workNoClient = new KintoneClient(
-      '21', // Work No.アプリID
-      process.env.KINTONE_API_TOKEN_WORKNO!
-    );
-    
-    // 工事番号の頭で期をフィルタリング
-    const query = `WorkNo like "${selectedFiscalYear}-" order by 更新日時 desc limit 200`;
-    workNoRecords = await workNoClient.getRecords<WorkNoRecord>(query);
-    console.log(`Found ${workNoRecords.length} Work No records for fiscal year ${selectedFiscalYear}`);
+    const { data, error } = await supabase
+      .from('work_orders')
+      .select('*')
+      .ilike('work_no', `${selectedFiscalYear}-%`)
+      .order('work_no', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching work orders:', error);
+    } else {
+      workOrders = data || [];
+    }
   } catch (error) {
-    console.error('Error fetching kintone data:', error);
+    console.error('Error fetching work orders:', error);
   }
 
-  // 請求書管理アプリから請求書データを取得
-  let invoiceRecords: InvoiceRecord[] = [];
-  
+  // 請求書の工事番号ごとの件数を取得
+  let invoiceCountMap: Record<string, number> = {};
+
   try {
-    // キャッシュから請求書データを取得
-    const { records, fromCache } = await invoiceCache.getInvoices();
-    invoiceRecords = records;
-    
-    console.log(`Found ${invoiceRecords.length} invoice records (from ${fromCache ? 'cache' : 'API'})`);
-    
-    // 工事番号ごとの請求書数をカウント（デバッグ用）
-    if (!fromCache) {
-      const invoiceCountByWorkNo = new Map<string, number>();
-      invoiceRecords.forEach(record => {
-        const workNo = record.文字列__1行_?.value || ''; // 工事番号フィールド
+    const { data: invoiceData, error } = await supabase
+      .from('invoices')
+      .select('work_no')
+      .ilike('work_no', `${selectedFiscalYear}-%`);
+
+    if (!error && invoiceData) {
+      invoiceData.forEach(inv => {
+        const workNo = inv.work_no || '';
         if (workNo) {
-          invoiceCountByWorkNo.set(workNo, (invoiceCountByWorkNo.get(workNo) || 0) + 1);
-        }
-      });
-      
-      console.log('=== Invoice data by Work No ===');
-      invoiceCountByWorkNo.forEach((count, workNo) => {
-        if (count > 1) {
-          console.log(`${workNo}: ${count} invoices`);
+          invoiceCountMap[workNo] = (invoiceCountMap[workNo] || 0) + 1;
         }
       });
     }
   } catch (error) {
-    console.error('Error fetching invoice data:', error);
-    // エラーの場合もWork No.レコード内の請求書フィールドでフォールバック
-    console.log('Fallback to Work No record invoice fields for INV badge determination');
+    console.error('Error fetching invoice counts:', error);
   }
 
   const pageTitle = language === 'ja' ? '工事番号管理' : language === 'th' ? 'จัดการหมายเลขงาน' : 'Work No. Management';
 
-  // ユーザー情報を取得
   const userInfo = await getCurrentUserInfo();
 
   return (
@@ -110,8 +131,8 @@ export default async function ProjectsPage({ params, searchParams }: ProjectsPag
       <WorkNoClient
         locale={locale}
         language={language}
-        initialRecords={workNoRecords}
-        initialInvoiceRecords={invoiceRecords}
+        initialRecords={workOrders}
+        invoiceCountMap={invoiceCountMap}
         initialFiscalYear={selectedFiscalYear}
         initialSearchQuery={searchQuery}
       />

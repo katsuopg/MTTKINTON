@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { WorkNoRecord, InvoiceRecord } from '@/types/kintone';
-import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
+import { useRouter } from 'next/navigation';
+import { getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { extractCsName } from '@/lib/utils/customer-name';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
+import type { SupabaseWorkOrder } from './page';
 
 
 const STATUS_TABS = [
@@ -25,8 +26,8 @@ const STATUS_TABS = [
 interface WorkNoClientProps {
   locale: string;
   language: Language;
-  initialRecords: WorkNoRecord[];
-  initialInvoiceRecords: InvoiceRecord[];
+  initialRecords: SupabaseWorkOrder[];
+  invoiceCountMap: Record<string, number>;
   initialFiscalYear: number;
   initialSearchQuery: string;
 }
@@ -35,31 +36,27 @@ export default function WorkNoClient({
   locale,
   language,
   initialRecords,
-  initialInvoiceRecords,
+  invoiceCountMap,
   initialFiscalYear,
   initialSearchQuery,
 }: WorkNoClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const [records, setRecords] = useState<WorkNoRecord[]>(initialRecords);
+  const { canManageApp } = useNavPermissions();
+
+  const [records] = useState<SupabaseWorkOrder[]>(initialRecords);
   const [fiscalYear, setFiscalYear] = useState(initialFiscalYear);
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [activeStatusTab, setActiveStatusTab] = useState('all');
-  const [filteredRecords, setFilteredRecords] = useState<Array<{record: WorkNoRecord, isChild: boolean}>>([]);
-  
-  // 請求書データから工事番号ごとのマップを作成
-  const [invoicesByWorkNo, setInvoicesByWorkNo] = useState<Map<string, InvoiceRecord[]>>(new Map());
+  const [filteredRecords, setFilteredRecords] = useState<Array<{record: SupabaseWorkOrder, isChild: boolean}>>([]);
 
   // URL更新のデバウンス処理（検索時のみ使用）
   const updateURL = useCallback((search: string, year: number) => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (year !== 14) params.set('fiscalYear', year.toString());
-    
+
     const query = params.toString();
     const newURL = `/${locale}/workno${query ? `?${query}` : ''}`;
-    // router.replaceを削除（URLパラメータの更新のみ行い、画面は再レンダリングしない）
     window.history.replaceState({}, '', newURL);
   }, [locale]);
 
@@ -74,74 +71,71 @@ export default function WorkNoClient({
     const year = parseInt(period);
     setFiscalYear(year);
     updateURL(searchQuery, year);
-    
+
     // 期間が変わったときはサーバーサイドで再取得が必要
     window.location.href = `/${locale}/workno?fiscalYear=${year}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
   }, [locale, searchQuery]);
 
   // 工事番号ソート関数
-  const sortWorkNumbers = useCallback((records: WorkNoRecord[]) => {
+  const sortWorkNumbers = useCallback((records: SupabaseWorkOrder[]) => {
     return [...records].sort((a, b) => {
-      const workNoA = a.WorkNo?.value || '';
-      const workNoB = b.WorkNo?.value || '';
-      
+      const workNoA = a.work_no || '';
+      const workNoB = b.work_no || '';
+
       // Eで終わるものは最下位（14-000E のような形式）
       const aEndsWithE = /E$/.test(workNoA);
       const bEndsWithE = /E$/.test(workNoB);
-      
+
       if (aEndsWithE && !bEndsWithE) return 1;
       if (!aEndsWithE && bEndsWithE) return -1;
-      
+
       // 通常の文字列比較（降順）
       return workNoB.localeCompare(workNoA);
     });
   }, []);
 
   // 親子関係を構築する関数
-  const buildHierarchy = useCallback((sortedRecords: WorkNoRecord[]) => {
-    const result: Array<{record: WorkNoRecord, isChild: boolean}> = [];
-    const workNoMap = new Map<string, WorkNoRecord>();
+  const buildHierarchy = useCallback((sortedRecords: SupabaseWorkOrder[]) => {
+    const result: Array<{record: SupabaseWorkOrder, isChild: boolean}> = [];
+    const workNoMap = new Map<string, SupabaseWorkOrder>();
     const processed = new Set<string>();
-    
+
     // 工事番号でマップを作成
     sortedRecords.forEach(record => {
-      const workNo = record.WorkNo?.value || '';
+      const workNo = record.work_no || '';
       workNoMap.set(workNo, record);
     });
-    
+
     // まず親レコード（-0で終わる）だけを抽出して処理
     const parentRecords = sortedRecords.filter(record => {
-      const workNo = record.WorkNo?.value || '';
+      const workNo = record.work_no || '';
       const lastPartMatch = workNo.match(/-(\d+)$/);
-      if (!lastPartMatch) return true; // 末尾に数字がない場合は親
-      return parseInt(lastPartMatch[1]) === 0; // -0で終わる場合は親
+      if (!lastPartMatch) return true;
+      return parseInt(lastPartMatch[1]) === 0;
     });
-    
+
     parentRecords.forEach(record => {
-      const workNo = record.WorkNo?.value || '';
-      
-      // 末尾の番号を取得
+      const workNo = record.work_no || '';
+
       const lastPartMatch = workNo.match(/-(\d+)$/);
       if (!lastPartMatch) {
-        // 末尾に数字がない場合は親として追加
         if (!processed.has(workNo)) {
           result.push({record, isChild: false});
           processed.add(workNo);
         }
         return;
       }
-      
+
       const lastNumber = parseInt(lastPartMatch[1]);
-      
+
       if (lastNumber === 0) {
-        // -0で終わる場合は親
         if (!processed.has(workNo)) {
           result.push({record, isChild: false});
           processed.add(workNo);
-          
+
           // 同じベースの子番号を探して追加
           const basePattern = workNo.replace(/-0$/, '');
-          for (let i = 1; i <= 10; i++) { // 最大10個の子を検索
+          for (let i = 1; i <= 10; i++) {
             const childWorkNo = `${basePattern}-${i}`;
             const childRecord = workNoMap.get(childWorkNo);
             if (childRecord && !processed.has(childWorkNo)) {
@@ -152,78 +146,46 @@ export default function WorkNoClient({
         }
       }
     });
-    
+
     // 残った子レコード（親がないもの）を処理
     sortedRecords.forEach(record => {
-      const workNo = record.WorkNo?.value || '';
+      const workNo = record.work_no || '';
       if (!processed.has(workNo)) {
         result.push({record, isChild: false});
         processed.add(workNo);
       }
     });
-    
+
     return result;
   }, []);
 
   // 数値フォーマット関数
-  const formatNumber = (value: string | undefined) => {
-    if (!value || value === '0') return '-';
-    const formatted = Number(value).toLocaleString();
-    return `${formatted}B`;
+  const formatNumber = (value: number | null | undefined) => {
+    if (value == null || value === 0) return '-';
+    return `${Number(value).toLocaleString()}B`;
   };
 
   // 工事番号に請求書があるかチェックする関数
-  const hasInvoice = (record: WorkNoRecord) => {
-    const workNo = record.WorkNo?.value;
+  const hasInvoice = (record: SupabaseWorkOrder) => {
+    const workNo = record.work_no;
     if (!workNo) return false;
-    
-    // まず請求書管理アプリのデータをチェック
-    const invoicesFromApp = invoicesByWorkNo.get(workNo);
-    if (invoicesFromApp && invoicesFromApp.length > 0) {
-      return true;
-    }
-    
-    // フォールバック: Work No.レコード内のフィールドを使用
-    const inv3 = record.文字列__1行__3?.value;
-    const inv4 = record.文字列__1行__4?.value;
-    const inv6 = record.文字列__1行__6?.value;
-    const inv7 = record.文字列__1行__7?.value;
-    
-    // 空文字列、null、undefinedをすべて除外
-    const hasValidInvoice = (inv3 && inv3.trim() !== '') || 
-                           (inv4 && inv4.trim() !== '') || 
-                           (inv6 && inv6.trim() !== '') || 
-                           (inv7 && inv7.trim() !== '');
-    
-    return hasValidInvoice;
+
+    // 請求書管理テーブルのデータをチェック
+    if (invoiceCountMap[workNo] > 0) return true;
+
+    // フォールバック: work_ordersレコード内のフィールドを使用
+    return !!(
+      (record.invoice_no_1 && record.invoice_no_1.trim() !== '') ||
+      (record.invoice_no_2 && record.invoice_no_2.trim() !== '') ||
+      (record.invoice_no_3 && record.invoice_no_3.trim() !== '') ||
+      (record.invoice_no_4 && record.invoice_no_4.trim() !== '')
+    );
   };
-  
+
   // 工事番号の請求書数を取得する関数
-  const getInvoiceCount = (record: WorkNoRecord) => {
-    const workNo = record.WorkNo?.value;
-    if (!workNo) return 0;
-    
-    const invoicesFromApp = invoicesByWorkNo.get(workNo);
-    return invoicesFromApp ? invoicesFromApp.length : 0;
+  const getInvoiceCount = (record: SupabaseWorkOrder) => {
+    return invoiceCountMap[record.work_no] || 0;
   };
-
-
-
-  // 請求書データの初期化
-  useEffect(() => {
-    // 請求書データから工事番号ごとのマップを作成
-    const invoiceMap = new Map<string, InvoiceRecord[]>();
-    initialInvoiceRecords.forEach(invoice => {
-      const workNo = invoice.文字列__1行_?.value; // 工事番号フィールド
-      if (workNo) {
-        if (!invoiceMap.has(workNo)) {
-          invoiceMap.set(workNo, []);
-        }
-        invoiceMap.get(workNo)!.push(invoice);
-      }
-    });
-    setInvoicesByWorkNo(invoiceMap);
-  }, [initialInvoiceRecords]);
 
   // クライアントサイドフィルタリングとソート
   useEffect(() => {
@@ -231,17 +193,17 @@ export default function WorkNoClient({
 
     // ステータスフィルター
     if (activeStatusTab !== 'all') {
-      filtered = filtered.filter(record => record.Status?.value === activeStatusTab);
+      filtered = filtered.filter(record => record.status === activeStatusTab);
     }
 
     if (searchQuery) {
       filtered = filtered.filter(record => {
-        const workNo = record.WorkNo?.value?.toLowerCase() || '';
-        const csId = record.文字列__1行__8?.value?.toLowerCase() || '';
-        const category = record.文字列__1行__1?.value?.toLowerCase() || '';
-        const description = record.文字列__1行__2?.value?.toLowerCase() || '';
-        const model = record.文字列__1行__9?.value?.toLowerCase() || '';
-        const mcItem = record.McItem?.value?.toLowerCase() || '';
+        const workNo = (record.work_no || '').toLowerCase();
+        const csId = (record.customer_id || '').toLowerCase();
+        const category = (record.category || '').toLowerCase();
+        const description = (record.description || '').toLowerCase();
+        const model = (record.model || '').toLowerCase();
+        const mcItem = (record.machine_item || '').toLowerCase();
         const query = searchQuery.toLowerCase();
         return workNo.includes(query) || csId.includes(query) || category.includes(query) ||
                description.includes(query) || model.includes(query) || mcItem.includes(query);
@@ -254,12 +216,12 @@ export default function WorkNoClient({
   }, [records, searchQuery, activeStatusTab, sortWorkNumbers, buildHierarchy]);
 
   // 日付フォーマット関数
-  const formatDate = (dateString: string | undefined) => {
+  const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '未定';
-    
+
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
-    
+
     if (language === 'ja') {
       return dateString;
     } else {
@@ -278,10 +240,10 @@ export default function WorkNoClient({
     { value: '10', label: language === 'ja' ? '第10期' : language === 'th' ? 'ช่วงเวลาที่ 10' : 'Period 10' },
   ];
 
-  const searchPlaceholder = language === 'ja' 
-    ? 'キーワード' 
-    : language === 'th' 
-    ? 'คำค้นหา' 
+  const searchPlaceholder = language === 'ja'
+    ? 'キーワード'
+    : language === 'th'
+    ? 'คำค้นหา'
     : 'Keyword';
 
   const countLabel = language === 'ja'
@@ -300,11 +262,17 @@ export default function WorkNoClient({
     setActiveStatusTab(tab);
   };
 
+  // 利益計算
+  const computeProfit = (record: SupabaseWorkOrder) => {
+    const grandTotal = record.grand_total || 0;
+    const costTotal = record.cost_total || 0;
+    return grandTotal - costTotal;
+  };
+
   const { paginatedItems: paginatedWorkItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredRecords);
 
   return (
     <div className={tableStyles.contentWrapper}>
-      {/* テーブル表示 - TailAdminスタイル */}
       <div className={tableStyles.tableContainer}>
         <ListPageHeader
           searchValue={searchQuery}
@@ -360,6 +328,7 @@ export default function WorkNoClient({
               </select>
             </>
           }
+          settingsHref={canManageApp('work_numbers') ? `/${locale}/settings/apps/work_numbers` : undefined}
         />
         {/* モバイル: カードビュー */}
         <div className={tableStyles.mobileCardList}>
@@ -368,55 +337,55 @@ export default function WorkNoClient({
               {language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available'}
             </div>
           ) : (
-            paginatedWorkItems.filter(item => item?.record?.$id?.value).map((item) => {
+            paginatedWorkItems.map((item) => {
               const statusBadgeClass =
-                item.record.Status?.value === 'Working' ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' :
-                item.record.Status?.value === 'Finished' ? 'bg-success-500 text-white' :
-                item.record.Status?.value === 'Wating PO' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' :
-                item.record.Status?.value === 'Stock' ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400' :
-                item.record.Status?.value === 'Pending' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
-                item.record.Status?.value === 'Cancel' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' :
-                item.record.Status?.value === 'Expenses' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400' :
+                item.record.status === 'Working' ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' :
+                item.record.status === 'Finished' ? 'bg-success-500 text-white' :
+                item.record.status === 'Wating PO' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' :
+                item.record.status === 'Stock' ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400' :
+                item.record.status === 'Pending' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
+                item.record.status === 'Cancel' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' :
+                item.record.status === 'Expenses' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400' :
                 'bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400';
 
               return (
                 <div
-                  key={item.record.$id.value}
+                  key={item.record.kintone_record_id}
                   className={tableStyles.mobileCard}
-                  onClick={() => router.push(`/${locale}/workno/${encodeURIComponent(item.record.WorkNo?.value || '')}`)}
+                  onClick={() => router.push(`/${locale}/workno/${encodeURIComponent(item.record.work_no || '')}`)}
                 >
                   <div className={tableStyles.mobileCardHeader}>
                     <span className={`${tableStyles.statusBadge} ${statusBadgeClass}`}>
-                      {getStatusLabel(item.record.Status?.value || '', language)}
+                      {getStatusLabel(item.record.status || '', language)}
                     </span>
                     <span className={tableStyles.mobileCardMeta}>
-                      {formatDate(item.record.Salesdate?.value)}
+                      {formatDate(item.record.sales_date)}
                     </span>
                   </div>
                   <div className={tableStyles.mobileCardTitle}>
                     {item.isChild && <span className="text-gray-400 mr-1">└</span>}
-                    {item.record.WorkNo?.value}
+                    {item.record.work_no}
                   </div>
                   <div className={tableStyles.mobileCardSubtitle}>
-                    {item.record.文字列__1行__8?.value
-                      ? extractCsName(item.record.文字列__1行__8.value)
+                    {item.record.customer_id
+                      ? extractCsName(item.record.customer_id)
                       : '-'}
-                    {item.record.文字列__1行__2?.value && ` - ${item.record.文字列__1行__2.value}`}
+                    {item.record.description && ` - ${item.record.description}`}
                   </div>
                   <div className={tableStyles.mobileCardFields}>
                     <span className={tableStyles.mobileCardFieldValue}>
-                      {formatNumber(item.record.grand_total?.value)}
+                      {formatNumber(item.record.grand_total)}
                     </span>
-                    {item.record.ルックアップ?.value && (
+                    {item.record.po_list && (
                       <span className={`${tableStyles.statusBadge} bg-success-500 text-white text-[10px] px-1.5 py-0`}>PO</span>
                     )}
                     {hasInvoice(item.record) && (
                       <span className={`${tableStyles.statusBadge} bg-success-500 text-white text-[10px] px-1.5 py-0`}>INV</span>
                     )}
-                    {item.record.Salesdate?.value &&
-                     new Date(item.record.Salesdate.value) < new Date() &&
-                     item.record.Status?.value !== 'Finished' &&
-                     item.record.Status?.value !== 'Cancel' && (
+                    {item.record.sales_date &&
+                     new Date(item.record.sales_date) < new Date() &&
+                     item.record.status !== 'Finished' &&
+                     item.record.status !== 'Cancel' && (
                       <span className="text-warning-500 text-xs">⚠</span>
                     )}
                   </div>
@@ -473,11 +442,11 @@ export default function WorkNoClient({
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
-              {paginatedWorkItems.filter(item => item?.record?.$id?.value).map((item) => (
+              {paginatedWorkItems.map((item) => (
                 <tr
-                  key={item.record.$id.value}
-                  className={`${tableStyles.trClickable} ${item.record.Status?.value === 'Finished' ? 'bg-success-50 dark:bg-success-500/10' : ''}`}
-                  onClick={() => router.push(`/${locale}/workno/${encodeURIComponent(item.record.WorkNo?.value || '')}`)}
+                  key={item.record.kintone_record_id}
+                  className={`${tableStyles.trClickable} ${item.record.status === 'Finished' ? 'bg-success-50 dark:bg-success-500/10' : ''}`}
+                  onClick={() => router.push(`/${locale}/workno/${encodeURIComponent(item.record.work_no || '')}`)}
                 >
                   <td className={tableStyles.td}>
                     <div className="flex items-center">
@@ -485,17 +454,16 @@ export default function WorkNoClient({
                         <span className="mr-2 text-gray-400 dark:text-gray-500">└</span>
                       )}
                       <a
-                        href={`/${locale}/workno/${encodeURIComponent(item.record.WorkNo?.value || '')}`}
+                        href={`/${locale}/workno/${encodeURIComponent(item.record.work_no || '')}`}
                         className={tableStyles.tdLink}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {item.record.WorkNo?.value}
+                        {item.record.work_no}
                       </a>
-                      {/* 売上予定日が過ぎているかチェック */}
-                      {item.record.Salesdate?.value &&
-                       new Date(item.record.Salesdate.value) < new Date() &&
-                       item.record.Status?.value !== 'Finished' &&
-                       item.record.Status?.value !== 'Cancel' && (
+                      {item.record.sales_date &&
+                       new Date(item.record.sales_date) < new Date() &&
+                       item.record.status !== 'Finished' &&
+                       item.record.status !== 'Cancel' && (
                         <div className="relative ml-1 group inline-flex">
                           <span className="text-warning-500 cursor-help">⚠️</span>
                           <div className="absolute z-10 invisible group-hover:visible bg-gray-800 dark:bg-gray-700 text-white text-theme-xs rounded-lg px-3 py-2 whitespace-nowrap left-full ml-1 top-1/2 transform -translate-y-1/2 shadow-theme-lg">
@@ -513,21 +481,21 @@ export default function WorkNoClient({
                   <td className={tableStyles.td}>
                     <span
                       className={`${tableStyles.statusBadge} ${
-                        item.record.Status?.value === 'Working' ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' :
-                        item.record.Status?.value === 'Finished' ? 'bg-success-500 text-white' :
-                        item.record.Status?.value === 'Wating PO' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' :
-                        item.record.Status?.value === 'Stock' ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400' :
-                        item.record.Status?.value === 'Pending' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
-                        item.record.Status?.value === 'Cancel' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' :
-                        item.record.Status?.value === 'Expenses' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400' :
+                        item.record.status === 'Working' ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400' :
+                        item.record.status === 'Finished' ? 'bg-success-500 text-white' :
+                        item.record.status === 'Wating PO' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' :
+                        item.record.status === 'Stock' ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/15 dark:text-purple-400' :
+                        item.record.status === 'Pending' ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400' :
+                        item.record.status === 'Cancel' ? 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-400' :
+                        item.record.status === 'Expenses' ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400' :
                         'bg-gray-100 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400'
                       }`}
                     >
-                      {getStatusLabel(item.record.Status?.value || '', language)}
+                      {getStatusLabel(item.record.status || '', language)}
                     </span>
                   </td>
                   <td className={`${tableStyles.td} text-center`}>
-                    {item.record.ルックアップ?.value && (
+                    {item.record.po_list && (
                       <span className={`${tableStyles.statusBadge} bg-success-500 text-white`}>
                         PO
                       </span>
@@ -544,41 +512,41 @@ export default function WorkNoClient({
                     )}
                   </td>
                   <td className={tableStyles.td}>
-                    {item.record.文字列__1行__8?.value ? (
+                    {item.record.customer_id ? (
                       <a
-                        href={`/${locale}/customers/${item.record.文字列__1行__8.value}`}
+                        href={`/${locale}/customers/${item.record.customer_id}`}
                         className={tableStyles.tdLink}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {extractCsName(item.record.文字列__1行__8.value)}
+                        {extractCsName(item.record.customer_id)}
                       </a>
                     ) : '-'}
                   </td>
                   <td className={tableStyles.td}>
-                    {item.record.文字列__1行__1?.value || '-'}
+                    {item.record.category || '-'}
                   </td>
                   <td className={`${tableStyles.td} whitespace-normal`}>
-                    {item.record.文字列__1行__2?.value || '-'}
+                    {item.record.description || '-'}
                   </td>
                   <td className={tableStyles.td}>
-                    {item.record.文字列__1行__9?.value || '-'}
+                    {item.record.model || '-'}
                   </td>
                   <td className={`${tableStyles.td} text-end text-gray-800 dark:text-white/90`}>
-                    {formatNumber(item.record.grand_total?.value)}
+                    {formatNumber(item.record.grand_total)}
                   </td>
                   <td className={`${tableStyles.td} text-end text-gray-800 dark:text-white/90`}>
-                    {formatNumber(item.record.profit?.value)}
+                    {formatNumber(computeProfit(item.record))}
                   </td>
                   <td className={tableStyles.td}>
                     <span className={
-                      item.record.Salesdate?.value &&
-                      new Date(item.record.Salesdate.value) < new Date() &&
-                      item.record.Status?.value !== 'Finished' &&
-                      item.record.Status?.value !== 'Cancel'
+                      item.record.sales_date &&
+                      new Date(item.record.sales_date) < new Date() &&
+                      item.record.status !== 'Finished' &&
+                      item.record.status !== 'Cancel'
                         ? 'text-error-500 font-medium'
                         : 'text-gray-800 dark:text-white/90'
                     }>
-                      {formatDate(item.record.Salesdate?.value)}
+                      {formatDate(item.record.sales_date)}
                     </span>
                   </td>
                 </tr>

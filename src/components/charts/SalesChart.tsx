@@ -10,13 +10,26 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
-import { InvoiceRecord, WorkNoRecord, QuotationRecord } from '@/types/kintone';
 import type { Language } from '@/lib/kintone/field-mappings';
 
+interface SupabaseInvoice {
+  work_no: string;
+  grand_total: number | null;
+}
+
+interface SupabaseWorkOrder {
+  work_no: string;
+}
+
+interface SupabaseQuoteRequest {
+  work_no: string | null;
+  created_at: string | null;
+}
+
 interface SalesChartProps {
-  invoiceRecords: InvoiceRecord[];
-  workNoRecords?: WorkNoRecord[];
-  quotationRecords?: QuotationRecord[];
+  invoices: SupabaseInvoice[];
+  workOrders?: SupabaseWorkOrder[];
+  quoteRequests?: SupabaseQuoteRequest[];
   language: Language;
 }
 
@@ -38,23 +51,30 @@ const BAR_COLORS = {
   invoice: '#ec4899',   // pink-500
 };
 
-export default function SalesChart({ invoiceRecords, workNoRecords = [], quotationRecords = [], language }: SalesChartProps) {
-  // 配列でない場合は空配列として扱う
-  const validInvoiceRecords = Array.isArray(invoiceRecords) ? invoiceRecords : [];
-  const validWorkNoRecords = Array.isArray(workNoRecords) ? workNoRecords : [];
-  const validQuotationRecords = Array.isArray(quotationRecords) ? quotationRecords : [];
+export default function SalesChart({ invoices, workOrders = [], quoteRequests = [], language }: SalesChartProps) {
+  const validInvoices = Array.isArray(invoices) ? invoices : [];
+  const validWorkOrders = Array.isArray(workOrders) ? workOrders : [];
+  const validQuoteRequests = Array.isArray(quoteRequests) ? quoteRequests : [];
 
   const chartData = useMemo(() => {
-    // 工事番号から会計期間を抽出する関数
+    // 工事番号から会計期間を抽出
     const getFiscalPeriodFromWorkNo = (workNo: string): string | null => {
       const match = workNo?.match(/^(\d+)-/);
-      if (match) {
-        return parseInt(match[1], 10).toString();
-      }
+      if (match) return parseInt(match[1], 10).toString();
       return null;
     };
 
-    // 会計期間ごとに売上・工事・見積を集計
+    // 日付から会計期間を算出（7月始まり）
+    const getFiscalPeriodFromDate = (dateString: string): string | null => {
+      if (!dateString) return null;
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      if (month >= 7) return (year - 2011).toString();
+      return (year - 2012).toString();
+    };
+
+    // 会計期間ごとの集計
     const dataByPeriod = fiscalPeriods.reduce((acc, period) => {
       acc[period.period] = {
         period: period.period,
@@ -67,48 +87,32 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
       return acc;
     }, {} as Record<string, { period: string; label: string; sales: number; invoiceCount: number; workNoCount: number; quotationCount: number }>);
 
-    // 請求書データを会計期間ごとに集計
-    validInvoiceRecords.forEach((invoice) => {
-      const workNo = invoice.文字列__1行_?.value || '';
-      const fiscalPeriod = getFiscalPeriodFromWorkNo(workNo);
-      const amount = parseFloat(invoice.計算?.value || '0');
-
+    // 請求書: work_noで期を判定、grand_totalは数値型
+    validInvoices.forEach((invoice) => {
+      const fiscalPeriod = getFiscalPeriodFromWorkNo(invoice.work_no);
+      const amount = invoice.grand_total || 0;
       if (fiscalPeriod && dataByPeriod[fiscalPeriod]) {
         dataByPeriod[fiscalPeriod].sales += amount;
         dataByPeriod[fiscalPeriod].invoiceCount += 1;
       }
     });
 
-    // 工事番号データを会計期間ごとに集計
-    validWorkNoRecords.forEach((workNo) => {
-      const workNoValue = workNo.WorkNo?.value || '';
-      const fiscalPeriod = getFiscalPeriodFromWorkNo(workNoValue);
-
+    // 工事番号: work_noで期を判定
+    validWorkOrders.forEach((wo) => {
+      const fiscalPeriod = getFiscalPeriodFromWorkNo(wo.work_no);
       if (fiscalPeriod && dataByPeriod[fiscalPeriod]) {
         dataByPeriod[fiscalPeriod].workNoCount += 1;
       }
     });
 
-    // 見積データを会計期間ごとに集計（日付ベース）
-    const getFiscalPeriodFromDate = (dateString: string): string | null => {
-      if (!dateString) return null;
-      const date = new Date(dateString);
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-
-      if (month >= 7) {
-        const fiscalYear = year - 2011;
-        return fiscalYear.toString();
-      } else {
-        const fiscalYear = year - 2012;
-        return fiscalYear.toString();
+    // 見積依頼: work_noまたはcreated_atで期を判定
+    validQuoteRequests.forEach((qr) => {
+      let fiscalPeriod: string | null = null;
+      if (qr.work_no) {
+        fiscalPeriod = getFiscalPeriodFromWorkNo(qr.work_no);
+      } else if (qr.created_at) {
+        fiscalPeriod = getFiscalPeriodFromDate(qr.created_at);
       }
-    };
-
-    validQuotationRecords.forEach((quote) => {
-      const dateValue = quote.日付?.value;
-      const fiscalPeriod = getFiscalPeriodFromDate(dateValue);
-
       if (fiscalPeriod && dataByPeriod[fiscalPeriod]) {
         dataByPeriod[fiscalPeriod].quotationCount += 1;
       }
@@ -121,20 +125,17 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
       工事: dataByPeriod[period.period].workNoCount,
       見積: dataByPeriod[period.period].quotationCount
     }));
-  }, [validInvoiceRecords, validWorkNoRecords, validQuotationRecords]);
+  }, [validInvoices, validWorkOrders, validQuoteRequests]);
 
-  // 金額フォーマット（Y軸用短縮表記）
   const fmtAxis = (value: number) => {
     if (value >= 1000000) return (value / 1000000).toFixed(0) + 'M';
     if (value >= 1000) return (value / 1000).toFixed(0) + 'K';
     return value.toString();
   };
 
-  // 金額フォーマット（ツールチップ用完全表記）
   const fmt = (value: number) =>
     new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }).format(value);
 
-  // 多言語ラベル
   const t = {
     title: language === 'ja' ? '会計期間別売上高' : language === 'th' ? 'ยอดขายตามรอบบัญชี' : 'Sales by Fiscal Period',
     subtitle: language === 'ja' ? '第9期〜第14期' : language === 'th' ? 'ปีที่ 9 – 14' : 'FY9 – FY14',
@@ -145,7 +146,6 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
     noData: language === 'ja' ? 'データがありません' : language === 'th' ? 'ไม่มีข้อมูล' : 'No data available',
   };
 
-  // カスタムツールチップ
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     const data = payload[0].payload;
@@ -185,13 +185,11 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-      {/* ヘッダー */}
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">{t.title}</h3>
         <p className="text-theme-sm text-gray-500 dark:text-gray-400">{t.subtitle}</p>
       </div>
 
-      {/* チャート */}
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-gray-700" />
@@ -229,7 +227,6 @@ export default function SalesChart({ invoiceRecords, workNoRecords = [], quotati
         </BarChart>
       </ResponsiveContainer>
 
-      {/* 凡例 */}
       <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-theme-sm">
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-2.5 w-2.5 rounded-sm bg-brand-500" />

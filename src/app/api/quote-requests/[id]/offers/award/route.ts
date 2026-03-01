@@ -96,6 +96,40 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         .eq('id', itemId);
     }
 
+    // DOM連携: 採用オファーの価格・納期をDOMアイテムに反映
+    const { data: fullItem } = await (supabase
+      .from('quote_request_items') as SupabaseAny)
+      .select('dom_mech_item_id, dom_elec_item_id')
+      .eq('id', itemId)
+      .single();
+
+    if (fullItem) {
+      const domUpdateData: Record<string, unknown> = {
+        status: 'quote_done',
+      };
+      if (awardedOffer.quoted_unit_price != null) {
+        domUpdateData.unit_price = awardedOffer.quoted_unit_price;
+      } else if (awardedOffer.quoted_price != null) {
+        domUpdateData.unit_price = awardedOffer.quoted_price;
+      }
+      if (awardedOffer.lead_time_days != null) {
+        domUpdateData.lead_time_days = awardedOffer.lead_time_days;
+      }
+
+      if (fullItem.dom_mech_item_id) {
+        await (supabase
+          .from('dom_mech_items') as SupabaseAny)
+          .update(domUpdateData)
+          .eq('id', fullItem.dom_mech_item_id);
+      }
+      if (fullItem.dom_elec_item_id) {
+        await (supabase
+          .from('dom_elec_items') as SupabaseAny)
+          .update(domUpdateData)
+          .eq('id', fullItem.dom_elec_item_id);
+      }
+    }
+
     return NextResponse.json(awardedOffer);
   } catch (error) {
     console.error('Error awarding offer:', error);

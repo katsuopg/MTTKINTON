@@ -13,6 +13,8 @@ interface DomContainerProps {
   locale: string;
   customerName?: string;
   machineName?: string;
+  workNo?: string;
+  projectCode?: string;
 }
 
 const LABELS: Record<Language, Record<string, string>> = {
@@ -42,7 +44,7 @@ const LABELS: Record<Language, Record<string, string>> = {
   },
 };
 
-export default function DomContainer({ projectId, locale, customerName, machineName }: DomContainerProps) {
+export default function DomContainer({ projectId, locale, customerName, machineName, workNo, projectCode }: DomContainerProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
 
   const [loading, setLoading] = useState(true);
@@ -171,13 +173,15 @@ export default function DomContainer({ projectId, locale, customerName, machineN
   // DOM作成済み
   return (
     <div>
-      <DomHeader dom={dom} language={language} />
+      <DomHeader dom={dom} language={language} onRefresh={handleRefresh} />
       {masters && (
         <DomTabs
           dom={dom}
           masters={masters}
           language={language}
           onRefresh={handleRefresh}
+          workNo={workNo}
+          projectCode={projectCode}
         />
       )}
     </div>

@@ -13,6 +13,9 @@ interface ElecItemsTabProps {
   dom: DomHeaderWithRelations;
   language: Language;
   onRefresh: () => void | Promise<void>;
+  quoteSelecting?: boolean;
+  selectedQuoteItems?: Set<string>;
+  onToggleQuoteItem?: (id: string) => void;
 }
 
 const COLUMN_HEADERS: Record<Language, string[]> = {
@@ -32,7 +35,7 @@ const UI_LABELS: Record<Language, Record<string, string>> = {
   th: { edit: 'แก้ไข', addRow: 'เพิ่มแถว', deleteSelected: 'ลบ', save: 'บันทึก', cancel: 'ยกเลิก', saving: 'กำลังบันทึก...', noData: 'ไม่มีข้อมูล', noDataEdit: 'ไม่มีข้อมูล คลิก "เพิ่มแถว" เพื่อสร้าง', confirmDelete: 'ลบรายการที่เลือก?' },
 };
 
-export default function ElecItemsTab({ dom, language, onRefresh }: ElecItemsTabProps) {
+export default function ElecItemsTab({ dom, language, onRefresh, quoteSelecting, selectedQuoteItems, onToggleQuoteItem }: ElecItemsTabProps) {
   const { toast } = useToast();
   const { confirmDialog } = useConfirmDialog();
   const [editing, setEditing] = useState(false);
@@ -240,6 +243,9 @@ export default function ElecItemsTab({ dom, language, onRefresh }: ElecItemsTabP
                 selected={selectedItems.has(item.id)}
                 onToggleSelect={() => handleToggleSelect(item.id)}
                 onChange={(field, value) => handleItemChange(item.id, field, value)}
+                quoteSelecting={quoteSelecting}
+                quoteSelected={selectedQuoteItems?.has(item.id)}
+                onToggleQuoteSelect={() => onToggleQuoteItem?.(item.id)}
               />
             ))}
             {newItems.map((item, idx) => (

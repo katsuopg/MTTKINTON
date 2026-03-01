@@ -5,6 +5,7 @@ import { tableStyles } from '@/components/ui/TableStyles';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
 import type { Language } from '@/lib/kintone/field-mappings';
 import POTableRow from './POTableRow';
 import FiscalYearSelect from './FiscalYearSelect';
@@ -55,6 +56,7 @@ export default function POManagementContent({
   language,
   selectedFiscalYear,
 }: POManagementContentProps) {
+  const { canManageApp } = useNavPermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [notArrived, setNotArrived] = useState(false);
   const [alertOnly, setAlertOnly] = useState(false);
@@ -150,6 +152,7 @@ export default function POManagementContent({
               </label>
             </>
           }
+          settingsHref={canManageApp('purchase_orders') ? `/${locale}/settings/apps/purchase_orders` : undefined}
         />
         {/* モバイル: カードビュー */}
         <div className={tableStyles.mobileCardList}>

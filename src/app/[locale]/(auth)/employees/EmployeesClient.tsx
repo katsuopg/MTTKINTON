@@ -8,6 +8,7 @@ import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
 import { Plus, Users } from 'lucide-react';
 
 type Employee = Database['public']['Tables']['employees']['Row'];
@@ -22,6 +23,7 @@ interface EmployeesClientProps {
 
 export default function EmployeesClient({ locale, language, employees, currentUserAvatarUrl, currentUserEmployeeNumber }: EmployeesClientProps) {
   const router = useRouter();
+  const { canManageApp } = useNavPermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('在籍');
@@ -127,6 +129,7 @@ export default function EmployeesClient({ locale, language, employees, currentUs
             onClick: () => router.push(`/${locale}/employees/new`),
             icon: <Plus size={16} className="mr-1.5" />,
           }}
+          settingsHref={canManageApp('employees') ? `/${locale}/settings/apps/employees` : undefined}
         />
 
         {filteredEmployees.length === 0 ? (

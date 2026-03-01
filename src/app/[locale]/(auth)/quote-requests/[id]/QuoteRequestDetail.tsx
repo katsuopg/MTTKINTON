@@ -13,12 +13,15 @@ import {
   User,
   Calendar,
   RefreshCw,
-  Plus,
   CheckCircle,
+  Link2,
+  ShoppingCart,
+  Truck,
 } from 'lucide-react';
 import type {
   QuoteRequestStatus,
   QuoteRequestItemWithRelations,
+  QuoteRequestItemOrder,
 } from '@/types/quote-request';
 
 interface QuoteRequestDetailProps {
@@ -57,7 +60,6 @@ const labels = {
   noItems: { ja: '明細がありません', en: 'No items', th: 'ไม่มีรายการ' },
   loading: { ja: '読み込み中...', en: 'Loading...', th: 'กำลังโหลด...' },
   notFound: { ja: '見積依頼が見つかりません', en: 'Quote request not found', th: 'ไม่พบใบขอใบเสนอราคา' },
-  addOffer: { ja: 'オファー追加', en: 'Add Offer', th: 'เพิ่มข้อเสนอ' },
   supplier: { ja: '仕入先', en: 'Supplier', th: 'ซัพพลายเออร์' },
   price: { ja: '価格', en: 'Price', th: 'ราคา' },
   unitPrice: { ja: '単価', en: 'Unit Price', th: 'ราคาต่อหน่วย' },
@@ -67,9 +69,20 @@ const labels = {
   award: { ja: '採用する', en: 'Award', th: 'เลือก' },
   confirmCancel: { ja: '本当にキャンセルしますか？', en: 'Are you sure you want to cancel?', th: 'คุณแน่ใจหรือไม่ที่จะยกเลิก?' },
   cancelReason: { ja: 'キャンセル理由', en: 'Cancel reason', th: 'เหตุผลในการยกเลิก' },
+  orderRequest: { ja: '発注依頼', en: 'Order Request', th: 'สั่งซื้อ' },
+  createOrder: { ja: '発注依頼を作成', en: 'Create Order', th: 'สร้างใบสั่งซื้อ' },
+  poNumber: { ja: 'PO番号', en: 'PO Number', th: 'เลขที่ PO' },
+  setPoNumber: { ja: 'PO番号設定', en: 'Set PO No.', th: 'ตั้งค่า PO' },
+  confirmDelivery: { ja: '納品確認', en: 'Confirm Delivery', th: 'ยืนยันการจัดส่ง' },
+  ordered: { ja: '発注済', en: 'Ordered', th: 'สั่งซื้อแล้ว' },
+  delivered: { ja: '納品済', en: 'Delivered', th: 'จัดส่งแล้ว' },
+  completed: { ja: '完了', en: 'Completed', th: 'เสร็จสิ้น' },
+  close: { ja: '閉じる', en: 'Close', th: 'ปิด' },
+  submit: { ja: '送信', en: 'Submit', th: 'ส่ง' },
+  save: { ja: '保存', en: 'Save', th: 'บันทึก' },
+  confirm: { ja: '確認', en: 'Confirm', th: 'ยืนยัน' },
 };
 
-// ステータス色マップ
 const statusColors: Record<string, string> = {
   requested: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   quoting: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
@@ -78,6 +91,12 @@ const statusColors: Record<string, string> = {
   po_issued: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
   completed: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
   cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+};
+
+const orderStatusColors: Record<string, string> = {
+  ordered: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+  delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  completed: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
 };
 
 export default function QuoteRequestDetail({
@@ -93,6 +112,16 @@ export default function QuoteRequestDetail({
   const [cancelReason, setCancelReason] = useState('');
   const [activeTab, setActiveTab] = useState<'info' | 'items' | 'history'>('info');
 
+  // 発注関連 state
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [orderTargetItem, setOrderTargetItem] = useState<QuoteRequestItemWithRelations | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState('');
+  const [orderRemarks, setOrderRemarks] = useState('');
+  const [showPoModal, setShowPoModal] = useState(false);
+  const [poOrderId, setPoOrderId] = useState('');
+  const [poNumber, setPoNumber] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -104,7 +133,6 @@ export default function QuoteRequestDetail({
         }
         throw new Error('Failed to fetch');
       }
-
       const data = await response.json();
       setRequest(data);
     } catch (error) {
@@ -125,7 +153,6 @@ export default function QuoteRequestDetail({
         { method: 'DELETE' }
       );
       if (!response.ok) throw new Error('Failed to cancel');
-
       setShowCancelModal(false);
       fetchData();
     } catch (error) {
@@ -147,6 +174,76 @@ export default function QuoteRequestDetail({
     }
   };
 
+  const handleCreateOrder = async () => {
+    if (!orderTargetItem) return;
+    setActionLoading(true);
+    try {
+      const awardedOffer = orderTargetItem.offers?.find(o => o.is_awarded);
+      const response = await fetch(`/api/quote-requests/${requestId}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            quote_request_item_id: orderTargetItem.id,
+            offer_id: awardedOffer?.id || null,
+            order_quantity: parseFloat(orderQuantity) || orderTargetItem.quantity,
+            order_amount: awardedOffer?.quoted_price || null,
+            remarks: orderRemarks || null,
+          }],
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to create order');
+      setShowOrderModal(false);
+      setOrderTargetItem(null);
+      setOrderQuantity('');
+      setOrderRemarks('');
+      fetchData();
+    } catch (error) {
+      console.error('Error creating order:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSetPoNumber = async () => {
+    if (!poOrderId || !poNumber.trim()) return;
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/quote-requests/${requestId}/orders/${poOrderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ po_number: poNumber.trim() }),
+      });
+      if (!response.ok) throw new Error('Failed to set PO number');
+      setShowPoModal(false);
+      setPoOrderId('');
+      setPoNumber('');
+      fetchData();
+    } catch (error) {
+      console.error('Error setting PO number:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmDelivery = async (orderId: string) => {
+    if (!confirm(labels.confirmDelivery[language] + '?')) return;
+    setActionLoading(true);
+    try {
+      const response = await fetch(`/api/quote-requests/${requestId}/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'deliver' }),
+      });
+      if (!response.ok) throw new Error('Failed to confirm delivery');
+      fetchData();
+    } catch (error) {
+      console.error('Error confirming delivery:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -165,6 +262,22 @@ export default function QuoteRequestDetail({
     if (language === 'en') return status.name_en || status.name;
     if (language === 'th') return status.name_th || status.name;
     return status.name;
+  };
+
+  const getOrderStatusLabel = (status: string) => {
+    const map: Record<string, Record<string, string>> = {
+      ordered: labels.ordered,
+      delivered: labels.delivered,
+      completed: labels.completed,
+    };
+    return map[status]?.[language] || status;
+  };
+
+  // 明細が発注可能か判定（採用オファーあり & まだ発注なし）
+  const canOrder = (item: QuoteRequestItemWithRelations) => {
+    const hasAwardedOffer = item.offers?.some(o => o.is_awarded);
+    const hasOrder = item.orders && item.orders.length > 0;
+    return hasAwardedOffer && !hasOrder && !request?.status?.is_terminal;
   };
 
   if (loading) {
@@ -296,15 +409,10 @@ export default function QuoteRequestDetail({
                 </label>
                 <p className="text-gray-800 dark:text-white">
                   {request.work_no ? (
-                    <a
-                      href={`/${locale}/workno/${request.work_no}`}
-                      className={tableStyles.tdLink}
-                    >
+                    <a href={`/${locale}/workno/${request.work_no}`} className={tableStyles.tdLink}>
                       {request.work_no}
                     </a>
-                  ) : (
-                    '-'
-                  )}
+                  ) : '-'}
                 </p>
               </div>
               <div>
@@ -360,23 +468,34 @@ export default function QuoteRequestDetail({
             <thead className={tableStyles.thead}>
               <tr>
                 <th className={tableStyles.th}>#</th>
+                <th className={tableStyles.th}>DOM</th>
                 <th className={tableStyles.th}>{labels.modelNumber[language]}</th>
                 <th className={tableStyles.th}>{labels.manufacturer[language]}</th>
                 <th className={`${tableStyles.th} text-right`}>{labels.quantity[language]}</th>
                 <th className={tableStyles.th}>{labels.unit[language]}</th>
-                <th className={tableStyles.th}>{labels.remarks[language]}</th>
                 <th className={tableStyles.th}>{labels.offers[language]}</th>
+                <th className={tableStyles.th}>{labels.orderRequest[language]}</th>
               </tr>
             </thead>
             <tbody className={tableStyles.tbody}>
               {request.items?.map((item: QuoteRequestItemWithRelations, index: number) => (
                 <tr key={item.id} className={tableStyles.tr}>
                   <td className={tableStyles.td}>{index + 1}</td>
+                  <td className={tableStyles.td}>
+                    {(item.dom_mech_item_id || item.dom_elec_item_id) ? (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-orange-600 bg-orange-50 rounded dark:text-orange-300 dark:bg-orange-900/30">
+                        <Link2 size={10} />
+                        {item.dom_mech_item_id ? 'Mech' : 'Elec'}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
+                  </td>
                   <td className={`${tableStyles.td} font-medium`}>{item.model_number}</td>
                   <td className={tableStyles.td}>{item.manufacturer}</td>
                   <td className={`${tableStyles.td} text-right`}>{item.quantity}</td>
                   <td className={tableStyles.td}>{item.unit}</td>
-                  <td className={tableStyles.td}>{item.item_remarks || '-'}</td>
+                  {/* オファー列 */}
                   <td className={tableStyles.td}>
                     {item.offers && item.offers.length > 0 ? (
                       <div className="space-y-2">
@@ -415,11 +534,80 @@ export default function QuoteRequestDetail({
                       <span className="text-gray-400">-</span>
                     )}
                   </td>
+                  {/* 発注列 */}
+                  <td className={tableStyles.td}>
+                    {item.orders && item.orders.length > 0 ? (
+                      <div className="space-y-2">
+                        {item.orders.map((order: QuoteRequestItemOrder) => (
+                          <div key={order.id} className="p-2 rounded border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`${tableStyles.statusBadge} ${orderStatusColors[order.order_status] || ''}`}>
+                                {getOrderStatusLabel(order.order_status)}
+                              </span>
+                              {order.po_number && (
+                                <span className="text-xs text-gray-500">PO: {order.po_number}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {language === 'ja' ? '数量' : 'Qty'}: {order.order_quantity}
+                              {order.order_amount && ` / ${order.order_amount.toLocaleString()}B`}
+                            </div>
+                            {/* PO番号未設定 → 設定ボタン */}
+                            {!order.po_number && order.order_status === 'ordered' && !isTerminal && (
+                              <button
+                                onClick={() => {
+                                  setPoOrderId(order.id);
+                                  setPoNumber('');
+                                  setShowPoModal(true);
+                                }}
+                                className="mt-1 text-xs text-purple-500 hover:text-purple-600"
+                              >
+                                <ShoppingCart className="w-3 h-3 inline mr-1" />
+                                {labels.setPoNumber[language]}
+                              </button>
+                            )}
+                            {/* 納品確認ボタン */}
+                            {order.order_status === 'ordered' && order.po_number && !isTerminal && (
+                              <button
+                                onClick={() => handleConfirmDelivery(order.id)}
+                                disabled={actionLoading}
+                                className="mt-1 text-xs text-green-600 hover:text-green-700"
+                              >
+                                <Truck className="w-3 h-3 inline mr-1" />
+                                {labels.confirmDelivery[language]}
+                              </button>
+                            )}
+                            {order.delivered_at && (
+                              <div className="text-xs text-green-600 mt-1">
+                                <Truck className="w-3 h-3 inline mr-1" />
+                                {formatDateTime(order.delivered_at)}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : canOrder(item) ? (
+                      <button
+                        onClick={() => {
+                          setOrderTargetItem(item);
+                          setOrderQuantity(item.quantity.toString());
+                          setOrderRemarks('');
+                          setShowOrderModal(true);
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 rounded-lg hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400"
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5 mr-1" />
+                        {labels.orderRequest[language]}
+                      </button>
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {(!request.items || request.items.length === 0) && (
                 <tr>
-                  <td colSpan={7} className={tableStyles.emptyRow}>
+                  <td colSpan={8} className={tableStyles.emptyRow}>
                     {labels.noItems[language]}
                   </td>
                 </tr>
@@ -480,6 +668,105 @@ export default function QuoteRequestDetail({
                 {language === 'ja' ? '履歴がありません' : 'No history'}
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 発注依頼モーダル */}
+      {showOrderModal && orderTargetItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+              {labels.createOrder[language]}
+            </h3>
+            <div className="mb-3">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                {orderTargetItem.model_number} - {orderTargetItem.manufacturer}
+              </p>
+              {orderTargetItem.offers?.find(o => o.is_awarded) && (
+                <p className="text-sm text-green-600 mt-1">
+                  <CheckCircle className="w-3.5 h-3.5 inline mr-1" />
+                  {orderTargetItem.offers.find(o => o.is_awarded)?.supplier_name}
+                  {' / '}
+                  {orderTargetItem.offers.find(o => o.is_awarded)?.quoted_price?.toLocaleString()}B
+                </p>
+              )}
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {labels.quantity[language]}
+              </label>
+              <input
+                type="number"
+                value={orderQuantity}
+                onChange={(e) => setOrderQuantity(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {labels.remarks[language]}
+              </label>
+              <textarea
+                value={orderRemarks}
+                onChange={(e) => setOrderRemarks(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                rows={2}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowOrderModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700"
+              >
+                {labels.close[language]}
+              </button>
+              <button
+                onClick={handleCreateOrder}
+                disabled={actionLoading}
+                className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:opacity-50"
+              >
+                {actionLoading ? '...' : labels.submit[language]}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PO番号設定モーダル */}
+      {showPoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
+              {labels.setPoNumber[language]}
+            </h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {labels.poNumber[language]}
+              </label>
+              <input
+                type="text"
+                value={poNumber}
+                onChange={(e) => setPoNumber(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="PO-XXXX"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowPoModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:text-gray-300 dark:bg-gray-700"
+              >
+                {labels.close[language]}
+              </button>
+              <button
+                onClick={handleSetPoNumber}
+                disabled={actionLoading || !poNumber.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-500 rounded-lg hover:bg-purple-600 disabled:opacity-50"
+              >
+                {actionLoading ? '...' : labels.save[language]}
+              </button>
+            </div>
           </div>
         </div>
       )}

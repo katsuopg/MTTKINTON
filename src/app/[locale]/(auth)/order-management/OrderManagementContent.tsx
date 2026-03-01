@@ -6,39 +6,44 @@ import { tableStyles } from '@/components/ui/TableStyles';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
 import { type Language } from '@/lib/kintone/field-mappings';
 
-// 注文書レコードの型定義
-export interface OrderRecord {
-  $id: { type: "__ID__"; value: string };
-  レコード番号: { type: "RECORD_NUMBER"; value: string };
-  文字列__1行_: { type: "SINGLE_LINE_TEXT"; value: string }; // PO番号
-  文字列__1行__0: { type: "SINGLE_LINE_TEXT"; value: string }; // CS ID
-  文字列__1行__2: { type: "SINGLE_LINE_TEXT"; value: string }; // 工事番号
-  文字列__1行__4: { type: "SINGLE_LINE_TEXT"; value: string }; // 顧客名
-  文字列__1行__7: { type: "SINGLE_LINE_TEXT"; value: string }; // 件名
-  McItem: { type: "SINGLE_LINE_TEXT"; value: string }; // M/C ITEM
-  文字列__1行__9: { type: "SINGLE_LINE_TEXT"; value: string }; // Model
-  日付: { type: "DATE"; value: string }; // 注文日
-  日付_0: { type: "DATE"; value: string }; // 見積日
-  ルックアップ: { type: "SINGLE_LINE_TEXT"; value: string }; // 見積番号
-  数値_3: { type: "NUMBER"; value: string }; // 値引き前金額
-  数値_4: { type: "NUMBER"; value: string }; // 値引き額
-  AF: { type: "NUMBER"; value: string }; // 値引き後金額
-  amount: { type: "CALC"; value: string }; // 合計金額（税込）
-  vat: { type: "CALC"; value: string }; // 消費税額
-  Drop_down: { type: "DROP_DOWN"; value: string }; // ステータス
-  添付ファイル: { type: "FILE"; value: Array<{
+export interface SupabaseCustomerOrder {
+  id: string;
+  kintone_record_id: string;
+  po_number: string | null;
+  customer_id: string | null;
+  work_no: string | null;
+  company_name: string | null;
+  customer_name: string | null;
+  vendor: string | null;
+  model: string | null;
+  subject: string | null;
+  serial_no: string | null;
+  mc_item: string | null;
+  quotation_no: string | null;
+  order_date: string | null;
+  quotation_date: string | null;
+  status: string | null;
+  amount_before_discount: number | null;
+  discount_amount: number | null;
+  amount_after_discount: number | null;
+  vat: number | null;
+  total_amount: number | null;
+  attachments: Array<{
     fileKey: string;
     name: string;
     contentType: string;
     size: string;
-  }> };
-  更新日時: { type: "UPDATED_TIME"; value: string };
+  }>;
+  updated_at_kintone: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface OrderManagementContentProps {
-  orderRecords: OrderRecord[];
+  orderRecords: SupabaseCustomerOrder[];
   locale: string;
   language: Language;
   currentFiscalYear: number;
@@ -53,6 +58,7 @@ export default function OrderManagementContent({
   initialKeyword,
 }: OrderManagementContentProps) {
   const router = useRouter();
+  const { canManageApp } = useNavPermissions();
   const searchParams = useSearchParams();
 
   const handleSearchChange = useCallback((value: string) => {
@@ -71,7 +77,7 @@ export default function OrderManagementContent({
     router.push(`/${locale}/order-management?${params.toString()}`);
   }, [locale, router, searchParams]);
 
-  const formatDate = (dateString: string | undefined) => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
@@ -121,6 +127,7 @@ export default function OrderManagementContent({
               </select>
             </div>
           }
+          settingsHref={canManageApp('orders') ? `/${locale}/settings/apps/orders` : undefined}
         />
 
         <div className="overflow-x-auto">
@@ -162,13 +169,13 @@ export default function OrderManagementContent({
               ) : (
                 paginatedItems.map((record) => (
                   <tr
-                    key={record.$id.value}
+                    key={record.id}
                     className={tableStyles.trClickable}
-                    onClick={() => router.push(`/${locale}/order-management/${record.$id.value}`)}
+                    onClick={() => router.push(`/${locale}/order-management/${record.kintone_record_id}`)}
                   >
                     <td className={tableStyles.td}>
                       <span className="font-medium text-brand-500">
-                        {record.文字列__1行_?.value || '-'}
+                        {record.po_number || '-'}
                       </span>
                     </td>
                     <td className={tableStyles.td}>
@@ -176,32 +183,32 @@ export default function OrderManagementContent({
                         className={tableStyles.tdLink}
                         onClick={(e) => {
                           e.stopPropagation();
-                          router.push(`/${locale}/workno/${record.文字列__1行__2?.value}`);
+                          router.push(`/${locale}/workno/${record.work_no}`);
                         }}
                       >
-                        {record.文字列__1行__2?.value || '-'}
+                        {record.work_no || '-'}
                       </span>
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__4?.value || '-'}
+                      {record.customer_name || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__7?.value || '-'}
+                      {record.subject || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.McItem?.value || '-'}
+                      {record.mc_item || '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.文字列__1行__9?.value || '-'}
+                      {record.model || '-'}
                     </td>
                     <td className={`${tableStyles.td} text-right font-medium`}>
-                      {record.amount?.value ? `${Number(record.amount.value).toLocaleString()}B` : '-'}
+                      {record.total_amount ? `${Number(record.total_amount).toLocaleString()}B` : '-'}
                     </td>
                     <td className={tableStyles.td}>
-                      {formatDate(record.日付?.value)}
+                      {formatDate(record.order_date)}
                     </td>
                     <td className={tableStyles.td}>
-                      {record.Drop_down?.value || '-'}
+                      {record.status || '-'}
                     </td>
                   </tr>
                 ))

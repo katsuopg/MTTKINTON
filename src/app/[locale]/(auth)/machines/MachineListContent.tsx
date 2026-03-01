@@ -2,24 +2,23 @@
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { MachineRecord } from '@/types/kintone';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { ListPageHeader } from '@/components/ui/ListPageHeader';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { tableStyles } from '@/components/ui/TableStyles';
 import TransitionLink from '@/components/ui/TransitionLink';
+import { useNavPermissions } from '@/hooks/useNavPermissions';
 import { extractCsName } from '@/lib/utils/customer-name';
+import type { SupabaseMachine } from './page';
 
 interface MachineListContentProps {
   locale: string;
   language: Language;
-  initialRecords: MachineRecord[];
+  initialRecords: SupabaseMachine[];
   initialSearch: string;
   initialCategory: string;
   initialVendor: string;
-  qtCounts: Record<string, number>;
-  wnCounts: Record<string, number>;
 }
 
 export default function MachineListContent({
@@ -29,76 +28,69 @@ export default function MachineListContent({
   initialSearch,
   initialCategory,
   initialVendor,
-  qtCounts,
-  wnCounts,
 }: MachineListContentProps) {
   const router = useRouter();
+  const { canManageApp } = useNavPermissions();
   const [isPending, startTransition] = useTransition();
   const [navigatingId, setNavigatingId] = useState<string | null>(null);
-  
-  const [records, setRecords] = useState<MachineRecord[]>(initialRecords);
+
+  const [records] = useState<SupabaseMachine[]>(initialRecords);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [selectedVendor, setSelectedVendor] = useState(initialVendor);
-  const [filteredRecords, setFilteredRecords] = useState<MachineRecord[]>([]);
+  const [filteredRecords, setFilteredRecords] = useState<SupabaseMachine[]>([]);
 
-  // URL更新のデバウンス処理
   const updateURL = useCallback((search: string, category: string, vendor: string) => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (category && category !== 'all') params.set('category', category);
     if (vendor && vendor !== 'all') params.set('vendor', vendor);
-    
+
     const query = params.toString();
     const newURL = `/${locale}/machines${query ? `?${query}` : ''}`;
     router.replace(newURL, { scroll: false });
   }, [locale, router]);
 
-  // 検索処理
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
     updateURL(value, selectedCategory, selectedVendor);
   }, [selectedCategory, selectedVendor, updateURL]);
 
-  // カテゴリ変更処理
   const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategory(category);
     updateURL(searchQuery, category, selectedVendor);
   }, [searchQuery, selectedVendor, updateURL]);
 
-  // ベンダー変更処理
   const handleVendorChange = useCallback((vendor: string) => {
     setSelectedVendor(vendor);
     updateURL(searchQuery, selectedCategory, vendor);
   }, [searchQuery, selectedCategory, updateURL]);
 
-  // カテゴリ一覧を取得
-  const categories = Array.from(new Set(records.map(r => r.MachineCategory?.value).filter(Boolean)));
-  const vendors = Array.from(new Set(records.map(r => r.Vender?.value).filter(Boolean)));
+  const categories = Array.from(new Set(records.map(r => r.machine_category).filter(Boolean))) as string[];
+  const vendors = Array.from(new Set(records.map(r => r.vendor).filter(Boolean))) as string[];
 
-  // クライアントサイドフィルタリング
   useEffect(() => {
     let filtered = records;
-    
+
     if (searchQuery) {
+      const query = searchQuery.toLowerCase();
       filtered = filtered.filter(record => {
-        const csName = record.CsName?.value?.toLowerCase() || '';
-        const csId = record.CsId_db?.value?.toLowerCase() || '';
-        const model = record.Moldel?.value?.toLowerCase() || '';
-        const serial = record.SrialNo?.value?.toLowerCase() || '';
-        const mcItem = record.McItem?.value?.toLowerCase() || '';
-        const query = searchQuery.toLowerCase();
-        return csName.includes(query) || csId.includes(query) || 
+        const csName = record.customer_name?.toLowerCase() || '';
+        const csId = record.customer_id?.toLowerCase() || '';
+        const model = record.model?.toLowerCase() || '';
+        const serial = record.serial_number?.toLowerCase() || '';
+        const mcItem = record.machine_item?.toLowerCase() || '';
+        return csName.includes(query) || csId.includes(query) ||
                model.includes(query) || serial.includes(query) || mcItem.includes(query);
       });
     }
 
     if (selectedCategory && selectedCategory !== 'all') {
-      filtered = filtered.filter(record => record.MachineCategory?.value === selectedCategory);
+      filtered = filtered.filter(record => record.machine_category === selectedCategory);
     }
 
     if (selectedVendor && selectedVendor !== 'all') {
-      filtered = filtered.filter(record => record.Vender?.value === selectedVendor);
+      filtered = filtered.filter(record => record.vendor === selectedVendor);
     }
 
     setFilteredRecords(filtered);
@@ -106,27 +98,10 @@ export default function MachineListContent({
 
   const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredRecords);
 
-  // 日付フォーマット関数
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return '-';
-    
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    if (language === 'ja') {
-      return dateString;
-    } else {
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
-      return `${day}/${month}/${year}`;
-    }
-  };
-
-  const searchPlaceholder = language === 'ja' 
-    ? '顧客名、CS ID、モデル、シリアル番号で検索' 
-    : language === 'th' 
-    ? 'ค้นหาด้วยชื่อลูกค้า, CS ID, รุ่น, หมายเลขซีเรียล' 
+  const searchPlaceholder = language === 'ja'
+    ? '顧客名、CS ID、モデル、シリアル番号で検索'
+    : language === 'th'
+    ? 'ค้นหาด้วยชื่อลูกค้า, CS ID, รุ่น, หมายเลขซีเรียล'
     : 'Search by customer, CS ID, model, serial no.';
 
   const countLabel = language === 'ja'
@@ -137,7 +112,6 @@ export default function MachineListContent({
 
   return (
     <div className={tableStyles.contentWrapper}>
-      {/* テーブル表示 */}
       <div className={tableStyles.tableContainer}>
         <ListPageHeader
           searchValue={searchQuery}
@@ -156,9 +130,7 @@ export default function MachineListContent({
                   {language === 'ja' ? '全カテゴリ' : language === 'th' ? 'ทุกหมวดหมู่' : 'All Categories'}
                 </option>
                 {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
+                  <option key={category} value={category}>{category}</option>
                 ))}
               </select>
               <select
@@ -170,13 +142,12 @@ export default function MachineListContent({
                   {language === 'ja' ? '全メーカー' : language === 'th' ? 'ทุกผู้ผลิต' : 'All Vendors'}
                 </option>
                 {vendors.map((vendor) => (
-                  <option key={vendor} value={vendor}>
-                    {vendor}
-                  </option>
+                  <option key={vendor} value={vendor}>{vendor}</option>
                 ))}
               </select>
             </>
           }
+          settingsHref={canManageApp('machines') ? `/${locale}/settings/apps/machines` : undefined}
         />
         <div className="max-w-full overflow-x-auto">
           {filteredRecords.length === 0 ? (
@@ -208,65 +179,51 @@ export default function MachineListContent({
                   <th className={tableStyles.th}>
                     {language === 'ja' ? 'アイテム' : language === 'th' ? 'รายการ' : 'Item'}
                   </th>
-                  <th className={`${tableStyles.th} text-center`}>
-                    QT
-                  </th>
-                  <th className={`${tableStyles.th} text-center`}>
-                    WN
-                  </th>
+                  <th className={`${tableStyles.th} text-center`}>QT</th>
+                  <th className={`${tableStyles.th} text-center`}>WN</th>
                 </tr>
               </thead>
               <tbody className={tableStyles.tbody}>
                 {paginatedItems.map((record) => (
-                  <tr key={record.$id.value}
-                      className={`${tableStyles.tr} cursor-pointer ${navigatingId === record.$id.value ? 'opacity-50' : ''}`}
+                  <tr key={record.id}
+                      className={`${tableStyles.tr} cursor-pointer ${navigatingId === record.id ? 'opacity-50' : ''}`}
                       onClick={() => {
-                        setNavigatingId(record.$id.value);
+                        setNavigatingId(record.id);
                         startTransition(() => {
-                          router.push(`/${locale}/machines/${record.$id.value}`);
+                          router.push(`/${locale}/machines/${record.kintone_record_id}`);
                         });
                       }}>
                     <td className={tableStyles.td}>
                       <div>
-                        <div className="font-medium text-gray-800 dark:text-white/90">{extractCsName(record.CsId_db?.value) || '-'}</div>
-                        <div className="text-theme-xs text-gray-500 dark:text-gray-400">{record.CsName?.value || '-'}</div>
+                        <div className="font-medium text-gray-800 dark:text-white/90">{extractCsName(record.customer_id) || '-'}</div>
+                        <div className="text-theme-xs text-gray-500 dark:text-gray-400">{record.customer_name || '-'}</div>
                       </div>
                     </td>
-                    <td className={tableStyles.td}>
-                      {record.MachineCategory?.value || '-'}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {record.Drop_down_0?.value || '-'}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {record.Vender?.value || '-'}
-                    </td>
+                    <td className={tableStyles.td}>{record.machine_category || '-'}</td>
+                    <td className={tableStyles.td}>{record.machine_type || '-'}</td>
+                    <td className={tableStyles.td}>{record.vendor || '-'}</td>
                     <td className={tableStyles.td}
                         onClick={(e) => e.stopPropagation()}>
                       <TransitionLink
-                        href={`/${locale}/machines/${record.$id.value}`}
+                        href={`/${locale}/machines/${record.kintone_record_id}`}
                         className="text-brand-500 hover:text-brand-600 dark:text-brand-400 font-medium"
                       >
-                        {record.Moldel?.value || '-'}
+                        {record.model || '-'}
                       </TransitionLink>
                     </td>
-                    <td className={tableStyles.td}>
-                      {record.SrialNo?.value || '-'}
-                    </td>
-                    <td className={tableStyles.td}>
-                      {record.McItem?.value || '-'}
-                    </td>
+                    <td className={tableStyles.td}>{record.serial_number || '-'}</td>
+                    <td className={tableStyles.td}>{record.machine_item || '-'}</td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {qtCounts[record.$id.value] > 0 && (
+                      {(record.quotation_count ?? 0) > 0 && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-theme-xs font-medium bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400">
-                          {qtCounts[record.$id.value]}
+                          {record.quotation_count}
                         </span>
                       )}
                     </td>
                     <td className={`${tableStyles.td} text-center`}>
-                      {wnCounts[record.$id.value] > 0 && (
+                      {(record.work_order_count ?? 0) > 0 && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-theme-xs font-medium bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500">
-                          {wnCounts[record.$id.value]}
+                          {record.work_order_count}
                         </span>
                       )}
                     </td>
@@ -286,7 +243,6 @@ export default function MachineListContent({
         </div>
       </div>
 
-      {/* ローディングオーバーレイ */}
       {(isPending || navigatingId) && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/30 dark:bg-black/50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 flex flex-col items-center space-y-4">
