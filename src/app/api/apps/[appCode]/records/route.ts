@@ -13,7 +13,7 @@ import { fireWebhooks } from '@/lib/dynamic-app/webhook-engine';
 
 /**
  * レコード一覧を取得
- * GET /api/apps/[appCode]/records?page=1&pageSize=20&search=xxx&sortField=xxx&sortOrder=asc
+ * GET /api/apps/[appCode]/records?page=1&pageSize=20&search=xxx&sortField=xxx&sortOrder=asc&viewId=xxx&filters=[...]&filterMatchType=and
  */
 export async function GET(
   request: Request,
@@ -27,11 +27,16 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url);
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '20')));
     const search = searchParams.get('search') || '';
-    const sortField = searchParams.get('sortField') || 'record_number';
-    const sortOrder = searchParams.get('sortOrder') === 'asc' ? true : false;
+    const viewId = searchParams.get('viewId') || '';
+
+    // デフォルト値
+    let sortField = searchParams.get('sortField') || 'record_number';
+    let sortOrder = searchParams.get('sortOrder') || 'desc';
+    let page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    let pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '20')));
+    let filterConditions: { field_code: string; operator: string; value?: unknown }[] = [];
+    let filterMatchType = searchParams.get('filterMatchType') || 'and';
 
     const supabase = await createClient();
 
@@ -47,51 +52,67 @@ export async function GET(
       return NextResponse.json({ error: 'App not found' }, { status: 404 });
     }
 
+    // ビュー設定からデフォルト値を読み込み
+    if (viewId && viewId !== 'default-table') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: viewData } = await (supabase.from('app_views') as any)
+        .select('config')
+        .eq('id', viewId)
+        .single();
+
+      if (viewData?.config) {
+        const cfg = viewData.config as Record<string, unknown>;
+        if (cfg.sort_field && !searchParams.has('sortField')) sortField = cfg.sort_field as string;
+        if (cfg.sort_order && !searchParams.has('sortOrder')) sortOrder = cfg.sort_order as string;
+        if (cfg.page_size && !searchParams.has('pageSize')) pageSize = Math.min(100, Math.max(1, cfg.page_size as number));
+        if (Array.isArray(cfg.filter_conditions) && cfg.filter_conditions.length > 0) {
+          filterConditions = cfg.filter_conditions as typeof filterConditions;
+        }
+        if (cfg.filter_match_type && !searchParams.has('filterMatchType')) {
+          filterMatchType = cfg.filter_match_type as string;
+        }
+      }
+    }
+
+    // アドホックフィルター（URLパラメータ）はビュー設定に追加
+    const filtersParam = searchParams.get('filters');
+    if (filtersParam) {
+      try {
+        const adHocFilters = JSON.parse(filtersParam);
+        if (Array.isArray(adHocFilters)) {
+          filterConditions = [...filterConditions, ...adHocFilters];
+        }
+      } catch {
+        // ignore invalid JSON
+      }
+    }
+
+    // RPC関数でフィルタリング+ソート+ページネーション
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recordsTable = supabase.from('app_records') as any;
-
-    // 件数取得
-    let countQuery = recordsTable
-      .select('id', { count: 'exact', head: true })
-      .eq('app_id', app.id);
-
-    if (search) {
-      // JSONB内のテキスト検索（data全体をテキスト変換して検索）
-      countQuery = countQuery.ilike('data::text', `%${search}%`);
-    }
-
-    const { count } = await countQuery;
-    const total = count || 0;
-
-    // データ取得
-    const offset = (page - 1) * pageSize;
-    let dataQuery = recordsTable
-      .select('*')
-      .eq('app_id', app.id);
-
-    if (search) {
-      dataQuery = dataQuery.ilike('data::text', `%${search}%`);
-    }
-
-    // ソート
-    if (sortField === 'record_number' || sortField === 'created_at' || sortField === 'updated_at') {
-      dataQuery = dataQuery.order(sortField, { ascending: sortOrder });
-    } else {
-      // JSONBフィールドによるソートはcreated_atで代替
-      dataQuery = dataQuery.order('created_at', { ascending: false });
-    }
-
-    dataQuery = dataQuery.range(offset, offset + pageSize - 1);
-
-    const { data: records, error } = await dataQuery;
+    const { data: records, error } = await (supabase.rpc as any)('filter_app_records', {
+      p_app_id: app.id,
+      p_search: search,
+      p_filter_conditions: JSON.stringify(filterConditions),
+      p_filter_match_type: filterMatchType,
+      p_sort_field: sortField,
+      p_sort_order: sortOrder,
+      p_page: page,
+      p_page_size: pageSize,
+    });
 
     if (error) {
       console.error('Error fetching records:', error);
       return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
     }
 
+    const rows = (records || []) as (Record<string, unknown> & { total_count: number })[];
+    const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+
+    // total_countフィールドをレコードから除去
+    const cleanRecords = rows.map(({ total_count: _tc, ...rest }) => rest);
+
     // レコード権限フィルタリング
-    let filteredRecords = records || [];
+    let filteredRecords = cleanRecords;
     const rules = await getRecordPermissionRules(app.id);
     if (rules.length > 0 && filteredRecords.length > 0) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -99,17 +120,19 @@ export async function GET(
         const { roleIds, orgIds } = await getUserContext(user.id);
         filteredRecords = filteredRecords.filter((record: Record<string, unknown>) => {
           const perm = evaluateRecordPermissions(record, rules, user.id, roleIds, orgIds);
-          return !perm || perm.can_view; // ルールにマッチしない場合はデフォルト表示
+          return !perm || perm.can_view;
         });
       }
     }
 
+    const effectiveTotal = rules.length > 0 ? filteredRecords.length : total;
+
     return NextResponse.json({
       records: filteredRecords,
-      total: rules.length > 0 ? filteredRecords.length : total,
+      total: effectiveTotal,
       page,
       pageSize,
-      totalPages: Math.ceil((rules.length > 0 ? filteredRecords.length : total) / pageSize),
+      totalPages: Math.max(1, Math.ceil(effectiveTotal / pageSize)),
     });
   } catch (error) {
     console.error('Error in GET /api/apps/[appCode]/records:', error);

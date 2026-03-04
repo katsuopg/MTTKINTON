@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronUp, Table, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Table, Calendar, BarChart3, GripVertical, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import type { ViewType, ChartType, AggregationType } from '@/types/dynamic-app';
+import type { ViewType, ChartType, AggregationType, FilterCondition, FilterMatchType } from '@/types/dynamic-app';
+import FilterConditionBuilder from '@/components/dynamic-app/FilterConditionBuilder';
+import type { FieldDefinition } from '@/types/dynamic-app';
+import { isStaticApp, getStaticFields } from '@/lib/static-app-fields';
 
 interface ViewSettingsProps {
   locale: string;
@@ -14,6 +17,8 @@ interface FieldInfo {
   field_code: string;
   field_type: string;
   label: { ja?: string; en?: string; th?: string };
+  options?: { label: { ja?: string; en?: string; th?: string }; value: string }[] | null;
+  validation?: Record<string, unknown> | null;
 }
 
 interface ViewData {
@@ -68,9 +73,15 @@ export default function ViewSettings({ locale, appCode }: ViewSettingsProps) {
       }
       if (fieldsRes.ok) {
         const { fields: f } = await fieldsRes.json();
-        setFields((f || []).filter((fd: FieldInfo) =>
+        const dynamicFields = (f || []).filter((fd: FieldInfo) =>
           !['label', 'space', 'hr', 'file_upload', 'rich_editor'].includes(fd.field_type)
-        ));
+        );
+        // 動的フィールドが空の場合、静的アプリのフィールド定義をフォールバック
+        if (dynamicFields.length === 0 && isStaticApp(appCode)) {
+          setFields(getStaticFields(appCode) as FieldInfo[]);
+        } else {
+          setFields(dynamicFields);
+        }
       }
     } catch {
       // ignore
@@ -144,19 +155,38 @@ export default function ViewSettings({ locale, appCode }: ViewSettingsProps) {
     }
   };
 
-  const toggleColumn = (index: number, fieldCode: string) => {
-    const view = views[index];
+  const addColumn = (viewIdx: number, fieldCode: string) => {
+    const view = views[viewIdx];
     const columns = ((view.config as Record<string, unknown>).columns as string[]) || [];
-    const newColumns = columns.includes(fieldCode)
-      ? columns.filter(c => c !== fieldCode)
-      : [...columns, fieldCode];
-    updateView(index, { config: { ...view.config, columns: newColumns } });
+    if (!columns.includes(fieldCode)) {
+      updateView(viewIdx, { config: { ...view.config, columns: [...columns, fieldCode] } });
+    }
   };
+
+  const removeColumn = (viewIdx: number, fieldCode: string) => {
+    const view = views[viewIdx];
+    const columns = ((view.config as Record<string, unknown>).columns as string[]) || [];
+    updateView(viewIdx, { config: { ...view.config, columns: columns.filter(c => c !== fieldCode) } });
+  };
+
+  const moveColumn = (viewIdx: number, fieldCode: string, direction: 'up' | 'down') => {
+    const view = views[viewIdx];
+    const columns = [...(((view.config as Record<string, unknown>).columns as string[]) || [])];
+    const idx = columns.indexOf(fieldCode);
+    if (idx < 0) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= columns.length) return;
+    [columns[idx], columns[targetIdx]] = [columns[targetIdx], columns[idx]];
+    updateView(viewIdx, { config: { ...view.config, columns } });
+  };
+
+  // カラムD&D用state
+  const [dragColumnIdx, setDragColumnIdx] = useState<number | null>(null);
 
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           {t(locale, 'ビュー管理', 'การจัดการมุมมอง', 'View Management')}
@@ -209,8 +239,8 @@ export default function ViewSettings({ locale, appCode }: ViewSettingsProps) {
             </div>
 
             {isExpanded && (
-              <div className="border-t border-gray-200 p-4 dark:border-gray-700">
-                <div className="space-y-4">
+              <div className="border-t border-gray-200 p-5 dark:border-gray-700">
+                <div className="space-y-6">
                   {/* ビュー名 */}
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -271,62 +301,166 @@ export default function ViewSettings({ locale, appCode }: ViewSettingsProps) {
                   </label>
 
                   {/* テーブルビュー設定 */}
-                  {view.view_type === 'table' && (
-                    <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {t(locale, '表示カラム', 'คอลัมน์ที่แสดง', 'Display Columns')}
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {fields.map(f => {
-                          const cols = ((view.config as Record<string, unknown>).columns as string[]) || [];
-                          const isSelected = cols.includes(f.field_code);
-                          return (
-                            <button
-                              key={f.field_code}
-                              onClick={() => toggleColumn(idx, f.field_code)}
-                              className={`rounded-full border px-3 py-1 text-xs ${
-                                isSelected
-                                  ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300'
-                                  : 'border-gray-300 text-gray-600 hover:border-gray-400 dark:border-gray-600 dark:text-gray-400'
-                              }`}
-                            >
-                              {getFieldLabel(f.field_code)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                            {t(locale, 'ソートフィールド', 'จัดเรียงตาม', 'Sort Field')}
-                          </label>
-                          <select
-                            value={((view.config as Record<string, unknown>).sort_field as string) || ''}
-                            onChange={(e) => updateView(idx, { config: { ...view.config, sort_field: e.target.value || undefined } })}
-                            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                          >
-                            <option value="">{t(locale, 'デフォルト', 'ค่าเริ่มต้น', 'Default')}</option>
-                            {fields.map(f => (
-                              <option key={f.field_code} value={f.field_code}>{getFieldLabel(f.field_code)}</option>
+                  {view.view_type === 'table' && (() => {
+                    const selectedCols = ((view.config as Record<string, unknown>).columns as string[]) || [];
+                    const availableFields = fields.filter(f => !selectedCols.includes(f.field_code));
+
+                    return (
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {t(locale, '表示カラム', 'คอลัมน์ที่แสดง', 'Display Columns')}
+                          {selectedCols.length > 0 && (
+                            <span className="ml-2 text-xs font-normal text-gray-400">
+                              ({selectedCols.length}{t(locale, '項目選択中', ' รายการที่เลือก', ' selected')})
+                            </span>
+                          )}
+                        </label>
+
+                        {/* 選択済みカラム（並び替え可能） */}
+                        {selectedCols.length > 0 && (
+                          <div className="mb-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                            {selectedCols.map((colCode, colIdx) => (
+                              <div
+                                key={colCode}
+                                draggable
+                                onDragStart={() => setDragColumnIdx(colIdx)}
+                                onDragOver={(e) => { e.preventDefault(); }}
+                                onDrop={() => {
+                                  if (dragColumnIdx === null || dragColumnIdx === colIdx) return;
+                                  const newCols = [...selectedCols];
+                                  const [moved] = newCols.splice(dragColumnIdx, 1);
+                                  newCols.splice(colIdx, 0, moved);
+                                  updateView(idx, { config: { ...view.config, columns: newCols } });
+                                  setDragColumnIdx(null);
+                                }}
+                                onDragEnd={() => setDragColumnIdx(null)}
+                                className={`flex items-center gap-2 px-3 py-2 text-sm ${
+                                  colIdx > 0 ? 'border-t border-gray-100 dark:border-gray-700' : ''
+                                } ${dragColumnIdx === colIdx ? 'bg-brand-50 dark:bg-brand-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+                              >
+                                <GripVertical className="h-3.5 w-3.5 flex-shrink-0 cursor-grab text-gray-300 dark:text-gray-600" />
+                                <span className="min-w-0 flex-1 truncate text-gray-900 dark:text-white">
+                                  {getFieldLabel(colCode)}
+                                </span>
+                                <div className="flex flex-shrink-0 items-center gap-0.5">
+                                  <button
+                                    onClick={() => moveColumn(idx, colCode, 'up')}
+                                    disabled={colIdx === 0}
+                                    className="rounded p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 dark:hover:text-gray-300"
+                                  >
+                                    <ArrowUp className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => moveColumn(idx, colCode, 'down')}
+                                    disabled={colIdx === selectedCols.length - 1}
+                                    className="rounded p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 dark:hover:text-gray-300"
+                                  >
+                                    <ArrowDown className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => removeColumn(idx, colCode)}
+                                    className="ml-1 rounded p-0.5 text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              </div>
                             ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                            {t(locale, 'ソート順', 'ลำดับ', 'Sort Order')}
-                          </label>
-                          <select
-                            value={((view.config as Record<string, unknown>).sort_order as string) || 'desc'}
-                            onChange={(e) => updateView(idx, { config: { ...view.config, sort_order: e.target.value } })}
-                            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                          >
-                            <option value="asc">{t(locale, '昇順', 'น้อยไปมาก', 'Ascending')}</option>
-                            <option value="desc">{t(locale, '降順', 'มากไปน้อย', 'Descending')}</option>
-                          </select>
+                          </div>
+                        )}
+
+                        {/* 未選択フィールド（追加可能） */}
+                        {availableFields.length > 0 && (
+                          <div>
+                            <p className="mb-1.5 text-xs text-gray-500 dark:text-gray-400">
+                              {t(locale, 'フィールドをクリックして追加', 'คลิกเพื่อเพิ่มฟิลด์', 'Click to add fields')}
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {availableFields.map(f => (
+                                <button
+                                  key={f.field_code}
+                                  onClick={() => addColumn(idx, f.field_code)}
+                                  className="flex items-center gap-1 rounded-full border border-gray-300 px-2.5 py-1 text-xs text-gray-600 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700 dark:border-gray-600 dark:text-gray-400 dark:hover:border-brand-500 dark:hover:bg-brand-900/20 dark:hover:text-brand-300"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  {getFieldLabel(f.field_code)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {fields.length === 0 && (
+                          <p className="text-sm text-gray-400 dark:text-gray-500">
+                            {t(locale, 'このアプリにはフィールドが定義されていません', 'แอปนี้ไม่มีฟิลด์', 'No fields defined for this app')}
+                          </p>
+                        )}
+
+                        {/* ソート設定 */}
+                        <div className="mt-4 grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                              {t(locale, 'ソートフィールド', 'จัดเรียงตาม', 'Sort Field')}
+                            </label>
+                            <select
+                              value={((view.config as Record<string, unknown>).sort_field as string) || ''}
+                              onChange={(e) => updateView(idx, { config: { ...view.config, sort_field: e.target.value || undefined } })}
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                            >
+                              <option value="">{t(locale, 'デフォルト', 'ค่าเริ่มต้น', 'Default')}</option>
+                              {fields.map(f => (
+                                <option key={f.field_code} value={f.field_code}>{getFieldLabel(f.field_code)}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+                              {t(locale, 'ソート順', 'ลำดับ', 'Sort Order')}
+                            </label>
+                            <select
+                              value={((view.config as Record<string, unknown>).sort_order as string) || 'desc'}
+                              onChange={(e) => updateView(idx, { config: { ...view.config, sort_order: e.target.value } })}
+                              className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                            >
+                              <option value="asc">{t(locale, '昇順', 'น้อยไปมาก', 'Ascending')}</option>
+                              <option value="desc">{t(locale, '降順', 'มากไปน้อย', 'Descending')}</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
+
+                  {/* 絞り込み条件（全ビュータイプ共通） */}
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t(locale, '絞り込み条件', 'เงื่อนไขกรอง', 'Filter Conditions')}
+                    </label>
+                    <FilterConditionBuilder
+                      fields={fields as unknown as FieldDefinition[]}
+                      conditions={((view.config as Record<string, unknown>).filter_conditions as FilterCondition[]) || []}
+                      matchType={((view.config as Record<string, unknown>).filter_match_type as FilterMatchType) || 'and'}
+                      onConditionsChange={(conds) => updateView(idx, { config: { ...view.config, filter_conditions: conds } })}
+                      onMatchTypeChange={(mt) => updateView(idx, { config: { ...view.config, filter_match_type: mt } })}
+                      locale={locale}
+                    />
+                  </div>
+
+                  {/* 表示件数 */}
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {t(locale, '表示件数', 'จำนวนแสดง', 'Page Size')}
+                    </label>
+                    <select
+                      value={((view.config as Record<string, unknown>).page_size as number) || 20}
+                      onChange={(e) => updateView(idx, { config: { ...view.config, page_size: Number(e.target.value) } })}
+                      className="w-32 rounded-lg border border-gray-300 px-2 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                    >
+                      {[20, 40, 60, 80, 100].map(n => (
+                        <option key={n} value={n}>{n}{t(locale, '件', ' รายการ', ' records')}</option>
+                      ))}
+                    </select>
+                  </div>
 
                   {/* カレンダービュー設定 */}
                   {view.view_type === 'calendar' && (

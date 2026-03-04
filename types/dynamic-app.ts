@@ -422,27 +422,78 @@ export interface ProcessActionLog {
   comment: string | null;
 }
 
-// ビュー定義
+// ========== フィルター ==========
+
+export type FilterOperator =
+  | 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte'
+  | 'contains' | 'not_contains' | 'starts_with' | 'ends_with'
+  | 'is_empty' | 'is_not_empty' | 'in';
+
+export type FilterMatchType = 'and' | 'or';
+
+export interface FilterCondition {
+  field_code: string;
+  operator: FilterOperator;
+  value?: string | number | string[];
+}
+
+// フィールドタイプ→利用可能演算子のマッピング
+export const FIELD_OPERATORS: Record<string, FilterOperator[]> = {
+  single_line_text: ['eq', 'ne', 'contains', 'not_contains', 'starts_with', 'ends_with', 'is_empty', 'is_not_empty'],
+  multi_line_text: ['contains', 'not_contains', 'is_empty', 'is_not_empty'],
+  number: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'is_not_empty'],
+  date: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'is_not_empty'],
+  time: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'is_not_empty'],
+  datetime: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'is_empty', 'is_not_empty'],
+  dropdown: ['eq', 'ne', 'in', 'is_empty', 'is_not_empty'],
+  radio_button: ['eq', 'ne', 'in', 'is_empty', 'is_not_empty'],
+  checkbox: ['eq', 'ne', 'in', 'is_empty', 'is_not_empty'],
+  multi_select: ['contains', 'not_contains', 'is_empty', 'is_not_empty'],
+  link: ['eq', 'ne', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+  record_number: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte'],
+  creator: ['eq', 'ne', 'is_empty', 'is_not_empty'],
+  modifier: ['eq', 'ne', 'is_empty', 'is_not_empty'],
+  created_time: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte'],
+  modified_time: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte'],
+  user_select: ['eq', 'ne', 'is_empty', 'is_not_empty'],
+  org_select: ['eq', 'ne', 'is_empty', 'is_not_empty'],
+  group_select: ['eq', 'ne', 'is_empty', 'is_not_empty'],
+  lookup: ['eq', 'ne', 'contains', 'not_contains', 'is_empty', 'is_not_empty'],
+  calculated: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte'],
+};
+
+// 値入力が不要な演算子
+export const NO_VALUE_OPERATORS: Set<FilterOperator> = new Set(['is_empty', 'is_not_empty']);
+
+// ========== ビュー定義 ==========
+
 export type ViewType = 'table' | 'calendar' | 'chart';
 export type ChartType = 'bar' | 'line' | 'pie' | 'area';
 export type AggregationType = 'count' | 'sum' | 'avg' | 'max' | 'min';
 
-export interface TableViewConfig {
-  columns: string[]; // フィールドコードの配列
+// 全ビュー共通のフィルター設定
+export interface ViewFilterConfig {
+  filter_conditions?: FilterCondition[];
+  filter_match_type?: FilterMatchType;
+  page_size?: number;
+}
+
+export interface TableViewConfig extends ViewFilterConfig {
+  columns: string[];
   sort_field?: string;
   sort_order?: 'asc' | 'desc';
 }
 
-export interface CalendarViewConfig {
-  date_field: string; // 日付フィールドのfield_code
-  title_field?: string; // カレンダーイベントのタイトルに使うfield_code
+export interface CalendarViewConfig extends ViewFilterConfig {
+  date_field: string;
+  title_field?: string;
 }
 
-export interface ChartViewConfig {
+export interface ChartViewConfig extends ViewFilterConfig {
   chart_type: ChartType;
-  x_field: string; // X軸フィールド（グループ化キー）
-  y_field?: string; // Y軸フィールド（集計対象の数値フィールド）
-  group_field?: string; // 凡例グループ化フィールド
+  x_field: string;
+  y_field?: string;
+  group_field?: string;
   aggregation: AggregationType;
 }
 

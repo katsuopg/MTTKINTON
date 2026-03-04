@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { extractCsName } from '@/lib/utils/customer-name';
 import { usePagination } from '@/hooks/usePagination';
@@ -48,6 +48,7 @@ export default function WorkNoClient({
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [activeStatusTab, setActiveStatusTab] = useState('all');
   const [filteredRecords, setFilteredRecords] = useState<Array<{record: SupabaseWorkOrder, isChild: boolean}>>([]);
+  const [pageSize, setPageSize] = useState(20);
 
   // URL更新のデバウンス処理（検索時のみ使用）
   const updateURL = useCallback((search: string, year: number) => {
@@ -269,18 +270,18 @@ export default function WorkNoClient({
     return grandTotal - costTotal;
   };
 
-  const { paginatedItems: paginatedWorkItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredRecords);
+  const { paginatedItems: paginatedWorkItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredRecords, { controlledPageSize: pageSize });
 
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchQuery}
           onSearchChange={handleSearchChange}
           searchPlaceholder={searchPlaceholder}
           totalCount={filteredRecords.length}
           countLabel={countLabel}
-          filters={
+          inlineFilters={
             <>
               <div className="flex items-center gap-2 whitespace-nowrap">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -329,6 +330,8 @@ export default function WorkNoClient({
             </>
           }
           settingsHref={canManageApp('work_numbers') ? `/${locale}/settings/apps/work_numbers` : undefined}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
         {/* モバイル: カードビュー */}
         <div className={tableStyles.mobileCardList}>
@@ -560,7 +563,7 @@ export default function WorkNoClient({
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

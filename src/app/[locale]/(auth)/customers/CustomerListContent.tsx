@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Language } from '@/lib/kintone/field-mappings';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 import { useNavPermissions } from '@/hooks/useNavPermissions';
@@ -29,6 +29,7 @@ export function CustomerListContent({ customers, locale, salesSummary = {} }: Cu
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState<'csId' | 'companyName' | 'rank'>('csId');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [pageSize, setPageSize] = useState(20);
 
   const filteredAndSortedCustomers = useMemo(() => {
     let filtered = customers;
@@ -72,7 +73,7 @@ export function CustomerListContent({ customers, locale, salesSummary = {} }: Cu
     return sorted;
   }, [customers, searchTerm, sortField, sortDirection, locale]);
 
-  const { paginatedItems: paginatedCustomers, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredAndSortedCustomers);
+  const { paginatedItems: paginatedCustomers, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredAndSortedCustomers, { controlledPageSize: pageSize });
 
   const handleSort = (field: 'csId' | 'companyName' | 'rank') => {
     if (sortField === field) {
@@ -95,7 +96,7 @@ export function CustomerListContent({ customers, locale, salesSummary = {} }: Cu
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           searchPlaceholder={
@@ -106,6 +107,8 @@ export function CustomerListContent({ customers, locale, salesSummary = {} }: Cu
           totalCount={filteredAndSortedCustomers.length}
           countLabel={language === 'ja' ? '件の顧客' : language === 'th' ? ' ราย' : ' customers'}
           settingsHref={canManageApp('customers') ? `/${locale}/settings/apps/customers` : undefined}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
         {/* モバイル: カードビュー */}
         <div className={tableStyles.mobileCardList}>
@@ -233,7 +236,7 @@ export function CustomerListContent({ customers, locale, salesSummary = {} }: Cu
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

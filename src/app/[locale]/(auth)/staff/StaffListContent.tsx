@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 import type { SupabaseCustomerStaff } from './page';
@@ -18,6 +18,7 @@ export default function StaffListContent({ staffList, locale }: StaffListContent
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState('');
+  const [pageSize, setPageSize] = useState(20);
 
   // 部署の一覧を取得
   const divisions = useMemo(() => {
@@ -60,12 +61,12 @@ export default function StaffListContent({ staffList, locale }: StaffListContent
     });
   }, [staffList, searchQuery, selectedDivision]);
 
-  const { paginatedItems: paginatedStaff, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredStaff);
+  const { paginatedItems: paginatedStaff, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredStaff, { controlledPageSize: pageSize });
 
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           searchPlaceholder={
@@ -79,7 +80,7 @@ export default function StaffListContent({ staffList, locale }: StaffListContent
             language === 'th' ? ' ผู้ติดต่อ' :
             ' staff members'
           }
-          filters={
+          inlineFilters={
             <select
               value={selectedDivision}
               onChange={(e) => setSelectedDivision(e.target.value)}
@@ -95,6 +96,8 @@ export default function StaffListContent({ staffList, locale }: StaffListContent
               ))}
             </select>
           }
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
 
         {/* モバイル: カードビュー */}
@@ -212,7 +215,7 @@ export default function StaffListContent({ staffList, locale }: StaffListContent
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

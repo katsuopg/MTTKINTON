@@ -50,7 +50,7 @@ export default function AppSettingsContent({ locale, appCode, appName }: AppSett
   ];
 
   return (
-    <div>
+    <div className="p-4 md:p-6">
       <DetailPageHeader
         backHref={`/${locale}/settings`}
         title={`${appName} - ${label('設定', 'การตั้งค่า', 'Settings')}`}

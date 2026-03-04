@@ -39,6 +39,18 @@
     "alerts": "การแจ้งเตือน",
     "noData": "ไม่มีข้อมูล"
   },
+  "toolbar": {
+    "search": "ค้นหา...",
+    "filter": "ตัวกรอง",
+    "totalCount": "{count} รายการ",
+    "countPerPage": "จำนวนต่อหน้า",
+    "stickyHeader": "ตรึงแถวส่วนหัว",
+    "exportCsv": "ส่งออก CSV",
+    "importCsv": "นำเข้า CSV",
+    "settings": "ตั้งค่า",
+    "addNew": "เพิ่ม",
+    "displayCount": "แสดง {count} รายการ"
+  },
   "dynamicApp": {
     "portal": {
       "title": "รายการแอป",
@@ -235,6 +247,36 @@
       "saving": "กำลังบันทึก...",
       "cancel": "ยกเลิก",
       "validationError": "กรุณาแก้ไขข้อผิดพลาดในฟอร์ม"
+    },
+    "filter": {
+      "title": "กรอง",
+      "addCondition": "เพิ่มเงื่อนไข",
+      "removeCondition": "ลบ",
+      "clearAll": "ล้างทั้งหมด",
+      "matchAll": "ตรงทุกเงื่อนไข",
+      "matchAny": "ตรงเงื่อนไขใดก็ได้",
+      "selectField": "เลือกฟิลด์",
+      "selectOperator": "เลือกตัวดำเนินการ",
+      "enterValue": "ป้อนค่า",
+      "activeFilters": "ตัวกรองที่ใช้งาน",
+      "noConditions": "ไม่มีเงื่อนไขกรอง",
+      "pageSize": "จำนวนแสดง",
+      "filterConditions": "เงื่อนไขกรอง",
+      "operators": {
+        "eq": "เท่ากับ",
+        "ne": "ไม่เท่ากับ",
+        "gt": "มากกว่า",
+        "gte": "มากกว่าหรือเท่ากับ",
+        "lt": "น้อยกว่า",
+        "lte": "น้อยกว่าหรือเท่ากับ",
+        "contains": "มีคำว่า",
+        "not_contains": "ไม่มีคำว่า",
+        "starts_with": "เริ่มต้นด้วย",
+        "ends_with": "ลงท้ายด้วย",
+        "is_empty": "ว่างเปล่า",
+        "is_not_empty": "ไม่ว่างเปล่า",
+        "in": "เป็นหนึ่งใน"
+      }
     }
   }
 }

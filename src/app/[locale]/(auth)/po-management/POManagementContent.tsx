@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { useNavPermissions } from '@/hooks/useNavPermissions';
@@ -60,6 +60,7 @@ export default function POManagementContent({
   const [searchQuery, setSearchQuery] = useState('');
   const [notArrived, setNotArrived] = useState(false);
   const [alertOnly, setAlertOnly] = useState(false);
+  const [pageSize, setPageSize] = useState(20);
 
   const filteredRecords = useMemo(() => {
     let records = poRecords;
@@ -94,7 +95,7 @@ export default function POManagementContent({
     return records;
   }, [poRecords, searchQuery, notArrived, alertOnly]);
 
-  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredRecords);
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredRecords, { controlledPageSize: pageSize });
 
   return (
     <div className={tableStyles.contentWrapper}>
@@ -115,7 +116,7 @@ export default function POManagementContent({
       </div>
 
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           searchPlaceholder={
@@ -125,7 +126,7 @@ export default function POManagementContent({
           }
           totalCount={filteredRecords.length}
           countLabel={language === 'ja' ? '件の発注書' : language === 'th' ? ' ใบสั่งซื้อ' : ' purchase orders'}
-          filters={
+          inlineFilters={
             <>
               <FiscalYearSelect currentYear={selectedFiscalYear} locale={locale} language={language} />
               <label className="flex items-center cursor-pointer whitespace-nowrap">
@@ -153,6 +154,8 @@ export default function POManagementContent({
             </>
           }
           settingsHref={canManageApp('purchase_orders') ? `/${locale}/settings/apps/purchase_orders` : undefined}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
         {/* モバイル: カードビュー */}
         <div className={tableStyles.mobileCardList}>
@@ -273,7 +276,7 @@ export default function POManagementContent({
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

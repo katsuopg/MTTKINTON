@@ -39,6 +39,18 @@
     "alerts": "Alerts",
     "noData": "No data available"
   },
+  "toolbar": {
+    "search": "Search...",
+    "filter": "Filter",
+    "totalCount": "{count} items",
+    "countPerPage": "Items per page",
+    "stickyHeader": "Sticky header",
+    "exportCsv": "Export CSV",
+    "importCsv": "Import CSV",
+    "settings": "Settings",
+    "addNew": "Add",
+    "displayCount": "Showing {count} items"
+  },
   "dynamicApp": {
     "portal": {
       "title": "Apps",
@@ -235,6 +247,36 @@
       "saving": "Saving...",
       "cancel": "Cancel",
       "validationError": "Please fix the errors in the form"
+    },
+    "filter": {
+      "title": "Filter",
+      "addCondition": "Add Condition",
+      "removeCondition": "Remove",
+      "clearAll": "Clear All",
+      "matchAll": "Match all conditions",
+      "matchAny": "Match any condition",
+      "selectField": "Select field",
+      "selectOperator": "Select operator",
+      "enterValue": "Enter value",
+      "activeFilters": "active filter(s)",
+      "noConditions": "No filter conditions",
+      "pageSize": "Page Size",
+      "filterConditions": "Filter Conditions",
+      "operators": {
+        "eq": "equals",
+        "ne": "not equals",
+        "gt": "greater than",
+        "gte": "greater or equal",
+        "lt": "less than",
+        "lte": "less or equal",
+        "contains": "contains",
+        "not_contains": "does not contain",
+        "starts_with": "starts with",
+        "ends_with": "ends with",
+        "is_empty": "is empty",
+        "is_not_empty": "is not empty",
+        "in": "is any of"
+      }
     }
   }
 }

@@ -37,10 +37,12 @@
 #### 一覧ページ
 - **ラッパー**: `tableStyles.contentWrapper` で最外層をラップ
 - **テーブルコンテナ**: `tableStyles.tableContainer` で検索+テーブル+ページネーションを**1つのカード**に統合
-- **ヘッダー**: `ListPageHeader` を `tableContainer` 内の先頭に配置
-  - Props: `searchValue`, `onSearchChange`, `searchPlaceholder`, `totalCount`, `countLabel`, `filters`, `addButton`
-  - フィルターは `<select>` を `filters` propに渡す
+- **ツールバー**: `AppListToolbar` を `tableContainer` 内の先頭に配置
+  - Props: `searchValue`, `onSearchChange`, `searchPlaceholder`, `totalCount`, `countLabel`, `inlineFilters`, `addButton`, `settingsHref`, `moreMenu`, `locale`
+  - フィルターは `<select>` や `<label>` を `inlineFilters` propにReactNodeで渡す
+  - `moreMenu` で表示件数切替（20/40/60/80/100）、CSVエクスポート等を提供
   - **検索・フィルター・件数を別カードにしない**
+- **表示件数**: `const [pageSize, setPageSize] = useState(20)` + `usePagination(data, { controlledPageSize: pageSize })`
 - **テーブル要素**: `tableStyles.table/thead/th/tbody/tr/td` を使用。手書きclassName禁止
 - **行クリック**: `tableStyles.trClickable`
 - **空状態**: `tableStyles.emptyRow`

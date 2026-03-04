@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { Plus } from 'lucide-react';
@@ -64,6 +64,7 @@ export default function QuoteRequestList({
   const [allRequests, setAllRequests] = useState<QuoteRequestWithRelations[]>([]);
   const [searchText, setSearchText] = useState(initialFilters.search || '');
   const [selectedStatus, setSelectedStatus] = useState(initialFilters.status_code || '');
+  const [pageSize, setPageSize] = useState(20);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -91,7 +92,7 @@ export default function QuoteRequestList({
     fetchData();
   }, [fetchData]);
 
-  const { paginatedItems: requests, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(allRequests);
+  const { paginatedItems: requests, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(allRequests, { controlledPageSize: pageSize });
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
@@ -111,13 +112,13 @@ export default function QuoteRequestList({
     <div className={tableStyles.contentWrapper}>
       {/* テーブル */}
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchText}
           onSearchChange={setSearchText}
           searchPlaceholder={labels.searchPlaceholder[language]}
           totalCount={allRequests.length}
           countLabel={labels.records[language]}
-          filters={
+          inlineFilters={
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
@@ -134,8 +135,10 @@ export default function QuoteRequestList({
           addButton={{
             label: labels.newRequest[language],
             onClick: () => router.push(`/${locale}/quote-requests/new`),
-            icon: <Plus className="w-4 h-4 mr-2" />,
+            icon: <Plus className="w-4 h-4" />,
           }}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -275,7 +278,7 @@ export default function QuoteRequestList({
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

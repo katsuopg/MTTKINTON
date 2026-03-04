@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type Language } from '@/lib/kintone/field-mappings';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { useToast } from '@/components/ui/Toast';
 import { usePagination } from '@/hooks/usePagination';
@@ -33,6 +33,7 @@ export default function InvoiceManagementClient({
   const [selectedPeriod, setSelectedPeriod] = useState(searchParams.get('period') || '14');
   const [invoiceRecords, setInvoiceRecords] = useState(initialInvoiceRecords);
   const [isLoading, setIsLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(20);
 
   // 会計期間が変更されたときにデータを取得
   const fetchInvoiceRecords = useCallback(async (period: string) => {
@@ -103,7 +104,7 @@ export default function InvoiceManagementClient({
     ? ' ใบแจ้งหนี้'
     : ' invoices';
 
-  const { paginatedItems: paginatedInvoices, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredInvoices);
+  const { paginatedItems: paginatedInvoices, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredInvoices, { controlledPageSize: pageSize });
 
   const formatNumber = (value: number | null | undefined): string => {
     if (value == null) return '-';
@@ -122,13 +123,13 @@ export default function InvoiceManagementClient({
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchQuery}
           onSearchChange={handleSearchChange}
           searchPlaceholder={searchPlaceholder}
           totalCount={filteredInvoices.length}
           countLabel={countLabel}
-          filters={
+          inlineFilters={
             <div className="flex items-center gap-2 whitespace-nowrap">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีบัญชี:' : 'Fiscal Year:'}
@@ -148,6 +149,8 @@ export default function InvoiceManagementClient({
             </div>
           }
           settingsHref={canManageApp('invoices') ? `/${locale}/settings/apps/invoices` : undefined}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
         {isLoading ? (
           <div className={tableStyles.emptyRow}>
@@ -256,7 +259,7 @@ export default function InvoiceManagementClient({
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

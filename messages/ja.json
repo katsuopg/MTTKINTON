@@ -39,6 +39,18 @@
     "alerts": "アラート",
     "noData": "データがありません"
   },
+  "toolbar": {
+    "search": "検索...",
+    "filter": "フィルター",
+    "totalCount": "{count}件",
+    "countPerPage": "表示件数",
+    "stickyHeader": "先頭行固定",
+    "exportCsv": "CSVエクスポート",
+    "importCsv": "CSVインポート",
+    "settings": "設定",
+    "addNew": "追加",
+    "displayCount": "{count}件表示中"
+  },
   "dynamicApp": {
     "portal": {
       "title": "アプリ一覧",
@@ -235,6 +247,36 @@
       "saving": "保存中...",
       "cancel": "キャンセル",
       "validationError": "入力内容に誤りがあります"
+    },
+    "filter": {
+      "title": "絞り込み",
+      "addCondition": "条件を追加",
+      "removeCondition": "条件を削除",
+      "clearAll": "すべてクリア",
+      "matchAll": "すべての条件に一致",
+      "matchAny": "いずれかの条件に一致",
+      "selectField": "フィールドを選択",
+      "selectOperator": "演算子を選択",
+      "enterValue": "値を入力",
+      "activeFilters": "件の絞り込み",
+      "noConditions": "絞り込み条件がありません",
+      "pageSize": "表示件数",
+      "filterConditions": "絞り込み条件",
+      "operators": {
+        "eq": "等しい",
+        "ne": "等しくない",
+        "gt": "より大きい",
+        "gte": "以上",
+        "lt": "より小さい",
+        "lte": "以下",
+        "contains": "を含む",
+        "not_contains": "を含まない",
+        "starts_with": "で始まる",
+        "ends_with": "で終わる",
+        "is_empty": "空である",
+        "is_not_empty": "空でない",
+        "in": "いずれかに一致"
+      }
     }
   }
 }

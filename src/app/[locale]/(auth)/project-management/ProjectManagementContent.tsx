@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
 import { Plus } from 'lucide-react';
@@ -66,6 +66,7 @@ export function ProjectManagementContent({
   const [selectedStatus, setSelectedStatus] = useState(initialFilters.status_code || '');
   const [sortField, setSortField] = useState<SortField>('project_code');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [pageSize, setPageSize] = useState(20);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -162,7 +163,7 @@ export function ProjectManagementContent({
     return sorted;
   }, [projects, sortField, sortDirection]);
 
-  const { paginatedItems: paginatedProjects, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(sortedProjects);
+  const { paginatedItems: paginatedProjects, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(sortedProjects, { controlledPageSize: pageSize });
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -184,13 +185,13 @@ export function ProjectManagementContent({
     <div className={tableStyles.contentWrapper}>
       {/* テーブル */}
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchText}
           onSearchChange={setSearchText}
           searchPlaceholder={labels.searchPlaceholder[language]}
           totalCount={projects.length}
           countLabel={labels.records[language]}
-          filters={
+          inlineFilters={
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
@@ -207,8 +208,10 @@ export function ProjectManagementContent({
           addButton={{
             label: labels.newProject[language],
             onClick: () => router.push(`/${locale}/project-management/new`),
-            icon: <Plus className="w-4 h-4 mr-2" />,
+            icon: <Plus className="w-4 h-4" />,
           }}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
         {loading ? (
           <div className="flex items-center justify-center py-12">

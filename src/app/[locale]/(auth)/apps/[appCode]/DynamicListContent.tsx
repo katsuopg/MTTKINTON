@@ -3,16 +3,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Plus, ArrowUp, ArrowDown, Trash2, Loader2, Table, Calendar, BarChart3 } from 'lucide-react';
+import { Plus, ArrowUp, ArrowDown, Trash2, Loader2, Table, Calendar, BarChart3, Filter, X } from 'lucide-react';
 import { useNavPermissions } from '@/hooks/useNavPermissions';
-import type { FieldDefinition, AppRecord, ViewDefinition, ViewType, ChartViewConfig, CalendarViewConfig } from '@/types/dynamic-app';
+import type { FieldDefinition, AppRecord, ViewDefinition, ViewType, ChartViewConfig, CalendarViewConfig, FilterCondition, FilterMatchType } from '@/types/dynamic-app';
 import { NON_INPUT_FIELD_TYPES, HIDDEN_IN_LIST_TYPES } from '@/types/dynamic-app';
 import FieldDisplay from '@/components/dynamic-app/FieldDisplay';
 import DynamicCalendarView from '@/components/dynamic-app/DynamicCalendarView';
 import DynamicChartView from '@/components/dynamic-app/DynamicChartView';
+import FilterConditionBuilder from '@/components/dynamic-app/FilterConditionBuilder';
 
 interface DynamicListContentProps {
   locale: string;
@@ -48,7 +49,12 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
   const [views, setViews] = useState<ViewDefinition[]>([]);
   const [activeViewId, setActiveViewId] = useState<string>('default-table');
 
-  const pageSize = 20;
+  // アドホックフィルター
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [adHocFilters, setAdHocFilters] = useState<FilterCondition[]>([]);
+  const [adHocFilterMatchType, setAdHocFilterMatchType] = useState<FilterMatchType>('and');
+
+  const [pageSize, setPageSize] = useState(20);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // テーブルに表示するフィールド（file_upload, rich_editor, related_records等は除外）
@@ -70,6 +76,21 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
     return defaultDisplayFields;
   })();
 
+  // ビュー切替時にビュー設定を反映
+  const applyViewSettings = useCallback((view: ViewDefinition | undefined) => {
+    if (!view) {
+      // デフォルトテーブルに戻す
+      setSortField('record_number');
+      setSortOrder('desc');
+      return;
+    }
+    const cfg = view.config as unknown as Record<string, unknown>;
+    if (cfg.sort_field) setSortField(cfg.sort_field as string);
+    if (cfg.sort_order) setSortOrder(cfg.sort_order as 'asc' | 'desc');
+    if (cfg.page_size) setPageSize(Math.min(100, Math.max(1, cfg.page_size as number)));
+    setCurrentPage(1);
+  }, []);
+
   // ビュー一覧取得
   useEffect(() => {
     fetch(`/api/apps/${appCode}/views`)
@@ -77,10 +98,13 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
       .then(data => {
         setViews(data.views || []);
         const def = (data.views || []).find((v: ViewDefinition) => v.is_default);
-        if (def) setActiveViewId(def.id);
+        if (def) {
+          setActiveViewId(def.id);
+          applyViewSettings(def);
+        }
       })
       .catch(() => {});
-  }, [appCode]);
+  }, [appCode, applyViewSettings]);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -92,6 +116,16 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
         sortField,
         sortOrder,
       });
+      // ビューID送信
+      if (activeViewId && activeViewId !== 'default-table') {
+        params.set('viewId', activeViewId);
+      }
+      // アドホックフィルター
+      const validFilters = adHocFilters.filter(f => f.field_code && f.operator);
+      if (validFilters.length > 0) {
+        params.set('filters', JSON.stringify(validFilters));
+        params.set('filterMatchType', adHocFilterMatchType);
+      }
       const res = await fetch(`/api/apps/${appCode}/records?${params}`);
       if (res.ok) {
         const data = await res.json();
@@ -103,7 +137,7 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
     } finally {
       setLoading(false);
     }
-  }, [appCode, currentPage, search, sortField, sortOrder]);
+  }, [appCode, currentPage, pageSize, search, sortField, sortOrder, activeViewId, adHocFilters, adHocFilterMatchType]);
 
   // カレンダー/グラフ用に全レコード取得
   const fetchAllRecords = useCallback(async () => {
@@ -114,6 +148,14 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
         pageSize: '500',
         search,
       });
+      if (activeViewId && activeViewId !== 'default-table') {
+        params.set('viewId', activeViewId);
+      }
+      const validFilters = adHocFilters.filter(f => f.field_code && f.operator);
+      if (validFilters.length > 0) {
+        params.set('filters', JSON.stringify(validFilters));
+        params.set('filterMatchType', adHocFilterMatchType);
+      }
       const res = await fetch(`/api/apps/${appCode}/records?${params}`);
       if (res.ok) {
         const data = await res.json();
@@ -122,7 +164,7 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
     } catch {
       // ignore
     }
-  }, [appCode, activeViewType, search]);
+  }, [appCode, activeViewType, search, activeViewId, adHocFilters, adHocFilterMatchType]);
 
   useEffect(() => {
     fetchRecords();
@@ -214,6 +256,8 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
   const numberLabel = lang === 'ja' ? 'No.' : 'No.';
   const deleteSelectedLabel = lang === 'ja' ? '選択削除' : lang === 'th' ? 'ลบที่เลือก' : 'Delete Selected';
   const deletingLabel = lang === 'ja' ? '削除中...' : lang === 'th' ? 'กำลังลบ...' : 'Deleting...';
+  const filterLabel = lang === 'ja' ? '絞り込み' : lang === 'th' ? 'กรอง' : 'Filter';
+  const activeFilterCount = adHocFilters.filter(f => f.field_code && f.operator).length;
 
   const allSelected = records.length > 0 && selectedIds.size === records.length;
 
@@ -226,20 +270,45 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={search}
           onSearchChange={setSearch}
           searchPlaceholder={searchPlaceholder}
           totalCount={total}
           countLabel={countLabel}
           settingsHref={canManageApp(appCode) ? `/${locale}/apps/${appCode}/settings/form` : undefined}
-          exportHref={`/api/apps/${appCode}/records/export`}
-          exportLabel={lang === 'ja' ? 'CSVエクスポート' : lang === 'th' ? 'ส่งออก CSV' : 'Export CSV'}
           addButton={{
             label: addLabel,
             onClick: () => router.push(`/${locale}/apps/${appCode}/records/new`),
             icon: <Plus className="w-4 h-4" />,
           }}
+          inlineFilters={
+            <button
+              type="button"
+              onClick={() => setShowFilterPanel((prev) => !prev)}
+              className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                activeFilterCount > 0
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-300'
+                  : 'border-gray-300 text-gray-600 hover:border-gray-400 dark:border-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              {filterLabel}
+              {activeFilterCount > 0 && (
+                <span className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] text-white">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          }
+          moreMenu={{
+            pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: (size) => { setPageSize(size); setCurrentPage(1); } },
+            exportCsv: {
+              href: `/api/apps/${appCode}/records/export${activeFilterCount > 0 ? `?filters=${encodeURIComponent(JSON.stringify(adHocFilters.filter(f => f.field_code && f.operator)))}&filterMatchType=${adHocFilterMatchType}` : ''}${activeViewId !== 'default-table' ? `${activeFilterCount > 0 ? '&' : '?'}viewId=${activeViewId}` : ''}`,
+              label: lang === 'ja' ? 'CSVエクスポート' : lang === 'th' ? 'ส่งออก CSV' : 'Export CSV',
+            },
+          }}
+          locale={locale}
         />
 
         {/* ビュータブ（複数ビューがある場合のみ表示） */}
@@ -251,7 +320,10 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveViewId(tab.id)}
+                  onClick={() => {
+                    setActiveViewId(tab.id);
+                    applyViewSettings(views.find(v => v.id === tab.id));
+                  }}
                   className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive
                       ? 'border-brand-500 text-brand-600 dark:text-brand-400'
@@ -263,6 +335,44 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/* アドホックフィルターパネル */}
+        {showFilterPanel && (
+          <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/50">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                {filterLabel}
+              </span>
+              <div className="flex items-center gap-2">
+                {adHocFilters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setAdHocFilters([]); setCurrentPage(1); }}
+                    className="text-xs text-red-500 hover:text-red-600"
+                  >
+                    {lang === 'ja' ? 'すべてクリア' : lang === 'th' ? 'ล้างทั้งหมด' : 'Clear All'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowFilterPanel(false)}
+                  className="rounded p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            <FilterConditionBuilder
+              fields={fields}
+              conditions={adHocFilters}
+              matchType={adHocFilterMatchType}
+              onConditionsChange={(conds) => { setAdHocFilters(conds); setCurrentPage(1); }}
+              onMatchTypeChange={setAdHocFilterMatchType}
+              locale={locale}
+              compact
+            />
           </div>
         )}
 
@@ -316,8 +426,13 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
                             {numberLabel}<SortIcon field="record_number" />
                           </th>
                           {displayFields.map((field) => (
-                            <th key={field.id} className={tableStyles.th}>
+                            <th
+                              key={field.id}
+                              className={`${tableStyles.th} cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-800`}
+                              onClick={() => handleSort(field.field_code)}
+                            >
                               {field.label[lang] || field.label.ja || field.field_code}
+                              <SortIcon field={field.field_code} />
                             </th>
                           ))}
                         </tr>

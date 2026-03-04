@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { type Language } from '@/lib/kintone/field-mappings';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { tableStyles } from '@/components/ui/TableStyles';
@@ -39,6 +39,7 @@ export default function MachineListContent({
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [selectedVendor, setSelectedVendor] = useState(initialVendor);
   const [filteredRecords, setFilteredRecords] = useState<SupabaseMachine[]>([]);
+  const [pageSize, setPageSize] = useState(20);
 
   const updateURL = useCallback((search: string, category: string, vendor: string) => {
     const params = new URLSearchParams();
@@ -96,7 +97,7 @@ export default function MachineListContent({
     setFilteredRecords(filtered);
   }, [records, searchQuery, selectedCategory, selectedVendor]);
 
-  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredRecords);
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredRecords, { controlledPageSize: pageSize });
 
   const searchPlaceholder = language === 'ja'
     ? '顧客名、CS ID、モデル、シリアル番号で検索'
@@ -113,13 +114,13 @@ export default function MachineListContent({
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchQuery}
           onSearchChange={handleSearchChange}
           searchPlaceholder={searchPlaceholder}
           totalCount={filteredRecords.length}
           countLabel={countLabel}
-          filters={
+          inlineFilters={
             <>
               <select
                 value={selectedCategory}
@@ -148,6 +149,8 @@ export default function MachineListContent({
             </>
           }
           settingsHref={canManageApp('machines') ? `/${locale}/settings/apps/machines` : undefined}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
         <div className="max-w-full overflow-x-auto">
           {filteredRecords.length === 0 ? (
@@ -236,7 +239,7 @@ export default function MachineListContent({
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}
-            pageSize={pageSize}
+            pageSize={actualPageSize}
             onPageChange={goToPage}
             locale={locale}
           />

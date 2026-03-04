@@ -193,7 +193,7 @@ export const tableStyles = {
 // 例: WorkNoClient.tsx
 return (
   <div className={tableStyles.tableContainer}>
-    <ListPageHeader ... />
+    <AppListToolbar ... />
 
     {/* デスクトップ: テーブル表示 */}
     <div className={tableStyles.desktopOnly}>
@@ -236,11 +236,11 @@ return (
 
 ---
 
-## Phase 3: ListPageHeader のモバイル最適化
+## Phase 3: AppListToolbar のモバイル最適化（実装済み）
 
-### 3-1. 現状の問題
+### 3-1. 現状
 
-現在の `ListPageHeader` は1行に全要素を並べている:
+`AppListToolbar` は既にデスクトップ1行 / モバイル2段構成で実装済み:
 ```
 [検索] [フィルター] [件数] [追加ボタン]  ← 横スクロール発生
 ```
@@ -444,7 +444,7 @@ const navItems = [
 | 3 | safe-area 対応 | 中 | 小 | ★★★ |
 | 4 | inputmode 属性 | 中 | 小 | ★★★ |
 | 5 | テーブルカードビュー | 高 | 中 | ★★★ |
-| 6 | ListPageHeader 2段化 | 高 | 小 | ★★☆ |
+| 6 | AppListToolbar 2段化 | 高 | 小 | ★★☆（実装済み） |
 | 7 | ページネーション簡略化 | 中 | 小 | ★★☆ |
 | 8 | モバイル検索改善 | 中 | 中 | ★★☆ |
 | 9 | ボトムナビゲーション | 高 | 中 | ★★☆ |
@@ -459,7 +459,7 @@ Phase 1（基盤） ─── viewport / 44px / safe-area / inputmode
     │
 Phase 2（テーブル）── MobileCardView + 主要6ページ適用
     │
-Phase 3（ヘッダー）── ListPageHeader 2段化 + ページネーション
+Phase 3（ヘッダー）── AppListToolbar 2段化 + ページネーション（実装済み）
     │
 Phase 4（UX）──── ボトムナビ + モバイル検索
     │

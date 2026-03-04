@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 
 interface UsePaginationOptions {
   pageSize?: number;
+  controlledPageSize?: number;
 }
 
 interface UsePaginationResult<T> {
@@ -21,7 +22,7 @@ export function usePagination<T>(
   items: T[],
   options?: UsePaginationOptions
 ): UsePaginationResult<T> {
-  const pageSize = options?.pageSize ?? 15;
+  const pageSize = options?.controlledPageSize ?? options?.pageSize ?? 15;
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalItems = items.length;
@@ -31,6 +32,11 @@ export function usePagination<T>(
   useEffect(() => {
     setCurrentPage(1);
   }, [totalItems]);
+
+  // pageSize が変わったら1ページ目にリセット
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
 
   // 現在ページがtotalPagesを超えないようにクランプ
   const safePage = Math.min(currentPage, totalPages);

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Language } from '@/lib/kintone/field-mappings';
 import Link from 'next/link';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { extractCsName } from '@/lib/utils/customer-name';
@@ -64,6 +64,7 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedSalesStaff, setSelectedSalesStaff] = useState('');
+  const [pageSize, setPageSize] = useState(20);
   const router = useRouter();
 
   const formatDate = (dateString: string | null) => {
@@ -133,7 +134,7 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
     });
   }, [quotations, searchQuery, selectedStatus, selectedSalesStaff]);
 
-  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredQuotations);
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredQuotations, { controlledPageSize: pageSize });
 
   const getStatusLabel = (status: string) => {
     const statusColors: { [key: string]: string } = {
@@ -171,7 +172,7 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
   return (
       <div className={tableStyles.contentWrapper}>
         <div className={tableStyles.tableContainer}>
-          <ListPageHeader
+          <AppListToolbar
             searchValue={searchQuery}
             onSearchChange={setSearchQuery}
             searchPlaceholder={
@@ -181,7 +182,7 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
             }
             totalCount={filteredQuotations.length}
             countLabel={language === 'ja' ? '件の見積もり' : language === 'th' ? ' ใบเสนอราคา' : ' quotations'}
-            filters={
+            inlineFilters={
               <>
                 <select
                   value={selectedStatus}
@@ -214,6 +215,8 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
               </>
             }
             settingsHref={canManageApp('quotations') ? `/${locale}/settings/apps/quotations` : undefined}
+            moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+            locale={locale}
           />
           {filteredQuotations.length === 0 ? (
             <div className={tableStyles.emptyRow}>
@@ -308,7 +311,7 @@ export default function QuotationListContent({ quotations, locale }: QuotationLi
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}
-            pageSize={pageSize}
+            pageSize={actualPageSize}
             onPageChange={goToPage}
             locale={locale}
           />

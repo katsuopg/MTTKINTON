@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Database } from '@/types/supabase';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { type Language } from '@/lib/kintone/field-mappings';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
@@ -27,6 +27,7 @@ export default function EmployeesClient({ locale, language, employees, currentUs
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('在籍');
+  const [pageSize, setPageSize] = useState(20);
 
   // 部署リストを抽出
   const departments = useMemo(() => {
@@ -77,7 +78,7 @@ export default function EmployeesClient({ locale, language, employees, currentUs
     });
   }, [employees, searchQuery, departmentFilter, statusFilter]);
 
-  const { paginatedItems: paginatedEmployees, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredEmployees);
+  const { paginatedItems: paginatedEmployees, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredEmployees, { controlledPageSize: pageSize });
 
   const searchPlaceholder = language === 'ja'
     ? '名前、ID、部署で検索...'
@@ -94,13 +95,13 @@ export default function EmployeesClient({ locale, language, employees, currentUs
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           searchPlaceholder={searchPlaceholder}
           totalCount={filteredEmployees.length}
           countLabel={countLabel}
-          filters={
+          inlineFilters={
             <>
               <select
                 value={departmentFilter}
@@ -127,9 +128,11 @@ export default function EmployeesClient({ locale, language, employees, currentUs
           addButton={{
             label: language === 'ja' ? '新規登録' : language === 'th' ? 'เพิ่มใหม่' : 'Add New',
             onClick: () => router.push(`/${locale}/employees/new`),
-            icon: <Plus size={16} className="mr-1.5" />,
+            icon: <Plus size={16} />,
           }}
           settingsHref={canManageApp('employees') ? `/${locale}/settings/apps/employees` : undefined}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
 
         {filteredEmployees.length === 0 ? (
@@ -255,7 +258,7 @@ export default function EmployeesClient({ locale, language, employees, currentUs
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { ClickableRow } from '@/components/ui/ClickableRow';
 import { usePagination } from '@/hooks/usePagination';
@@ -31,6 +31,7 @@ interface SuppliersTableProps {
 export default function SuppliersTable({ suppliers, locale, language, initialSearch = '' }: SuppliersTableProps) {
   const { canManageApp } = useNavPermissions();
   const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [pageSize, setPageSize] = useState(20);
 
   const filteredSuppliers = useMemo(() => {
     if (!searchQuery) return suppliers;
@@ -42,11 +43,11 @@ export default function SuppliersTable({ suppliers, locale, language, initialSea
     );
   }, [suppliers, searchQuery]);
 
-  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredSuppliers);
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredSuppliers, { controlledPageSize: pageSize });
 
   return (
     <div className={tableStyles.tableContainer}>
-      <ListPageHeader
+      <AppListToolbar
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder={
@@ -57,6 +58,8 @@ export default function SuppliersTable({ suppliers, locale, language, initialSea
         totalCount={filteredSuppliers.length}
         countLabel={language === 'ja' ? '件の仕入業者' : language === 'th' ? ' ซัพพลายเออร์' : ' suppliers'}
         settingsHref={canManageApp('suppliers') ? `/${locale}/settings/apps/suppliers` : undefined}
+        moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+        locale={locale}
       />
       {/* モバイル: カードビュー */}
       <div className={tableStyles.mobileCardList}>
@@ -148,7 +151,7 @@ export default function SuppliersTable({ suppliers, locale, language, initialSea
         currentPage={currentPage}
         totalPages={totalPages}
         totalItems={totalItems}
-        pageSize={pageSize}
+        pageSize={actualPageSize}
         onPageChange={goToPage}
         locale={locale}
       />

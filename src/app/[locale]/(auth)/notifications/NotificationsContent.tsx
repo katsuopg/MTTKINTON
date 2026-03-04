@@ -5,7 +5,7 @@ import { Bell, Check, CheckCheck, ExternalLink, Filter } from 'lucide-react';
 import { tableStyles } from '@/components/ui/TableStyles';
 import { usePagination } from '@/hooks/usePagination';
 import { Pagination } from '@/components/ui/Pagination';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 
 interface Notification {
   id: string;
@@ -103,6 +103,7 @@ export default function NotificationsContent({ locale }: NotificationsContentPro
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pageSize, setPageSize] = useState(20);
   const lang = (locale === 'ja' || locale === 'en' || locale === 'th') ? locale : 'ja';
   const t = translations[lang];
 
@@ -168,8 +169,8 @@ export default function NotificationsContent({ locale }: NotificationsContentPro
     return true;
   });
 
-  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } =
-    usePagination(filteredNotifications, { pageSize: 20 });
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } =
+    usePagination(filteredNotifications, { controlledPageSize: pageSize });
 
   if (isLoading) {
     return (
@@ -204,14 +205,16 @@ export default function NotificationsContent({ locale }: NotificationsContentPro
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
           searchPlaceholder={t.searchPlaceholder}
           totalCount={totalItems}
           countLabel={t.count}
-          filters={filterSelect}
+          inlineFilters={filterSelect}
           addButton={markAllButton}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
 
         {/* Notification List */}
@@ -302,7 +305,7 @@ export default function NotificationsContent({ locale }: NotificationsContentPro
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

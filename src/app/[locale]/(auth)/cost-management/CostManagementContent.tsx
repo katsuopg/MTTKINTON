@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Language } from '@/lib/kintone/field-mappings';
 import { getStatusColor } from '@/lib/kintone/utils';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { extractCsName } from '@/lib/utils/customer-name';
@@ -50,6 +50,7 @@ interface CostManagementContentProps {
 export function CostManagementContent({ costRecords, locale, userEmail, userInfo }: CostManagementContentProps) {
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
   const [searchTerm, setSearchTerm] = useState('');
+  const [pageSize, setPageSize] = useState(20);
   const router = useRouter();
   const pageTitle = language === 'ja' ? 'コスト管理' : language === 'th' ? 'จัดการต้นทุน' : 'Cost Management';
 
@@ -110,14 +111,14 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
     return '';
   };
 
-  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredCosts);
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(filteredCosts, { controlledPageSize: pageSize });
 
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
       <div className={tableStyles.contentWrapper}>
         {/* テーブル */}
         <div className={tableStyles.tableContainer}>
-          <ListPageHeader
+          <AppListToolbar
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             searchPlaceholder={
@@ -127,6 +128,8 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
             }
             totalCount={filteredCosts.length}
             countLabel={language === 'ja' ? '件のコストレコード' : language === 'th' ? ' รายการต้นทุน' : ' cost records'}
+            moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+            locale={locale}
           />
           <div className="overflow-x-auto">
           {filteredCosts.length === 0 ? (
@@ -300,7 +303,7 @@ export function CostManagementContent({ costRecords, locale, userEmail, userInfo
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={totalItems}
-            pageSize={pageSize}
+            pageSize={actualPageSize}
             onPageChange={goToPage}
             locale={locale}
           />

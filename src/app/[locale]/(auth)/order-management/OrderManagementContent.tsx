@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { tableStyles } from '@/components/ui/TableStyles';
-import { ListPageHeader } from '@/components/ui/ListPageHeader';
+import { AppListToolbar } from '@/components/ui/AppListToolbar';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import { useNavPermissions } from '@/hooks/useNavPermissions';
@@ -60,6 +60,7 @@ export default function OrderManagementContent({
   const router = useRouter();
   const { canManageApp } = useNavPermissions();
   const searchParams = useSearchParams();
+  const [pageSize, setPageSize] = useState(20);
 
   const handleSearchChange = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -86,7 +87,7 @@ export default function OrderManagementContent({
     return `${year}/${month}/${day}`;
   };
 
-  const { paginatedItems, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(orderRecords);
+  const { paginatedItems, currentPage, totalPages, totalItems, pageSize: actualPageSize, goToPage } = usePagination(orderRecords, { controlledPageSize: pageSize });
 
   const searchPlaceholder = language === 'ja'
     ? 'PO番号、顧客名、工事番号で検索...'
@@ -103,13 +104,13 @@ export default function OrderManagementContent({
   return (
     <div className={tableStyles.contentWrapper}>
       <div className={tableStyles.tableContainer}>
-        <ListPageHeader
+        <AppListToolbar
           searchValue={initialKeyword}
           onSearchChange={handleSearchChange}
           searchPlaceholder={searchPlaceholder}
           totalCount={orderRecords.length}
           countLabel={countLabel}
-          filters={
+          inlineFilters={
             <div className="flex items-center gap-2 whitespace-nowrap">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {language === 'ja' ? '会計期間:' : language === 'th' ? 'ปีงบประมาณ:' : 'Fiscal Year:'}
@@ -128,6 +129,8 @@ export default function OrderManagementContent({
             </div>
           }
           settingsHref={canManageApp('orders') ? `/${locale}/settings/apps/orders` : undefined}
+          moreMenu={{ pageSize: { current: pageSize, options: [20, 40, 60, 80, 100], onChange: setPageSize } }}
+          locale={locale}
         />
 
         <div className="overflow-x-auto">
@@ -221,7 +224,7 @@ export default function OrderManagementContent({
           currentPage={currentPage}
           totalPages={totalPages}
           totalItems={totalItems}
-          pageSize={pageSize}
+          pageSize={actualPageSize}
           onPageChange={goToPage}
           locale={locale}
         />

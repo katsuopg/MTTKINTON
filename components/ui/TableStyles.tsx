@@ -64,6 +64,12 @@ export const tableStyles = {
   mobileCardBadges: "mt-1.5 flex items-center gap-1.5",
   mobileCardChevron: "flex-shrink-0 w-4 h-4 text-gray-300 dark:text-gray-600",
 
+  // ツールバー
+  toolbarWrapper: "px-4 py-2.5 border-b border-gray-200 dark:border-white/[0.05]",
+  toolbarRow: "flex items-center gap-2",
+  toolbarIconBtn: "inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-white/[0.05] transition-colors",
+  toolbarIconBtnActive: "inline-flex items-center justify-center w-9 h-9 rounded-lg text-brand-500 bg-brand-50 dark:text-brand-400 dark:bg-brand-500/10 transition-colors",
+
   // 旧スタイル（後方互換性のため）
   wrapper: "overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]",
   header: "px-5 py-4 flex justify-between items-center border-b border-gray-100 dark:border-white/[0.05]",
