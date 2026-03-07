@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAppPermission } from '@/lib/auth/app-permissions';
+import { ilikePattern } from '@/lib/utils/sanitize-search';
 import type { QuoteRequestCreate, QuoteRequestSearchParams } from '@/types/quote-request';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,7 +79,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (params.search) {
-      query = query.or(`request_no.ilike.%${params.search}%,requester_name.ilike.%${params.search}%`);
+      const sp = ilikePattern(params.search);
+      query = query.or(`request_no.ilike.${sp},requester_name.ilike.${sp}`);
     }
 
     const { data: requests, error } = await query;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { ilikePattern } from '@/lib/utils/sanitize-search';
 
 interface SearchResultItem {
   id: string;
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
-    const searchPattern = `%${q}%`;
+    const searchPattern = ilikePattern(q);
 
     // Supabase DB 並列検索
     const results = await Promise.allSettled([

@@ -138,6 +138,14 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: 'Record not found' }, { status: 404 });
     }
 
+    // @メンション解析: @[名前](user_id) パターンを検出
+    const mentionPattern = /@\[([^\]]+)\]\(([a-f0-9-]+)\)/g;
+    const mentions: { name: string; userId: string }[] = [];
+    let match;
+    while ((match = mentionPattern.exec(commentBody)) !== null) {
+      mentions.push({ name: match[1], userId: match[2] });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const commentsTable = supabase.from('app_record_comments') as any;
     const { data: comment, error } = await commentsTable
@@ -146,6 +154,7 @@ export async function POST(request: Request, { params }: Params) {
         record_id: recordId,
         user_id: user.id,
         body: commentBody.trim(),
+        mentions: mentions.length > 0 ? mentions : null,
       })
       .select()
       .single();
@@ -182,7 +191,22 @@ export async function POST(request: Request, { params }: Params) {
       }).catch(() => {});
     }
 
-    return NextResponse.json({ comment }, { status: 201 });
+    // @メンション通知: メンションされたユーザーに通知を送信
+    if (mentions.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const notificationsTable = supabase.from('notifications') as any;
+      const mentionNotifications = mentions.map(m => ({
+        user_id: m.userId,
+        title: `@${m.name}`,
+        message: `${appCode} のコメントであなたがメンションされました`,
+        type: 'mention',
+        link: `/apps/${appCode}/records/${recordId}`,
+        is_read: false,
+      }));
+      await notificationsTable.insert(mentionNotifications).catch(() => {});
+    }
+
+    return NextResponse.json({ comment, mentions }, { status: 201 });
   } catch (error) {
     console.error('Error in POST comments:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

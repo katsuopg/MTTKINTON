@@ -61,3 +61,6 @@ supabase/.temp/
 
 # Claude MCP config (example is kept)
 claude_mcp_config.json
+
+# Kintone help reference (local only)
+/kintone_help/

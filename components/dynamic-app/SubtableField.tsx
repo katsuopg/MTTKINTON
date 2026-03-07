@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import type { FieldDefinition, SubtableFieldDef, SubtableRow } from '@/types/dynamic-app';
+import { evaluateFormula, formatFormulaResult } from '@/lib/dynamic-app/formula-engine';
 
 interface SubtableFieldProps {
   field: FieldDefinition;
@@ -101,6 +102,8 @@ export default function SubtableField({ field, value, onChange, locale }: Subtab
                       value={row[sf.field_code]}
                       onChange={(val) => handleCellChange(row.subtable_row_id, sf.field_code, val)}
                       locale={locale}
+                      rowData={row}
+                      subtableFields={subtableFields}
                     />
                   </td>
                 ))}
@@ -141,16 +144,44 @@ function SubtableCellInput({
   value,
   onChange,
   locale,
+  rowData,
+  subtableFields,
 }: {
   subField: SubtableFieldDef;
   value: unknown;
   onChange: (val: unknown) => void;
   locale: string;
+  rowData?: SubtableRow;
+  subtableFields?: SubtableFieldDef[];
 }) {
   const lang = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as 'ja' | 'en' | 'th';
   const inputClass = 'w-full px-2 py-1 text-xs border border-gray-200 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500';
 
   switch (subField.field_type) {
+    case 'calculated': {
+      const formula = subField.validation?.formula || '';
+      const format = subField.validation?.formula_format || 'number';
+      const decimals = subField.validation?.formula_decimals ?? 2;
+      const localeStr = lang === 'ja' ? 'ja-JP' : lang === 'th' ? 'th-TH' : 'en-US';
+
+      // 同じ行の全フィールド値を使って計算
+      const rowValues: Record<string, unknown> = {};
+      if (rowData && subtableFields) {
+        for (const sf of subtableFields) {
+          rowValues[sf.field_code] = rowData[sf.field_code];
+        }
+      }
+
+      const result = evaluateFormula(formula, rowValues);
+      const displayValue = formatFormulaResult(result, format, decimals, localeStr);
+
+      return (
+        <span className="w-full inline-block px-2 py-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+          {displayValue}
+        </span>
+      );
+    }
+
     case 'single_line_text':
     case 'link':
       return (

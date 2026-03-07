@@ -260,16 +260,10 @@ export default function ProjectDetailContent({
     // ステータス・従業員を取得（未取得の場合）
     if (statuses.length === 0 || employees.length === 0) {
       try {
-        const [projRes, empRes] = await Promise.all([
-          fetch('/api/projects'),
-          fetch('/api/employees?status=Active'),
-        ]);
-        if (projRes.ok) {
-          const data = await projRes.json();
+        const res = await fetch('/api/projects');
+        if (res.ok) {
+          const data = await res.json();
           setStatuses(data.statuses || []);
-        }
-        if (empRes.ok) {
-          const data = await empRes.json();
           setEmployees(data.employees || []);
         }
       } catch (err) {
@@ -291,10 +285,7 @@ export default function ProjectDetailContent({
     setSaveError(null);
 
     try {
-      const response = await fetch(`/api/projects/${project.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const payload = {
           project_name: form.project_name,
           description: form.description || null,
           status_code: form.status_code,
@@ -304,15 +295,22 @@ export default function ProjectDetailContent({
           sales_person_id: form.sales_person_id || null,
           start_date: form.start_date || null,
           due_date: form.due_date || null,
-        }),
+      };
+      console.log('[DEBUG] Save payload:', JSON.stringify(payload));
+      const response = await fetch(`/api/projects/${project.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const data = await response.json();
+        console.error('[DEBUG] Save error response:', data);
         throw new Error(data.error || 'Failed to update');
       }
 
       const updated = await response.json();
+      console.log('[DEBUG] Save response:', JSON.stringify({ sales_person_id: updated.sales_person_id, sales_person: updated.sales_person }));
       setProject(updated);
       setEditing(false);
       toast({ type: 'success', title: language === 'ja' ? '保存しました' : language === 'th' ? 'บันทึกสำเร็จ' : 'Saved successfully' });

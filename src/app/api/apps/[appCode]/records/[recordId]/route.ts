@@ -10,6 +10,7 @@ import { validateRecordData } from '@/lib/dynamic-app/validation';
 import type { FieldDefinition } from '@/types/dynamic-app';
 import { fireNotifications } from '@/lib/dynamic-app/notification-engine';
 import { fireWebhooks } from '@/lib/dynamic-app/webhook-engine';
+import { writeAuditLog } from '@/lib/audit/audit-log';
 
 /**
  * レコード詳細を取得
@@ -54,6 +55,7 @@ export async function GET(
 
     // レコード権限チェック
     const rules = await getRecordPermissionRules(app.id);
+    let recordPermissions = null;
     if (rules.length > 0) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -62,12 +64,26 @@ export async function GET(
         if (perm && !perm.can_view) {
           return NextResponse.json({ error: 'Access denied' }, { status: 403 });
         }
-        // レコードに権限情報を付加
-        return NextResponse.json({ record, recordPermissions: perm });
+        recordPermissions = perm;
       }
     }
 
-    return NextResponse.json({ record });
+    // フィールド権限フィルタリング: hiddenフィールドをdataから除外
+    const filteredRecord = { ...record };
+    if (permCheck.allowed && permCheck.permissions.fieldPermissions.length > 0 && filteredRecord.data) {
+      const hiddenFields = permCheck.permissions.fieldPermissions
+        .filter(fp => fp.access_level === 'hidden')
+        .map(fp => fp.field_name);
+      if (hiddenFields.length > 0) {
+        const data = { ...(filteredRecord.data as Record<string, unknown>) };
+        for (const field of hiddenFields) {
+          delete data[field];
+        }
+        filteredRecord.data = data;
+      }
+    }
+
+    return NextResponse.json({ record: filteredRecord, recordPermissions });
   } catch (error) {
     console.error('Error in GET /api/apps/[appCode]/records/[recordId]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -92,7 +108,7 @@ export async function PATCH(
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const body = await request.json();
-    const { data } = body as { data: Record<string, unknown> };
+    const { data, expected_updated_at } = body as { data: Record<string, unknown>; expected_updated_at?: string };
 
     if (!data || typeof data !== 'object') {
       return NextResponse.json({ error: 'data object is required' }, { status: 400 });
@@ -121,6 +137,18 @@ export async function PATCH(
 
     if (!existingRecord) {
       return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+    }
+
+    // 楽観ロック: クライアントが送信したupdated_atとDB上の値を比較
+    if (expected_updated_at) {
+      const dbUpdatedAt = new Date(existingRecord.updated_at).getTime();
+      const clientUpdatedAt = new Date(expected_updated_at).getTime();
+      if (dbUpdatedAt !== clientUpdatedAt) {
+        return NextResponse.json(
+          { error: 'Record has been modified by another user. Please reload and try again.', code: 'CONFLICT' },
+          { status: 409 }
+        );
+      }
     }
 
     // レコード権限チェック（can_edit）
@@ -219,6 +247,16 @@ export async function PATCH(
       trigger: 'record_edited',
       record,
       actorUserId: user?.id || '',
+    }).catch(() => {});
+
+    // 監査ログ
+    writeAuditLog({
+      userId: user?.id,
+      action: 'record_update',
+      resourceType: 'app_record',
+      resourceId: recordId,
+      appCode,
+      details: { fields_changed: Object.keys(data) },
     }).catch(() => {});
 
     return NextResponse.json({ record });

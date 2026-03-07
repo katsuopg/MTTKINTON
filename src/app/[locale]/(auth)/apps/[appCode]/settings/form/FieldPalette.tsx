@@ -8,7 +8,7 @@ import {
   Search, GitBranch, Calculator, TableProperties,
   User, Building2, Shield,
   UserPlus, CalendarPlus, UserPen, CalendarCog,
-  Tag, Square, Minus,
+  Tag, Square, Minus, FolderOpen,
 } from 'lucide-react';
 import type { FieldType } from '@/types/dynamic-app';
 import { FIELD_TYPE_INFO } from '@/types/dynamic-app';
@@ -20,7 +20,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Search, GitBranch, Calculator, TableProperties,
   User, Building2, Shield,
   UserPlus, CalendarPlus, UserPen, CalendarCog,
-  Tag, Square, Minus,
+  Tag, Square, Minus, FolderOpen,
 };
 
 interface FieldCategory {
@@ -83,7 +83,7 @@ const FIELD_CATEGORIES: FieldCategory[] = [
   {
     key: 'decoration',
     label: { ja: '装飾', en: 'Decoration', th: 'ตกแต่ง' },
-    types: ['label', 'space', 'hr'],
+    types: ['label', 'space', 'group', 'hr'],
   },
 ];
 

@@ -67,6 +67,32 @@ export async function POST(
     .eq('record_table', 'app_records')
     .single();
 
+  // 作業者チェック: 現在のステータスに作業者候補が設定されている場合、
+  // ログインユーザーが作業者に含まれているか確認
+  if (currentState) {
+    const { data: assignees } = await supabase
+      .from('record_assignees' as any)
+      .select('assignee_id')
+      .eq('record_process_state_id', (currentState as any).id);
+
+    // 作業者が設定されている場合のみチェック（未設定なら誰でも実行可）
+    if (assignees && assignees.length > 0) {
+      const assigneeIds = (assignees as any[]).map(a => a.assignee_id);
+      // user.idまたはemployeeIdで照合
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      const employeeId = emp?.id;
+
+      const isAssignee = assigneeIds.includes(user.id) || (employeeId && assigneeIds.includes(employeeId));
+      if (!isAssignee) {
+        return NextResponse.json({ error: 'You are not an assignee for this action' }, { status: 403 });
+      }
+    }
+  }
+
   if (currentState) {
     // 既存状態がある場合、fromステータスが一致するか確認
     if ((currentState as any).current_status_id !== fromStatusId) {
@@ -87,6 +113,23 @@ export async function POST(
       .from('record_assignees' as any)
       .delete()
       .eq('record_process_state_id', (currentState as any).id);
+
+    // 次のステータスの作業者候補を割り当て
+    const { data: nextAssigneeDefs } = await supabase
+      .from('process_status_assignees' as any)
+      .select('*')
+      .eq('status_id', toStatusId);
+
+    if (nextAssigneeDefs && (nextAssigneeDefs as any[]).length > 0) {
+      const newAssignees = (nextAssigneeDefs as any[]).map(def => ({
+        record_process_state_id: (currentState as any).id,
+        assignee_type: def.assignee_type,
+        assignee_id: def.assignee_type === 'creator' ? (record as any).created_by : def.assignee_id,
+      }));
+      await supabase
+        .from('record_assignees' as any)
+        .insert(newAssignees);
+    }
   } else {
     // 初期ステータスからの遷移（状態レコードがない場合）
     // fromが初期ステータスかチェック
@@ -101,13 +144,40 @@ export async function POST(
     }
 
     // 状態レコード作成
-    await supabase
+    const { data: newState } = await supabase
       .from('record_process_states' as any)
       .insert({
         record_id: recordId,
         record_table: 'app_records',
         current_status_id: toStatusId,
-      });
+      })
+      .select('id')
+      .single();
+
+    // 次のステータスの作業者候補を割り当て
+    if (newState) {
+      const { data: nextAssigneeDefs } = await supabase
+        .from('process_status_assignees' as any)
+        .select('*')
+        .eq('status_id', toStatusId);
+
+      if (nextAssigneeDefs && (nextAssigneeDefs as any[]).length > 0) {
+        const { data: fullRec } = await supabase
+          .from('app_records' as any)
+          .select('created_by')
+          .eq('id', recordId)
+          .single();
+
+        const newAssignees = (nextAssigneeDefs as any[]).map(def => ({
+          record_process_state_id: (newState as any).id,
+          assignee_type: def.assignee_type,
+          assignee_id: def.assignee_type === 'creator' ? (fullRec as any)?.created_by : def.assignee_id,
+        }));
+        await supabase
+          .from('record_assignees' as any)
+          .insert(newAssignees);
+      }
+    }
   }
 
   // アクションログ記録
@@ -234,6 +304,34 @@ export async function GET(
     }
   }
 
+  // 現在の作業者取得
+  let assignees: any[] = [];
+  let isCurrentUserAssignee = false;
+  if (currentState) {
+    const { data: assigneeData } = await supabase
+      .from('record_assignees' as any)
+      .select('assignee_id, assignee_type')
+      .eq('record_process_state_id', (currentState as any).id);
+    assignees = (assigneeData || []) as any[];
+
+    // ユーザーが作業者かチェック
+    if (assignees.length > 0) {
+      const assigneeIds = assignees.map((a: any) => a.assignee_id);
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      isCurrentUserAssignee = assigneeIds.includes(user.id) || !!(emp && assigneeIds.includes(emp.id));
+    } else {
+      // 作業者未設定なら誰でもアクション可
+      isCurrentUserAssignee = true;
+    }
+  } else {
+    // 初期ステータスなら誰でもアクション可
+    isCurrentUserAssignee = true;
+  }
+
   // 現在のステータスから実行可能なアクション取得
   let availableActions: any[] = [];
   if (currentStatusId) {
@@ -298,7 +396,9 @@ export async function GET(
     current_status_id: currentStatusId,
     current_status_name: currentStatusName,
     is_final: statusList.find((s: any) => s.id === currentStatusId)?.is_final ?? false,
-    available_actions: availableActions,
+    available_actions: isCurrentUserAssignee ? availableActions : [],
+    is_assignee: isCurrentUserAssignee,
+    assignees,
     logs: enrichedLogs,
     statuses: statusList,
   });

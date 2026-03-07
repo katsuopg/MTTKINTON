@@ -1,8 +1,15 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 export async function POST(request: Request) {
   try {
+    // アプリ権限チェック: 従業員の編集権限が必要
+    const permCheck = await requireAppPermission('employees', 'can_edit');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 

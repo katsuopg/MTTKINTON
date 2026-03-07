@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { detailStyles } from '@/components/ui/DetailStyles';
 import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import type { FieldDefinition, AppRecord, ValidationError } from '@/types/dynamic-app';
 import { NON_INPUT_FIELD_TYPES, AUTO_FIELD_TYPES, DECORATIVE_FIELD_TYPES } from '@/types/dynamic-app';
 import DynamicField from '@/components/dynamic-app/DynamicField';
@@ -61,6 +61,19 @@ export default function DynamicFormContent({
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // グループ開閉状態
+  const [groupOpenState, setGroupOpenState] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    fields.filter(f => f.field_type === 'group').forEach(f => {
+      initial[f.field_code] = f.validation?.group_open_default !== false;
+    });
+    return initial;
+  });
+
+  const toggleGroup = (fieldCode: string) => {
+    setGroupOpenState(prev => ({ ...prev, [fieldCode]: !prev[fieldCode] }));
+  };
+
   const saveLabel = isEdit
     ? (lang === 'ja' ? '更新' : lang === 'th' ? 'อัปเดต' : 'Update')
     : (lang === 'ja' ? '保存' : lang === 'th' ? 'บันทึก' : 'Save');
@@ -107,20 +120,17 @@ export default function DynamicFormContent({
       for (const field of fields) {
         if (field.field_type !== 'calculated' || !field.validation?.formula) continue;
         try {
-          let expr = field.validation.formula;
-          const numberFields = fields.filter(f => f.field_type === 'number');
-          for (const nf of numberFields) {
-            const v = Number(formData[nf.field_code] ?? 0) || 0;
-            expr = expr.replace(new RegExp(`\\b${nf.field_code}\\b`, 'g'), String(v));
-          }
-          const sanitized = expr.replace(/[^0-9+\-*/().%\s]/g, '');
-          if (sanitized.trim()) {
-            // eslint-disable-next-line no-eval
-            const result = eval(sanitized);
-            if (typeof result === 'number' && !isNaN(result)) {
-              const dec = field.validation.formula_decimals ?? 2;
-              submitData[field.field_code] = Math.round(result * Math.pow(10, dec)) / Math.pow(10, dec);
+          const { evaluateFormula } = await import('@/lib/dynamic-app/formula-engine');
+          const values: Record<string, number> = {};
+          for (const f of fields) {
+            if (f.field_type === 'number' || f.field_type === 'calculated') {
+              values[f.field_code] = Number(formData[f.field_code] ?? 0) || 0;
             }
+          }
+          const result = evaluateFormula(field.validation.formula, values);
+          if (typeof result === 'number' && !isNaN(result)) {
+            const dec = field.validation.formula_decimals ?? 2;
+            submitData[field.field_code] = Math.round(result * Math.pow(10, dec)) / Math.pow(10, dec);
           }
         } catch { /* skip calc errors */ }
       }
@@ -228,28 +238,80 @@ export default function DynamicFormContent({
         </div>
         <div className={detailStyles.cardContent}>
           <div className="space-y-5 max-w-3xl">
-            {fieldRows.map((row, rowIdx) => (
-              <div
-                key={rowIdx}
-                className={row.length > 1 || row[0]?.col_span === 1 ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}
-              >
-                {row.map((field) => (
-                  <DynamicField
-                    key={field.id}
-                    field={field}
-                    value={formData[field.field_code]}
-                    onChange={(value) => handleFieldChange(field.field_code, value)}
-                    locale={locale}
-                    error={errors[field.field_code]}
-                    record={record}
-                    isNew={!isEdit}
-                    allFields={fields}
-                    formData={formData}
-                    onBulkChange={handleBulkChange}
-                  />
-                ))}
-              </div>
-            ))}
+            {fieldRows.map((row, rowIdx) => {
+              // グループフィールドの場合、グループセクションとしてレンダリング
+              if (row.length === 1 && row[0].field_type === 'group') {
+                const gf = row[0];
+                const gfLabel = gf.label[lang] || gf.label.ja || gf.field_code;
+                const isOpen = groupOpenState[gf.field_code] ?? true;
+                const memberFields = (gf.validation?.group_fields || [])
+                  .map(code => fields.find(f => f.field_code === code))
+                  .filter((f): f is FieldDefinition =>
+                    !!f && f.field_type !== 'related_records' &&
+                    (!(!isEdit) || !AUTO_FIELD_TYPES.has(f.field_type))
+                  );
+                if (memberFields.length === 0) return null;
+                return (
+                  <div key={rowIdx} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(gf.field_code)}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-left bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                      )}
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {gfLabel}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="px-4 py-3 space-y-4">
+                        {memberFields.map((mf) => (
+                          <DynamicField
+                            key={mf.id}
+                            field={mf}
+                            value={formData[mf.field_code]}
+                            onChange={(value) => handleFieldChange(mf.field_code, value)}
+                            locale={locale}
+                            error={errors[mf.field_code]}
+                            record={record}
+                            isNew={!isEdit}
+                            allFields={fields}
+                            formData={formData}
+                            onBulkChange={handleBulkChange}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={rowIdx}
+                  className={row.length > 1 || row[0]?.col_span === 1 ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : ''}
+                >
+                  {row.map((field) => (
+                    <DynamicField
+                      key={field.id}
+                      field={field}
+                      value={formData[field.field_code]}
+                      onChange={(value) => handleFieldChange(field.field_code, value)}
+                      locale={locale}
+                      error={errors[field.field_code]}
+                      record={record}
+                      isNew={!isEdit}
+                      allFields={fields}
+                      formData={formData}
+                      onBulkChange={handleBulkChange}
+                    />
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

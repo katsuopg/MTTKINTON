@@ -5,6 +5,9 @@ description: "Kintone機能・権限リファレンス"
 
 # /kintone-ref - Kintone機能リファレンス
 
+> **詳細リファレンス**: `docs/kintone-reference.md` にKintone全機能（フォーム設計・権限・プロセス管理・ビュー・レポート・通知・管理者設定・スペース・ポータル等）の包括的な仕様を記載。
+> **実装状況**: `docs/kintone-expert.md` にMTT Kintonの実装状況・ライフサイクルを記載。
+
 ## 基本概念
 
 ### アプリ構成

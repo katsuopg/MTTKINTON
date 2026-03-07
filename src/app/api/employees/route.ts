@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { requireAppPermission } from '@/lib/auth/app-permissions';
+import { ilikePattern } from '@/lib/utils/sanitize-search';
 
 // 従業員一覧取得
 export async function GET(request: Request) {
@@ -37,7 +38,8 @@ export async function GET(request: Request) {
 
     // 検索フィルター（名前または従業員番号）
     if (search) {
-      query = query.or(`name.ilike.%${search}%,employee_number.ilike.%${search}%`);
+      const sp = ilikePattern(search);
+      query = query.or(`name.ilike.${sp},employee_number.ilike.${sp}`);
     }
 
     const { data: employees, error } = await query;

@@ -8,7 +8,7 @@ import {
   Search, GitBranch, Calculator, TableProperties,
   User, Building2, Shield,
   UserPlus, CalendarPlus, UserPen, CalendarCog,
-  Tag, Square, Minus,
+  Tag, Square, Minus, FolderOpen,
 } from 'lucide-react';
 import type { FieldDefinition, FieldType } from '@/types/dynamic-app';
 import { FIELD_TYPE_INFO, DECORATIVE_FIELD_TYPES, AUTO_FIELD_TYPES, REFERENCE_FIELD_TYPES, ENTITY_SELECT_TYPES } from '@/types/dynamic-app';
@@ -20,7 +20,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Search, GitBranch, Calculator, TableProperties,
   User, Building2, Shield,
   UserPlus, CalendarPlus, UserPen, CalendarCog,
-  Tag, Square, Minus,
+  Tag, Square, Minus, FolderOpen,
 };
 
 interface FormCanvasProps {
@@ -135,6 +135,29 @@ export default function FormCanvas({
           <span className="text-sm italic text-gray-600 dark:text-gray-400 truncate">
             {field.label[lang] || field.label.ja || field.field_code}
           </span>
+        </div>
+      );
+    }
+
+    if (field.field_type === 'group') {
+      const groupFieldCount = field.validation?.group_fields?.length || 0;
+      const openDefault = field.validation?.group_open_default !== false;
+      return (
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <FolderOpen className="w-4 h-4 text-indigo-400 dark:text-indigo-500 flex-shrink-0" />
+          <div className="flex-1 min-w-0 border border-dashed border-indigo-300 dark:border-indigo-600 rounded-lg px-3 py-1.5">
+            <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400 truncate">
+              {field.label[lang] || field.label.ja || field.field_code}
+            </span>
+            <span className="ml-2 text-[10px] text-indigo-500 dark:text-indigo-400">
+              {groupFieldCount} {lang === 'ja' ? 'フィールド' : lang === 'th' ? 'ฟิลด์' : 'fields'}
+              {' / '}
+              {openDefault
+                ? (lang === 'ja' ? '開' : lang === 'th' ? 'เปิด' : 'Open')
+                : (lang === 'ja' ? '閉' : lang === 'th' ? 'ปิด' : 'Closed')
+              }
+            </span>
+          </div>
         </div>
       );
     }

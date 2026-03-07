@@ -70,6 +70,24 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const { data: { user } } = await supabase.auth.getUser();
 
+    // 楽観ロック: クライアントが送信したupdated_atとDB上の値を比較
+    if (body.expected_updated_at) {
+      const { data: current } = await (supabase.from('projects') as SupabaseAny)
+        .select('updated_at')
+        .eq('id', id)
+        .single();
+      if (current) {
+        const dbUpdatedAt = new Date(current.updated_at).getTime();
+        const clientUpdatedAt = new Date(body.expected_updated_at).getTime();
+        if (dbUpdatedAt !== clientUpdatedAt) {
+          return NextResponse.json(
+            { error: 'Record has been modified by another user. Please reload and try again.', code: 'CONFLICT' },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
     const updateData: Record<string, unknown> = {
       updated_by: user!.id,
     };
@@ -90,6 +108,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         updateData[field] = body[field];
       }
     }
+
+    console.log('[DEBUG PATCH /api/projects] body:', JSON.stringify(body));
+    console.log('[DEBUG PATCH /api/projects] updateData:', JSON.stringify(updateData));
 
     // ステータスコードが指定された場合はstatus_idに変換
     if (body.status_code) {
@@ -116,9 +137,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       .single();
 
     if (error) {
+      console.error('[DEBUG PATCH /api/projects] DB error:', error);
       throw error;
     }
 
+    console.log('[DEBUG PATCH /api/projects] saved project sales_person_id:', project?.sales_person_id, 'sales_person:', project?.sales_person);
     return NextResponse.json(project);
   } catch (error) {
     console.error('Error updating project:', error);

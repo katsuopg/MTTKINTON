@@ -68,7 +68,8 @@ export async function GET(
 
     if (query) {
       // JSONB内のキーフィールド値でテキスト検索
-      dataQuery = dataQuery.ilike('data::text', `%${query}%`);
+      const escaped = query.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+      dataQuery = dataQuery.ilike('data::text', `%${escaped}%`);
     }
 
     dataQuery = dataQuery.order('record_number', { ascending: false }).limit(20);

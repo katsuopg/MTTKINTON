@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAppPermission } from '@/lib/auth/app-permissions';
+import { ilikePattern } from '@/lib/utils/sanitize-search';
 import type { ProjectCreate, ProjectSearchParams } from '@/types/project';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +32,13 @@ export async function GET(request: NextRequest) {
       .select('*')
       .order('sort_order');
 
+    // Active従業員一覧取得（担当営業選択用）
+    const { data: employees } = await (supabase
+      .from('employees') as SupabaseAny)
+      .select('id, name, nickname')
+      .eq('status', 'Active')
+      .order('employee_number', { ascending: true });
+
     // プロジェクト一覧取得
     let query = (supabase.from('projects') as SupabaseAny)
       .select(`
@@ -53,7 +61,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (params.search) {
-      query = query.or(`project_code.ilike.%${params.search}%,project_name.ilike.%${params.search}%,customer_name.ilike.%${params.search}%`);
+      const sp = ilikePattern(params.search);
+      query = query.or(`project_code.ilike.${sp},project_name.ilike.${sp},customer_name.ilike.${sp}`);
     }
 
     const { data: projects, error } = await query;
@@ -64,6 +73,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       statuses: statuses || [],
+      employees: employees || [],
       projects: projects || [],
     });
   } catch (error) {

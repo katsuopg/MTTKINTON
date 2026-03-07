@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { ilikePattern } from '@/lib/utils/sanitize-search';
 
 /**
  * エンティティ検索API
@@ -54,7 +55,8 @@ async function searchUsers(supabase: any, search: string, ids: string | null) {
     .order('name');
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,name_th.ilike.%${search}%,email.ilike.%${search}%,employee_number.ilike.%${search}%`);
+    const sp = ilikePattern(search);
+    query = query.or(`name.ilike.${sp},name_th.ilike.${sp},email.ilike.${sp},employee_number.ilike.${sp}`);
   }
 
   const { data } = await query.limit(20);
@@ -91,7 +93,8 @@ async function searchOrganizations(supabase: any, search: string, ids: string | 
     .order('display_order');
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,name_en.ilike.%${search}%,name_th.ilike.%${search}%,code.ilike.%${search}%`);
+    const sp = ilikePattern(search);
+    query = query.or(`name.ilike.${sp},name_en.ilike.${sp},name_th.ilike.${sp},code.ilike.${sp}`);
   }
 
   const { data } = await query.limit(20);
@@ -127,7 +130,8 @@ async function searchRoles(supabase: any, search: string, ids: string | null) {
     .order('display_order');
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,name_en.ilike.%${search}%,name_th.ilike.%${search}%,code.ilike.%${search}%`);
+    const sp = ilikePattern(search);
+    query = query.or(`name.ilike.${sp},name_en.ilike.${sp},name_th.ilike.${sp},code.ilike.${sp}`);
   }
 
   const { data } = await query.limit(20);

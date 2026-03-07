@@ -200,8 +200,11 @@ export async function getUserAppPermissions(appCode: string): Promise<UserAppPer
     .eq('is_active', true)
     .order('priority', { ascending: false });
 
-  // 権限を集約
-  const aggregatedPermission: AppPermission = { ...DEFAULT_APP_PERMISSION };
+  // 権限を決定（最高優先度のマッチングルールが勝つ = first-match-wins）
+  // priority降順でソート済みなので、最初にマッチしたルールの値を採用
+  // これにより、高優先度ルールで権限を剥奪（false設定）できる
+  let aggregatedPermission: AppPermission = { ...DEFAULT_APP_PERMISSION };
+  let matched = false;
 
   for (const perm of appPermissions || []) {
     let matches = false;
@@ -222,14 +225,23 @@ export async function getUserAppPermissions(appCode: string): Promise<UserAppPer
     }
 
     if (matches) {
-      if (perm.can_view) aggregatedPermission.can_view = true;
-      if (perm.can_add) aggregatedPermission.can_add = true;
-      if (perm.can_edit) aggregatedPermission.can_edit = true;
-      if (perm.can_delete) aggregatedPermission.can_delete = true;
-      if (perm.can_manage) aggregatedPermission.can_manage = true;
-      if (perm.can_export) aggregatedPermission.can_export = true;
-      if (perm.can_import) aggregatedPermission.can_import = true;
+      aggregatedPermission = {
+        can_view: !!perm.can_view,
+        can_add: !!perm.can_add,
+        can_edit: !!perm.can_edit,
+        can_delete: !!perm.can_delete,
+        can_manage: !!perm.can_manage,
+        can_export: !!perm.can_export,
+        can_import: !!perm.can_import,
+      };
+      matched = true;
+      break; // 最高優先度のマッチで確定
     }
+  }
+
+  // マッチするルールがない場合はデフォルト（権限なし）
+  if (!matched) {
+    aggregatedPermission = { ...DEFAULT_APP_PERMISSION };
   }
 
   // フィールド権限を取得

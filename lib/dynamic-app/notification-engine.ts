@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { checkRecordRuleCondition } from '@/lib/auth/app-permissions';
+import { sendNotificationEmail } from '@/lib/mail/send-mail';
 
 export type NotificationTrigger =
   | 'record_added'
@@ -94,6 +95,26 @@ export async function fireNotifications(params: {
       const { error } = await supabase.from('notifications').insert(notificationRows);
       if (error) {
         console.error('Failed to create notifications:', error);
+      }
+
+      // メール通知（MAIL_PROVIDERが設定されている場合のみ）
+      if (process.env.MAIL_PROVIDER) {
+        for (const userId of filteredTargets) {
+          // ユーザーのメールアドレスを取得
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: emp } = await (supabase.from('employees') as any)
+            .select('company_email')
+            .eq('employee_uuid', userId)
+            .single();
+          if (emp?.company_email) {
+            sendNotificationEmail({
+              recipientEmail: emp.company_email,
+              title,
+              message,
+              link: `/apps/${appCode}/records/${record.id}`,
+            }).catch(() => {});
+          }
+        }
       }
     }
   } catch (err) {

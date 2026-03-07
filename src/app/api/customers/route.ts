@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireAppPermission } from '@/lib/auth/app-permissions';
+import { ilikePattern } from '@/lib/utils/sanitize-search';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseAny = any;
@@ -24,8 +25,9 @@ export async function GET(request: NextRequest) {
       .order('customer_id', { ascending: true });
 
     if (search) {
+      const sp = ilikePattern(search);
       query = query.or(
-        `customer_id.ilike.%${search}%,company_name.ilike.%${search}%`
+        `customer_id.ilike.${sp},company_name.ilike.${sp}`
       );
     }
 

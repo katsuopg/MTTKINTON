@@ -14,6 +14,8 @@ import NotificationSettings from './NotificationSettings';
 import ViewSettings from './ViewSettings';
 import AdvancedSettings from './AdvancedSettings';
 import WebhookSettings from './WebhookSettings';
+import ScheduledReportSettings from './ScheduledReportSettings';
+import AppActionSettings from './AppActionSettings';
 
 interface AppSettingsContentProps {
   locale: string;
@@ -46,6 +48,8 @@ export default function AppSettingsContent({ locale, appCode, appName }: AppSett
     { key: 'views', label: label('一覧・グラフ', 'มุมมอง/กราฟ', 'Views & Charts') },
     { key: 'notification', label: label('通知設定', 'การตั้งค่าการแจ้งเตือน', 'Notifications') },
     { key: 'webhooks', label: label('Webhook', 'Webhook', 'Webhooks') },
+    { key: 'actions', label: label('アクション', 'การดำเนินการ', 'Actions') },
+    { key: 'reports', label: label('定期レポート', 'รายงานตามกำหนด', 'Scheduled Reports') },
     { key: 'advanced', label: label('高度な設定', 'ตั้งค่าขั้นสูง', 'Advanced') },
   ];
 
@@ -90,6 +94,14 @@ export default function AppSettingsContent({ locale, appCode, appName }: AppSett
 
       <TabPanel value="webhooks" activeValue={activeTab}>
         <WebhookSettings locale={locale} appCode={appCode} />
+      </TabPanel>
+
+      <TabPanel value="actions" activeValue={activeTab}>
+        <AppActionSettings locale={locale} appCode={appCode} />
+      </TabPanel>
+
+      <TabPanel value="reports" activeValue={activeTab}>
+        <ScheduledReportSettings locale={locale} appCode={appCode} />
       </TabPanel>
 
       <TabPanel value="advanced" activeValue={activeTab}>

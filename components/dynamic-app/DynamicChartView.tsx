@@ -216,6 +216,72 @@ export default function DynamicChartView({
       );
     }
 
+    // horizontal_bar
+    if (chartType === 'horizontal_bar') {
+      return (
+        <ResponsiveContainer width="100%" height={Math.max(400, data.length * 40)}>
+          <BarChart data={data} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-gray-700" />
+            <XAxis type="number" tickLine={false} axisLine={false} className="text-gray-500 dark:text-gray-400" fontSize={12} />
+            <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} className="text-gray-500 dark:text-gray-400" fontSize={12} width={120} />
+            <Tooltip contentStyle={{ borderRadius: '8px' }} />
+            {groups ? (
+              groups.map((g, i) => (
+                <Bar key={g} dataKey={g} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[0, 4, 4, 0]} />
+              ))
+            ) : (
+              <Bar dataKey="value" fill="#465FFF" radius={[0, 4, 4, 0]} name={aggLabel} />
+            )}
+            {groups && <Legend />}
+          </BarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    // stacked_bar
+    if (chartType === 'stacked_bar') {
+      return (
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-gray-700" />
+            <XAxis dataKey="name" tickLine={false} axisLine={false} className="text-gray-500 dark:text-gray-400" fontSize={12} />
+            <YAxis tickLine={false} axisLine={false} className="text-gray-500 dark:text-gray-400" fontSize={12} />
+            <Tooltip contentStyle={{ borderRadius: '8px' }} />
+            {groups ? (
+              groups.map((g, i) => (
+                <Bar key={g} dataKey={g} stackId="stack" fill={CHART_COLORS[i % CHART_COLORS.length]} radius={i === groups.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+              ))
+            ) : (
+              <Bar dataKey="value" fill="#465FFF" radius={[4, 4, 0, 0]} name={aggLabel} />
+            )}
+            {groups && <Legend />}
+          </BarChart>
+        </ResponsiveContainer>
+      );
+    }
+
+    // stacked_area
+    if (chartType === 'stacked_area') {
+      return (
+        <ResponsiveContainer width="100%" height={400}>
+          <AreaChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-gray-200 dark:text-gray-700" />
+            <XAxis dataKey="name" tickLine={false} axisLine={false} className="text-gray-500 dark:text-gray-400" fontSize={12} />
+            <YAxis tickLine={false} axisLine={false} className="text-gray-500 dark:text-gray-400" fontSize={12} />
+            <Tooltip contentStyle={{ borderRadius: '8px' }} />
+            {groups ? (
+              groups.map((g, i) => (
+                <Area key={g} type="monotone" dataKey={g} stackId="stack" fill={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={0.6} stroke={CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} />
+              ))
+            ) : (
+              <Area type="monotone" dataKey="value" fill="#465FFF" fillOpacity={0.3} stroke="#465FFF" strokeWidth={2} name={aggLabel} />
+            )}
+            {groups && <Legend />}
+          </AreaChart>
+        </ResponsiveContainer>
+      );
+    }
+
     // bar (default)
     return (
       <ResponsiveContainer width="100%" height={400}>

@@ -33,10 +33,24 @@ export async function GET(
     // デフォルト値
     let sortField = searchParams.get('sortField') || 'record_number';
     let sortOrder = searchParams.get('sortOrder') || 'desc';
+    let sortFields: { field: string; order: string }[] = [];
     let page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     let pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '20')));
     let filterConditions: { field_code: string; operator: string; value?: unknown }[] = [];
     let filterMatchType = searchParams.get('filterMatchType') || 'and';
+
+    // 複数ソート（URLパラメータ）
+    const sortFieldsParam = searchParams.get('sortFields');
+    if (sortFieldsParam) {
+      try {
+        const parsed = JSON.parse(sortFieldsParam);
+        if (Array.isArray(parsed)) {
+          sortFields = parsed.slice(0, 5);
+        }
+      } catch {
+        // ignore
+      }
+    }
 
     const supabase = await createClient();
 
@@ -64,6 +78,9 @@ export async function GET(
         const cfg = viewData.config as Record<string, unknown>;
         if (cfg.sort_field && !searchParams.has('sortField')) sortField = cfg.sort_field as string;
         if (cfg.sort_order && !searchParams.has('sortOrder')) sortOrder = cfg.sort_order as string;
+        if (Array.isArray(cfg.sort_fields) && cfg.sort_fields.length > 0 && !searchParams.has('sortFields')) {
+          sortFields = (cfg.sort_fields as { field: string; order: string }[]).slice(0, 5);
+        }
         if (cfg.page_size && !searchParams.has('pageSize')) pageSize = Math.min(100, Math.max(1, cfg.page_size as number));
         if (Array.isArray(cfg.filter_conditions) && cfg.filter_conditions.length > 0) {
           filterConditions = cfg.filter_conditions as typeof filterConditions;
@@ -98,6 +115,7 @@ export async function GET(
       p_sort_order: sortOrder,
       p_page: page,
       p_page_size: pageSize,
+      p_sort_fields: sortFields.length > 0 ? JSON.stringify(sortFields) : null,
     });
 
     if (error) {
@@ -127,8 +145,27 @@ export async function GET(
 
     const effectiveTotal = rules.length > 0 ? filteredRecords.length : total;
 
+    // フィールド権限フィルタリング: hiddenフィールドをdataから除外
+    const hiddenFields = permCheck.allowed
+      ? permCheck.permissions.fieldPermissions
+          .filter(fp => fp.access_level === 'hidden')
+          .map(fp => fp.field_name)
+      : [];
+
+    let outputRecords = filteredRecords;
+    if (hiddenFields.length > 0) {
+      outputRecords = filteredRecords.map((record: Record<string, unknown>) => {
+        if (!record.data) return record;
+        const data = { ...(record.data as Record<string, unknown>) };
+        for (const field of hiddenFields) {
+          delete data[field];
+        }
+        return { ...record, data };
+      });
+    }
+
     return NextResponse.json({
-      records: filteredRecords,
+      records: outputRecords,
       total: effectiveTotal,
       page,
       pageSize,

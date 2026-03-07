@@ -1,19 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import { Building2, Users, ShieldCheck, LayoutGrid, Table2, Menu, FolderOpen, ClipboardList, KeyRound, LayoutDashboard, Lock } from 'lucide-react';
 import OrganizationManagement from './OrganizationManagement';
 import UserManagement from './UserManagement';
 import PermissionManagement from './PermissionManagement';
 import AppPermissionSettings from './AppPermissionSettings';
 import FieldPermissionSettings from './FieldPermissionSettings';
 import MenuManagement from './MenuManagement';
+import AppGroupManagement from './AppGroupManagement';
+import AuditLogViewer from './AuditLogViewer';
+import ApiTokenManagement from './ApiTokenManagement';
+import PortalWidgetManagement from './PortalWidgetManagement';
 import { usePermissions } from '@/hooks/usePermissions';
 
 interface SettingsClientProps {
   locale: string;
 }
 
-type TabId = 'organizations' | 'users' | 'permissions' | 'app_permissions' | 'field_permissions' | 'menu_management';
+type TabId = 'organizations' | 'users' | 'permissions' | 'app_permissions' | 'field_permissions' | 'menu_management' | 'app_groups' | 'audit_logs' | 'api_tokens' | 'portal_widgets';
 
 export default function SettingsClient({ locale }: SettingsClientProps) {
   const [activeTab, setActiveTab] = useState<TabId>('organizations');
@@ -26,56 +31,52 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
     {
       id: 'organizations',
       label: locale === 'ja' ? '組織管理' : locale === 'th' ? 'จัดการองค์กร' : 'Organization Management',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      ),
+      icon: <Building2 className="w-5 h-5" />,
     },
     {
       id: 'users',
       label: locale === 'ja' ? 'ユーザー管理' : locale === 'th' ? 'จัดการผู้ใช้' : 'User Management',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      ),
+      icon: <Users className="w-5 h-5" />,
     },
     {
       id: 'permissions',
       label: locale === 'ja' ? '権限管理' : locale === 'th' ? 'จัดการสิทธิ์' : 'Permission Management',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      ),
+      icon: <ShieldCheck className="w-5 h-5" />,
     },
     {
       id: 'app_permissions',
       label: locale === 'ja' ? 'アプリ権限' : locale === 'th' ? 'สิทธิ์แอป' : 'App Permissions',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-        </svg>
-      ),
+      icon: <LayoutGrid className="w-5 h-5" />,
     },
     {
       id: 'field_permissions',
       label: locale === 'ja' ? 'フィールド権限' : locale === 'th' ? 'สิทธิ์ฟิลด์' : 'Field Permissions',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      ),
+      icon: <Table2 className="w-5 h-5" />,
     },
     {
       id: 'menu_management',
       label: locale === 'ja' ? 'メニュー管理' : locale === 'th' ? 'จัดการเมนู' : 'Menu Management',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      ),
+      icon: <Menu className="w-5 h-5" />,
+    },
+    {
+      id: 'app_groups',
+      label: locale === 'ja' ? 'アプリグループ' : locale === 'th' ? 'กลุ่มแอป' : 'App Groups',
+      icon: <FolderOpen className="w-5 h-5" />,
+    },
+    {
+      id: 'audit_logs',
+      label: locale === 'ja' ? '監査ログ' : locale === 'th' ? 'บันทึกการตรวจสอบ' : 'Audit Logs',
+      icon: <ClipboardList className="w-5 h-5" />,
+    },
+    {
+      id: 'api_tokens',
+      label: locale === 'ja' ? 'APIトークン' : locale === 'th' ? 'โทเค็น API' : 'API Tokens',
+      icon: <KeyRound className="w-5 h-5" />,
+    },
+    {
+      id: 'portal_widgets',
+      label: locale === 'ja' ? 'ポータル' : locale === 'th' ? 'พอร์ทัล' : 'Portal',
+      icon: <LayoutDashboard className="w-5 h-5" />,
     },
   ];
 
@@ -102,9 +103,7 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
       <div className="p-4 md:p-6">
         <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-12">
           <div className="text-center">
-            <svg className="mx-auto w-16 h-16 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
+            <Lock className="mx-auto w-16 h-16 text-gray-300 dark:text-gray-600" />
             <h2 className="mt-4 text-xl font-semibold text-gray-800 dark:text-white/90">
               {locale === 'ja' ? 'アクセス権限がありません' : locale === 'th' ? 'ไม่มีสิทธิ์เข้าถึง' : 'Access Denied'}
             </h2>
@@ -169,6 +168,10 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
           {activeTab === 'app_permissions' && <AppPermissionSettings locale={locale} />}
           {activeTab === 'field_permissions' && <FieldPermissionSettings locale={locale} />}
           {activeTab === 'menu_management' && <MenuManagement locale={locale} />}
+          {activeTab === 'app_groups' && <AppGroupManagement locale={locale} />}
+          {activeTab === 'audit_logs' && <AuditLogViewer locale={locale} />}
+          {activeTab === 'api_tokens' && <ApiTokenManagement locale={locale} />}
+          {activeTab === 'portal_widgets' && <PortalWidgetManagement locale={locale} />}
         </div>
       </div>
     </div>

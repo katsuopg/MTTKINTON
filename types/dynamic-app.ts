@@ -1,4 +1,4 @@
-// 動的アプリのフィールドタイプ（28種）
+// 動的アプリのフィールドタイプ（29種）
 export type FieldType =
   | 'single_line_text'
   | 'multi_line_text'
@@ -27,6 +27,7 @@ export type FieldType =
   | 'modified_time'
   | 'label'
   | 'space'
+  | 'group'
   | 'hr';
 
 // フィールドタイプの表示情報
@@ -139,6 +140,10 @@ export const FIELD_TYPE_INFO: Record<FieldType, { label: { ja: string; en: strin
     label: { ja: 'スペース', en: 'Space', th: 'ช่องว่าง' },
     icon: 'Square',
   },
+  group: {
+    label: { ja: 'グループ', en: 'Group', th: 'กลุ่ม' },
+    icon: 'FolderOpen',
+  },
   hr: {
     label: { ja: '罫線', en: 'Divider', th: 'เส้นแบ่ง' },
     icon: 'Minus',
@@ -159,7 +164,7 @@ export const AUTO_FIELD_TYPES: Set<FieldType> = new Set([
 
 // 装飾フィールド（データを保持しない、レイアウト用）
 export const DECORATIVE_FIELD_TYPES: Set<FieldType> = new Set([
-  'label', 'space', 'hr',
+  'label', 'space', 'group', 'hr',
 ]);
 
 // ユーザー入力不要な全フィールド（自動 + 装飾 + related_records + calculated）
@@ -194,6 +199,9 @@ export interface FieldValidation {
   subtable_config?: SubtableConfig;
   // エンティティ選択設定（user_select / org_select / group_select）
   allow_multiple?: boolean;   // 複数選択可否
+  // グループフィールド設定
+  group_fields?: string[];          // グループに含まれるフィールドコードの配列
+  group_open_default?: boolean;     // デフォルトで開いた状態か
 }
 
 // サブテーブル内フィールド定義（軽量版FieldDefinition）
@@ -234,7 +242,7 @@ export const REFERENCE_FIELD_TYPES: Set<FieldType> = new Set([
 
 // 一覧テーブルで非表示にするフィールド
 export const HIDDEN_IN_LIST_TYPES: Set<FieldType> = new Set([
-  'file_upload', 'rich_editor', 'related_records', 'subtable',
+  'file_upload', 'rich_editor', 'related_records', 'subtable', 'group',
 ]);
 
 // サブテーブル内で利用可能なフィールドタイプ
@@ -468,7 +476,7 @@ export const NO_VALUE_OPERATORS: Set<FilterOperator> = new Set(['is_empty', 'is_
 // ========== ビュー定義 ==========
 
 export type ViewType = 'table' | 'calendar' | 'chart';
-export type ChartType = 'bar' | 'line' | 'pie' | 'area';
+export type ChartType = 'bar' | 'line' | 'pie' | 'area' | 'horizontal_bar' | 'stacked_bar' | 'stacked_area';
 export type AggregationType = 'count' | 'sum' | 'avg' | 'max' | 'min';
 
 // 全ビュー共通のフィルター設定
@@ -482,6 +490,17 @@ export interface TableViewConfig extends ViewFilterConfig {
   columns: string[];
   sort_field?: string;
   sort_order?: 'asc' | 'desc';
+  column_widths?: Record<string, number>;  // フィールドコード → ピクセル幅
+  conditional_format_rules?: ConditionalFormatRule[];
+}
+
+export interface ConditionalFormatRule {
+  id: string;
+  field_code: string;
+  operator: 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'not_contains' | 'empty' | 'not_empty';
+  value?: string;
+  row_bg_color?: string;    // 行の背景色
+  cell_text_color?: string; // セルの文字色
 }
 
 export interface CalendarViewConfig extends ViewFilterConfig {

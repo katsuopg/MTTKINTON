@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { detailStyles } from '@/components/ui/DetailStyles';
 import { DetailPageHeader } from '@/components/ui/DetailPageHeader';
 import Tabs, { TabPanel } from '@/components/ui/Tabs';
-import { Pencil, Trash2, Loader2, Copy, MessageSquare, History, Send, X, Play, ArrowRight, Clock } from 'lucide-react';
+import { Pencil, Trash2, Loader2, Copy, MessageSquare, History, Send, X, Play, ArrowRight, Clock, MoveRight, ChevronDown, ChevronRight, ExternalLink, Check } from 'lucide-react';
 import type { FieldDefinition, AppRecord } from '@/types/dynamic-app';
 import { DECORATIVE_FIELD_TYPES, AUTO_FIELD_TYPES, NON_INPUT_FIELD_TYPES } from '@/types/dynamic-app';
 import FieldDisplay from '@/components/dynamic-app/FieldDisplay';
@@ -91,6 +91,228 @@ export default function DynamicDetailContent({
   const [processState, setProcessState] = useState<ProcessState | null>(null);
   const [processLoading, setProcessLoading] = useState(true);
   const [executingAction, setExecutingAction] = useState<string | null>(null);
+
+  // 転記アクション状態
+  interface AppAction {
+    id: string;
+    name: string;
+    target_app?: { code: string; name: string };
+  }
+  const [appActions, setAppActions] = useState<AppAction[]>([]);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [executingAppAction, setExecutingAppAction] = useState(false);
+  const [actionResult, setActionResult] = useState<{
+    success: boolean;
+    target_app_code?: string;
+    target_record_id?: string;
+    target_record_number?: number;
+    message?: string;
+  } | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
+
+  // メンション機能
+  const [mentionUsers, setMentionUsers] = useState<{id: string; name: string}[]>([]);
+  const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
+  const [mentionCursorPos, setMentionCursorPos] = useState(0);
+  const [mentionStartPos, setMentionStartPos] = useState(0);
+  const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const mentionPopupRef = useRef<HTMLDivElement>(null);
+
+  // メンション用ユーザー一覧取得
+  useEffect(() => {
+    fetch('/api/employees?pageSize=100')
+      .then(res => res.ok ? res.json() : { data: [] })
+      .then(data => {
+        const users = (data.data || []).map((emp: { employee_uuid: string; employee_name_ja?: string; employee_name_en?: string; employee_name_th?: string }) => ({
+          id: emp.employee_uuid,
+          name: emp.employee_name_ja || emp.employee_name_en || emp.employee_name_th || '',
+        })).filter((u: {id: string; name: string}) => u.id && u.name);
+        setMentionUsers(users);
+      })
+      .catch(() => {});
+  }, []);
+
+  // 転記アクション一覧取得
+  useEffect(() => {
+    fetch(`/api/apps/${appCode}/actions`)
+      .then(res => res.ok ? res.json() : { actions: [] })
+      .then(data => setAppActions(data.actions || []))
+      .catch(() => {});
+  }, [appCode]);
+
+  // 転記アクションメニュー外クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) {
+        setShowActionMenu(false);
+      }
+    };
+    if (showActionMenu) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showActionMenu]);
+
+  // 転記アクション実行
+  const handleAppAction = async (action: AppAction) => {
+    const confirmMsg = lang === 'ja'
+      ? `「${action.name}」を実行しますか？`
+      : lang === 'th'
+      ? `ดำเนินการ "${action.name}" หรือไม่?`
+      : `Execute "${action.name}"?`;
+    if (!confirm(confirmMsg)) return;
+
+    setShowActionMenu(false);
+    setExecutingAppAction(true);
+    setActionResult(null);
+
+    try {
+      const res = await fetch(`/api/apps/${appCode}/actions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action_id: action.id, record_id: record.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActionResult({
+          success: true,
+          target_app_code: data.target_app_code,
+          target_record_id: data.target_record_id,
+          target_record_number: data.target_record_number,
+        });
+        // 5秒後に結果通知を消す
+        setTimeout(() => setActionResult(null), 8000);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        setActionResult({
+          success: false,
+          message: errData.error || (lang === 'ja' ? '転記に失敗しました' : lang === 'th' ? 'การคัดลอกล้มเหลว' : 'Copy failed'),
+        });
+        setTimeout(() => setActionResult(null), 5000);
+      }
+    } catch (err) {
+      console.error('Failed to execute app action:', err);
+      setActionResult({
+        success: false,
+        message: lang === 'ja' ? '転記に失敗しました' : lang === 'th' ? 'การคัดลอกล้มเหลว' : 'Copy failed',
+      });
+      setTimeout(() => setActionResult(null), 5000);
+    } finally {
+      setExecutingAppAction(false);
+    }
+  };
+
+  // メンション候補のフィルタリング
+  const filteredMentionUsers = mentionUsers.filter(u =>
+    u.name.toLowerCase().includes(mentionFilter.toLowerCase())
+  );
+
+  // textareaの@検出ハンドラ
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
+    setCommentText(value);
+    setMentionCursorPos(cursorPos);
+
+    // カーソル位置から後ろ向きに@を探す
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex >= 0) {
+      const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+      // @の後にスペースや改行がなければ候補表示
+      if (!/[\s\n]/.test(textAfterAt)) {
+        setShowMentionPopup(true);
+        setMentionFilter(textAfterAt);
+        setMentionStartPos(lastAtIndex);
+        setMentionSelectedIndex(0);
+        return;
+      }
+    }
+    setShowMentionPopup(false);
+    setMentionFilter('');
+  };
+
+  // メンション挿入
+  const insertMention = (user: {id: string; name: string}) => {
+    const before = commentText.substring(0, mentionStartPos);
+    const after = commentText.substring(mentionCursorPos);
+    const mention = `@[${user.name}](${user.id})`;
+    const newText = before + mention + ' ' + after;
+    setCommentText(newText);
+    setShowMentionPopup(false);
+    setMentionFilter('');
+
+    // カーソルをメンションの後に移動
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newPos = before.length + mention.length + 1;
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newPos, newPos);
+      }
+    }, 0);
+  };
+
+  // メンションキーボード操作
+  const handleCommentKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showMentionPopup && filteredMentionUsers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionSelectedIndex(prev => Math.min(prev + 1, filteredMentionUsers.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionSelectedIndex(prev => Math.max(prev - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        insertMention(filteredMentionUsers[mentionSelectedIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentionPopup(false);
+        return;
+      }
+    }
+    // Cmd+Enter で送信
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      handleSubmitComment();
+    }
+  };
+
+  // コメント本文のメンションハイライト表示
+  const renderCommentBody = (body: string) => {
+    // @[名前](user_id) パターンを検出して分割
+    const mentionRegex = /@\[([^\]]+)\]\([^)]+\)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = mentionRegex.exec(body)) !== null) {
+      // メンション前のテキスト
+      if (match.index > lastIndex) {
+        parts.push(body.substring(lastIndex, match.index));
+      }
+      // メンション部分をハイライト
+      parts.push(
+        <span
+          key={match.index}
+          className="text-brand-600 dark:text-brand-400 font-medium"
+        >
+          @{match[1]}
+        </span>
+      );
+      lastIndex = match.index + match[0].length;
+    }
+    // 残りのテキスト
+    if (lastIndex < body.length) {
+      parts.push(body.substring(lastIndex));
+    }
+    return parts.length > 0 ? parts : body;
+  };
 
   // ラベル
   const editLabel = lang === 'ja' ? '編集' : lang === 'th' ? 'แก้ไข' : 'Edit';
@@ -279,8 +501,34 @@ export default function DynamicDetailContent({
 
   const localeStr = lang === 'ja' ? 'ja-JP' : lang === 'th' ? 'th-TH' : 'en-US';
 
-  // 表示対象フィールド（related_recordsは別セクションで表示）
-  const displayFields = fields.filter((f) => !DECORATIVE_FIELD_TYPES.has(f.field_type) && f.field_type !== 'related_records');
+  // グループ開閉状態
+  const [groupOpenState, setGroupOpenState] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    fields.filter(f => f.field_type === 'group').forEach(f => {
+      initial[f.field_code] = f.validation?.group_open_default !== false;
+    });
+    return initial;
+  });
+
+  const toggleGroup = (fieldCode: string) => {
+    setGroupOpenState(prev => ({ ...prev, [fieldCode]: !prev[fieldCode] }));
+  };
+
+  // グループに含まれるフィールドコード一覧を収集
+  const groupedFieldCodes = new Set<string>();
+  fields.filter(f => f.field_type === 'group').forEach(f => {
+    (f.validation?.group_fields || []).forEach(code => groupedFieldCodes.add(code));
+  });
+
+  // グループフィールド定義を取得
+  const groupFields = fields.filter(f => f.field_type === 'group');
+
+  // 表示対象フィールド（related_recordsは別セクションで表示、グループに含まれるフィールドは通常表示から除外）
+  const displayFields = fields.filter((f) =>
+    !DECORATIVE_FIELD_TYPES.has(f.field_type) &&
+    f.field_type !== 'related_records' &&
+    !groupedFieldCodes.has(f.field_code)
+  );
   const relatedRecordsFields = fields.filter((f) => f.field_type === 'related_records' && f.validation?.related_app_code);
   const hasAutoFields = fields.some((f) => AUTO_FIELD_TYPES.has(f.field_type));
 
@@ -319,6 +567,42 @@ export default function DynamicDetailContent({
         backHref={`/${locale}/apps/${appCode}`}
         actions={
           <div className="flex items-center gap-2">
+            {/* 転記ドロップダウン */}
+            {appActions.length > 0 && (
+              <div className="relative" ref={actionMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowActionMenu(!showActionMenu)}
+                  disabled={executingAppAction}
+                  className={detailStyles.secondaryButton}
+                >
+                  {executingAppAction ? (
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <MoveRight className="w-4 h-4 mr-1.5" />
+                  )}
+                  {lang === 'ja' ? '転記' : lang === 'th' ? 'คัดลอก' : 'Copy To'}
+                  <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                </button>
+                {showActionMenu && (
+                  <div className="absolute right-0 mt-1 w-56 rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 shadow-lg z-50">
+                    <div className="py-1">
+                      {appActions.map((action) => (
+                        <button
+                          key={action.id}
+                          type="button"
+                          onClick={() => handleAppAction(action)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <MoveRight className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{action.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => router.push(`/${locale}/apps/${appCode}/records/${record.id}/edit`)}
@@ -347,6 +631,51 @@ export default function DynamicDetailContent({
           </div>
         }
       />
+
+      {/* 転記結果通知 */}
+      {actionResult && (
+        <div className={`mb-4 rounded-lg border p-3 flex items-center justify-between ${
+          actionResult.success
+            ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+            : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+        }`}>
+          <div className="flex items-center gap-2">
+            {actionResult.success ? (
+              <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+            ) : (
+              <X className="w-4 h-4 text-red-600 dark:text-red-400" />
+            )}
+            <span className={`text-sm ${
+              actionResult.success
+                ? 'text-green-700 dark:text-green-400'
+                : 'text-red-700 dark:text-red-400'
+            }`}>
+              {actionResult.success
+                ? (lang === 'ja' ? '転記が完了しました' : lang === 'th' ? 'คัดลอกสำเร็จ' : 'Copy completed')
+                : actionResult.message
+              }
+            </span>
+          </div>
+          {actionResult.success && actionResult.target_app_code && actionResult.target_record_id && (
+            <button
+              type="button"
+              onClick={() => router.push(`/${locale}/apps/${actionResult.target_app_code}/records/${actionResult.target_record_id}`)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg text-green-700 bg-green-100 hover:bg-green-200 dark:text-green-400 dark:bg-green-900/30 dark:hover:bg-green-900/50 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              {lang === 'ja' ? '作成されたレコードを開く' : lang === 'th' ? 'เปิดระเบียนที่สร้าง' : 'Open created record'}
+              {actionResult.target_record_number && ` (#${actionResult.target_record_number})`}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setActionResult(null)}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* プロセス管理セクション */}
       {!processLoading && processState?.enabled && (
@@ -454,6 +783,51 @@ export default function DynamicDetailContent({
                 </div>
               ))}
 
+              {/* グループセクション */}
+              {groupFields.map((gf) => {
+                const gfLabel = gf.label[lang] || gf.label.ja || gf.field_code;
+                const isOpen = groupOpenState[gf.field_code] ?? true;
+                const memberFields = (gf.validation?.group_fields || [])
+                  .map(code => fields.find(f => f.field_code === code))
+                  .filter((f): f is FieldDefinition => !!f && !DECORATIVE_FIELD_TYPES.has(f.field_type) && f.field_type !== 'related_records');
+                if (memberFields.length === 0) return null;
+                return (
+                  <div key={gf.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(gf.field_code)}
+                      className="w-full flex items-center gap-2 px-4 py-2.5 text-left bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                      )}
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {gfLabel}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="px-4 py-3 space-y-4">
+                        {memberFields.map((mf) => (
+                          <div key={mf.id}>
+                            <p className={detailStyles.fieldLabel}>
+                              {mf.label[lang] || mf.label.ja || mf.field_code}
+                            </p>
+                            <FieldDisplay
+                              field={mf}
+                              value={record.data[mf.field_code]}
+                              locale={locale}
+                              record={record}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
               {!hasAutoFields && (
                 <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -494,19 +868,47 @@ export default function DynamicDetailContent({
           <div className={detailStyles.cardContent}>
             {/* コメント投稿フォーム */}
             <div className="flex gap-3 mb-6">
-              <div className="flex-1">
+              <div className="flex-1 relative">
                 <textarea
+                  ref={textareaRef}
                   value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
+                  onChange={handleCommentChange}
                   placeholder={commentPlaceholder}
                   rows={3}
                   className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:placeholder-gray-500 resize-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                      handleSubmitComment();
-                    }
-                  }}
+                  onKeyDown={handleCommentKeyDown}
                 />
+                {/* メンション候補ドロップダウン */}
+                {showMentionPopup && filteredMentionUsers.length > 0 && (
+                  <div
+                    ref={mentionPopupRef}
+                    className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                  >
+                    {filteredMentionUsers.slice(0, 10).map((user, idx) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                          idx === mentionSelectedIndex
+                            ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
+                            : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50'
+                        }`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          insertMention(user);
+                        }}
+                        onMouseEnter={() => setMentionSelectedIndex(idx)}
+                      >
+                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30">
+                          <span className="text-xs font-medium text-brand-600 dark:text-brand-400">
+                            {user.name.charAt(0)}
+                          </span>
+                        </div>
+                        <span>{user.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-xs text-gray-400 dark:text-gray-500">
                     {lang === 'ja' ? '⌘+Enter で送信' : lang === 'th' ? '⌘+Enter เพื่อส่ง' : '⌘+Enter to send'}
@@ -567,7 +969,7 @@ export default function DynamicDetailContent({
                           </button>
                         </div>
                         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
-                          {comment.body}
+                          {renderCommentBody(comment.body)}
                         </p>
                       </div>
                     </div>

@@ -3,8 +3,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Save, Loader2, Plus, X, ArrowRight, ToggleLeft, ToggleRight,
-  CircleDot, Flag, GripVertical,
+  CircleDot, Flag, GripVertical, ChevronDown, ChevronUp, Users,
 } from 'lucide-react';
+
+interface AssigneeItem {
+  type: string;
+  target_id: string;
+  target_name?: string;
+}
 
 interface StatusItem {
   id: string;
@@ -12,6 +18,7 @@ interface StatusItem {
   is_initial: boolean;
   is_final: boolean;
   assignee_type: 'ONE' | 'ALL' | 'ANY' | null;
+  assignees?: AssigneeItem[];
 }
 
 interface ActionItem {
@@ -21,6 +28,10 @@ interface ActionItem {
   to_status_id: string;
   action_type: 'NORMAL' | 'NON_ASSIGNEE';
 }
+
+interface UserOption { id: string; employee_name_ja: string; }
+interface OrgOption { id: string; name: string; }
+interface RoleOption { id: string; name: string; }
 
 const labels = {
   ja: {
@@ -53,6 +64,14 @@ const labels = {
     defaultStatuses: 'デフォルトステータスを設定',
     initialHelp: 'レコード作成時のステータス',
     finalHelp: 'プロセス終了（作業者指定不可）',
+    assigneeCandidates: '作業者候補',
+    addAssignee: '候補を追加',
+    typeUser: 'ユーザー',
+    typeOrganization: '組織',
+    typeRole: 'ロール',
+    selectType: 'タイプ選択...',
+    selectTarget: '対象を選択...',
+    noAssignees: '作業者候補が設定されていません',
   },
   en: {
     title: 'Process Management',
@@ -84,6 +103,14 @@ const labels = {
     defaultStatuses: 'Set default statuses',
     initialHelp: 'Status when record is created',
     finalHelp: 'Process ends (no assignee)',
+    assigneeCandidates: 'Assignee Candidates',
+    addAssignee: 'Add candidate',
+    typeUser: 'User',
+    typeOrganization: 'Organization',
+    typeRole: 'Role',
+    selectType: 'Select type...',
+    selectTarget: 'Select target...',
+    noAssignees: 'No assignee candidates configured',
   },
   th: {
     title: 'การจัดการกระบวนการ',
@@ -115,6 +142,14 @@ const labels = {
     defaultStatuses: 'ตั้งค่าสถานะเริ่มต้น',
     initialHelp: 'สถานะเมื่อสร้างระเบียน',
     finalHelp: 'กระบวนการสิ้นสุด (ไม่มีผู้ดำเนินการ)',
+    assigneeCandidates: 'ผู้รับผิดชอบที่เสนอ',
+    addAssignee: 'เพิ่มผู้รับผิดชอบ',
+    typeUser: 'ผู้ใช้',
+    typeOrganization: 'องค์กร',
+    typeRole: 'บทบาท',
+    selectType: 'เลือกประเภท...',
+    selectTarget: 'เลือกเป้าหมาย...',
+    noAssignees: 'ยังไม่มีผู้รับผิดชอบ',
   },
 };
 
@@ -135,6 +170,42 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
   const [actions, setActions] = useState<ActionItem[]>([]);
   const [isDirty, setIsDirty] = useState(false);
 
+  // 作業者候補の折りたたみ
+  const [expandedStatuses, setExpandedStatuses] = useState<Set<string>>(new Set());
+
+  // マスターデータ
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [organizations, setOrganizations] = useState<OrgOption[]>([]);
+  const [roles, setRoles] = useState<RoleOption[]>([]);
+  const [masterLoaded, setMasterLoaded] = useState(false);
+
+  // マスターデータ取得
+  const fetchMasterData = useCallback(async () => {
+    if (masterLoaded) return;
+    try {
+      const [usersRes, orgsRes, rolesRes] = await Promise.all([
+        fetch('/api/employees?pageSize=100'),
+        fetch('/api/organizations'),
+        fetch('/api/roles'),
+      ]);
+      if (usersRes.ok) {
+        const d = await usersRes.json();
+        setUsers((d.data || []).map((u: any) => ({ id: u.id, employee_name_ja: u.employee_name_ja })));
+      }
+      if (orgsRes.ok) {
+        const d = await orgsRes.json();
+        setOrganizations((d.organizations || []).map((o: any) => ({ id: o.id, name: o.name })));
+      }
+      if (rolesRes.ok) {
+        const d = await rolesRes.json();
+        setRoles((d.roles || []).map((r: any) => ({ id: r.id, name: r.name })));
+      }
+      setMasterLoaded(true);
+    } catch (err) {
+      console.error('Failed to fetch master data:', err);
+    }
+  }, [masterLoaded]);
+
   // データ取得
   useEffect(() => {
     const fetchData = async () => {
@@ -150,6 +221,7 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
               is_initial: s.is_initial,
               is_final: s.is_final,
               assignee_type: s.assignee_type,
+              assignees: s.assignees || [],
             }))
           );
           setActions(
@@ -185,6 +257,7 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
       is_initial: i === 0,
       is_final: i === defaultNames.length - 1,
       assignee_type: i === defaultNames.length - 1 ? null : 'ANY',
+      assignees: [],
     }));
     setStatuses(newStatuses);
 
@@ -224,6 +297,7 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
         is_initial: prev.length === 0,
         is_final: false,
         assignee_type: 'ANY',
+        assignees: [],
       },
     ]);
     setIsDirty(true);
@@ -233,6 +307,7 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
   const removeStatus = (id: string) => {
     setStatuses((prev) => prev.filter((s) => s.id !== id));
     setActions((prev) => prev.filter((a) => a.from_status_id !== id && a.to_status_id !== id));
+    setExpandedStatuses((prev) => { const next = new Set(prev); next.delete(id); return next; });
     setIsDirty(true);
   };
 
@@ -247,11 +322,50 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
         }
         const updated = { ...s, ...updates };
         // 最終ステータスは作業者指定不可
-        if (updated.is_final) updated.assignee_type = null;
+        if (updated.is_final) {
+          updated.assignee_type = null;
+          updated.assignees = [];
+        }
         return updated;
       })
     );
     setIsDirty(true);
+  };
+
+  // 作業者候補追加
+  const addAssignee = (statusId: string, assignee: AssigneeItem) => {
+    setStatuses((prev) =>
+      prev.map((s) => {
+        if (s.id !== statusId) return s;
+        const existing = s.assignees || [];
+        // 重複チェック
+        if (existing.some((a) => a.type === assignee.type && a.target_id === assignee.target_id)) return s;
+        return { ...s, assignees: [...existing, assignee] };
+      })
+    );
+    setIsDirty(true);
+  };
+
+  // 作業者候補削除
+  const removeAssignee = (statusId: string, type: string, targetId: string) => {
+    setStatuses((prev) =>
+      prev.map((s) => {
+        if (s.id !== statusId) return s;
+        return { ...s, assignees: (s.assignees || []).filter((a) => !(a.type === type && a.target_id === targetId)) };
+      })
+    );
+    setIsDirty(true);
+  };
+
+  // 折りたたみトグル
+  const toggleExpand = (statusId: string) => {
+    fetchMasterData();
+    setExpandedStatuses((prev) => {
+      const next = new Set(prev);
+      if (next.has(statusId)) next.delete(statusId);
+      else next.add(statusId);
+      return next;
+    });
   };
 
   // アクション追加
@@ -305,6 +419,7 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
           is_initial: s.is_initial,
           is_final: s.is_final,
           assignee_type: s.assignee_type,
+          assignees: s.assignees || [],
         }))
       );
       setActions(
@@ -324,6 +439,30 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
     } finally {
       setSaving(false);
     }
+  };
+
+  // 名前解決
+  const getTargetName = (type: string, targetId: string): string => {
+    if (type === 'USER') {
+      const u = users.find((u) => u.id === targetId);
+      return u ? u.employee_name_ja : targetId;
+    }
+    if (type === 'ORGANIZATION') {
+      const o = organizations.find((o) => o.id === targetId);
+      return o ? o.name : targetId;
+    }
+    if (type === 'ROLE') {
+      const r = roles.find((r) => r.id === targetId);
+      return r ? r.name : targetId;
+    }
+    return targetId;
+  };
+
+  const getTypeLabel = (type: string): string => {
+    if (type === 'USER') return t.typeUser;
+    if (type === 'ORGANIZATION') return t.typeOrganization;
+    if (type === 'ROLE') return t.typeRole;
+    return type;
   };
 
   if (loading) {
@@ -421,61 +560,94 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
                 <div className="col-span-1"></div>
               </div>
               {statuses.map((status) => (
-                <div key={status.id} className="grid grid-cols-12 gap-2 items-center group">
-                  <div className="col-span-1 flex justify-center">
-                    <GripVertical className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                <div key={status.id}>
+                  <div className="grid grid-cols-12 gap-2 items-center group">
+                    <div className="col-span-1 flex justify-center">
+                      <GripVertical className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+                    </div>
+                    <div className="col-span-4">
+                      <input
+                        type="text"
+                        value={status.name}
+                        onChange={(e) => updateStatus(status.id, { name: e.target.value })}
+                        placeholder={t.statusName}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => updateStatus(status.id, { is_initial: true })}
+                        className={`p-1 rounded ${status.is_initial ? 'text-green-500' : 'text-gray-300 dark:text-gray-600 hover:text-gray-400'}`}
+                        title={t.initialHelp}
+                      >
+                        <CircleDot className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => updateStatus(status.id, { is_final: !status.is_final })}
+                        className={`p-1 rounded ${status.is_final ? 'text-red-500' : 'text-gray-300 dark:text-gray-600 hover:text-gray-400'}`}
+                        title={t.finalHelp}
+                      >
+                        <Flag className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="col-span-4 flex items-center gap-1">
+                      <select
+                        value={status.assignee_type || ''}
+                        onChange={(e) => updateStatus(status.id, { assignee_type: (e.target.value || null) as any })}
+                        className={`${selectClass} flex-1`}
+                        disabled={status.is_final}
+                      >
+                        <option value="">{t.assigneeNone}</option>
+                        <option value="ONE">{t.assigneeOne}</option>
+                        <option value="ALL">{t.assigneeAll}</option>
+                        <option value="ANY">{t.assigneeAny}</option>
+                      </select>
+                      {status.assignee_type && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(status.id)}
+                          className="p-1.5 rounded text-gray-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors"
+                          title={t.assigneeCandidates}
+                        >
+                          {expandedStatuses.has(status.id) ? (
+                            <ChevronUp className="w-4 h-4" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    <div className="col-span-1 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => removeStatus(status.id)}
+                        className="p-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 rounded transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="col-span-4">
-                    <input
-                      type="text"
-                      value={status.name}
-                      onChange={(e) => updateStatus(status.id, { name: e.target.value })}
-                      placeholder={t.statusName}
-                      className={inputClass}
+
+                  {/* 作業者候補セクション（折りたたみ） */}
+                  {status.assignee_type && expandedStatuses.has(status.id) && (
+                    <AssigneeCandidatesSection
+                      statusId={status.id}
+                      assignees={status.assignees || []}
+                      users={users}
+                      organizations={organizations}
+                      roles={roles}
+                      onAdd={addAssignee}
+                      onRemove={removeAssignee}
+                      getTargetName={getTargetName}
+                      getTypeLabel={getTypeLabel}
+                      t={t}
+                      selectClass={selectClass}
                     />
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(status.id, { is_initial: true })}
-                      className={`p-1 rounded ${status.is_initial ? 'text-green-500' : 'text-gray-300 dark:text-gray-600 hover:text-gray-400'}`}
-                      title={t.initialHelp}
-                    >
-                      <CircleDot className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => updateStatus(status.id, { is_final: !status.is_final })}
-                      className={`p-1 rounded ${status.is_final ? 'text-red-500' : 'text-gray-300 dark:text-gray-600 hover:text-gray-400'}`}
-                      title={t.finalHelp}
-                    >
-                      <Flag className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <div className="col-span-4">
-                    <select
-                      value={status.assignee_type || ''}
-                      onChange={(e) => updateStatus(status.id, { assignee_type: (e.target.value || null) as any })}
-                      className={selectClass}
-                      disabled={status.is_final}
-                    >
-                      <option value="">{t.assigneeNone}</option>
-                      <option value="ONE">{t.assigneeOne}</option>
-                      <option value="ALL">{t.assigneeAll}</option>
-                      <option value="ANY">{t.assigneeAny}</option>
-                    </select>
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => removeStatus(status.id)}
-                      className="p-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 rounded transition-all"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -605,6 +777,125 @@ export default function ProcessManagementSettings({ locale, appCode }: ProcessMa
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// 作業者候補セクション コンポーネント
+function AssigneeCandidatesSection({
+  statusId,
+  assignees,
+  users,
+  organizations,
+  roles,
+  onAdd,
+  onRemove,
+  getTargetName,
+  getTypeLabel,
+  t,
+  selectClass,
+}: {
+  statusId: string;
+  assignees: AssigneeItem[];
+  users: UserOption[];
+  organizations: OrgOption[];
+  roles: RoleOption[];
+  onAdd: (statusId: string, assignee: AssigneeItem) => void;
+  onRemove: (statusId: string, type: string, targetId: string) => void;
+  getTargetName: (type: string, targetId: string) => string;
+  getTypeLabel: (type: string) => string;
+  t: typeof labels['ja'];
+  selectClass: string;
+}) {
+  const [addType, setAddType] = useState('');
+  const [addTarget, setAddTarget] = useState('');
+
+  const targetOptions = addType === 'USER'
+    ? users.map((u) => ({ id: u.id, name: u.employee_name_ja }))
+    : addType === 'ORGANIZATION'
+    ? organizations
+    : addType === 'ROLE'
+    ? roles
+    : [];
+
+  const handleAdd = () => {
+    if (!addType || !addTarget) return;
+    const target = targetOptions.find((o) => o.id === addTarget);
+    onAdd(statusId, {
+      type: addType,
+      target_id: addTarget,
+      target_name: target?.name,
+    });
+    setAddTarget('');
+  };
+
+  return (
+    <div className="ml-8 mr-4 mt-2 mb-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+      <div className="flex items-center gap-2 mb-2">
+        <Users className="w-3.5 h-3.5 text-gray-400" />
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t.assigneeCandidates}</span>
+      </div>
+
+      {/* 既存の候補タグ */}
+      {assignees.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {assignees.map((a, idx) => (
+            <span
+              key={`${a.type}-${a.target_id}-${idx}`}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-brand-50 text-brand-700 dark:bg-brand-900/20 dark:text-brand-400 border border-brand-200 dark:border-brand-800"
+            >
+              <span className="text-[10px] text-brand-500 dark:text-brand-500 font-medium">
+                {getTypeLabel(a.type)}
+              </span>
+              <span className="mx-0.5 text-brand-300 dark:text-brand-700">|</span>
+              {a.target_name || getTargetName(a.type, a.target_id)}
+              <button
+                type="button"
+                onClick={() => onRemove(statusId, a.type, a.target_id)}
+                className="ml-0.5 text-brand-400 hover:text-red-500 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">{t.noAssignees}</p>
+      )}
+
+      {/* 追加UI */}
+      <div className="flex items-center gap-2">
+        <select
+          value={addType}
+          onChange={(e) => { setAddType(e.target.value); setAddTarget(''); }}
+          className={`${selectClass} text-xs py-1.5`}
+        >
+          <option value="">{t.selectType}</option>
+          <option value="USER">{t.typeUser}</option>
+          <option value="ORGANIZATION">{t.typeOrganization}</option>
+          <option value="ROLE">{t.typeRole}</option>
+        </select>
+        <select
+          value={addTarget}
+          onChange={(e) => setAddTarget(e.target.value)}
+          className={`${selectClass} text-xs py-1.5 flex-1`}
+          disabled={!addType}
+        >
+          <option value="">{t.selectTarget}</option>
+          {targetOptions.map((o) => (
+            <option key={o.id} value={o.id}>{o.name}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={!addType || !addTarget}
+          className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-lg text-white bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          <Plus className="w-3 h-3" />
+          {t.addAssignee}
+        </button>
+      </div>
     </div>
   );
 }

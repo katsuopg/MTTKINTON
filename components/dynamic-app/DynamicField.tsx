@@ -6,6 +6,7 @@ import type { FieldDefinition, AppRecord } from '@/types/dynamic-app';
 import { AUTO_FIELD_TYPES, DECORATIVE_FIELD_TYPES } from '@/types/dynamic-app';
 import SubtableField from './SubtableField';
 import EntitySelectField from './EntitySelectField';
+import { evaluateFormula, formatFormulaResult } from '@/lib/dynamic-app/formula-engine';
 
 interface UploadedFile {
   id: string;
@@ -58,6 +59,11 @@ export default function DynamicField({ field, value, onChange, locale, error, re
 
   if (field.field_type === 'hr') {
     return <hr className="border-gray-200 dark:border-gray-700" />;
+  }
+
+  // グループフィールド: データを持たないため、入力フォームでは表示のみ（レンダリング不要）
+  if (field.field_type === 'group') {
+    return null;
   }
 
   // 自動フィールド
@@ -641,42 +647,14 @@ function CalculatedField({
   const lang = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as 'ja' | 'en' | 'th';
   const localeStr = lang === 'ja' ? 'ja-JP' : lang === 'th' ? 'th-TH' : 'en-US';
 
-  let result: number | null = null;
-  if (formula) {
-    try {
-      // フィールドコードを数値に置換して計算
-      let expr = formula;
-      const numberFields = allFields.filter(f => f.field_type === 'number');
-      for (const nf of numberFields) {
-        const val = Number(formData[nf.field_code] ?? 0) || 0;
-        expr = expr.replace(new RegExp(`\\b${nf.field_code}\\b`, 'g'), String(val));
-      }
-      // 安全な計算（数値と演算子のみ許可）
-      const sanitized = expr.replace(/[^0-9+\-*/().%\s]/g, '');
-      if (sanitized.trim()) {
-        // eslint-disable-next-line no-eval
-        result = eval(sanitized);
-        if (typeof result === 'number' && !isNaN(result)) {
-          result = Math.round(result * Math.pow(10, decimals)) / Math.pow(10, decimals);
-        } else {
-          result = null;
-        }
-      }
-    } catch {
-      result = null;
-    }
+  // allFieldsからフィールドコード→値のマップを構築
+  const allValues: Record<string, unknown> = {};
+  for (const f of allFields) {
+    allValues[f.field_code] = formData[f.field_code];
   }
 
-  let displayValue = '-';
-  if (result !== null) {
-    if (format === 'currency') {
-      displayValue = result.toLocaleString(localeStr, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-    } else if (format === 'percent') {
-      displayValue = `${(result * 100).toFixed(Math.max(0, decimals - 2))}%`;
-    } else {
-      displayValue = result.toLocaleString(localeStr, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-    }
-  }
+  const result = evaluateFormula(formula, allValues);
+  const displayValue = formatFormulaResult(result, format, decimals, localeStr);
 
   return (
     <p className="w-full px-3 py-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">

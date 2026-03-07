@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 // GET: プロセス定義取得
 export async function GET(
@@ -7,6 +8,13 @@ export async function GET(
   { params }: { params: Promise<{ appCode: string }> }
 ) {
   const { appCode } = await params;
+
+  // GETはcan_view、PUTはcan_manageだがGETは閲覧権限で十分
+  const permCheck = await requireAppPermission(appCode, 'can_view');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -48,9 +56,32 @@ export async function GET(
       .order('display_order'),
   ]);
 
+  // 各ステータスの作業者候補を取得
+  const statusIds = (statusesRes.data || []).map((s: any) => s.id);
+  let assigneesMap: Record<string, any[]> = {};
+  if (statusIds.length > 0) {
+    const { data: allAssignees } = await (supabase.from('process_status_assignees') as any)
+      .select('*')
+      .in('process_status_id', statusIds);
+    if (allAssignees) {
+      for (const a of allAssignees as any[]) {
+        if (!assigneesMap[a.process_status_id]) assigneesMap[a.process_status_id] = [];
+        assigneesMap[a.process_status_id].push({
+          type: a.entity_type,
+          target_id: a.entity_code,
+        });
+      }
+    }
+  }
+
+  const statusesWithAssignees = (statusesRes.data || []).map((s: any) => ({
+    ...s,
+    assignees: assigneesMap[s.id] || [],
+  }));
+
   return NextResponse.json({
     definition,
-    statuses: statusesRes.data || [],
+    statuses: statusesWithAssignees,
     actions: actionsRes.data || [],
   });
 }
@@ -61,6 +92,13 @@ export async function PUT(
   { params }: { params: Promise<{ appCode: string }> }
 ) {
   const { appCode } = await params;
+
+  // プロセス管理の変更にはアプリ管理権限が必要
+  const permCheck = await requireAppPermission(appCode, 'can_manage');
+  if (!permCheck.allowed) {
+    return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -127,7 +165,20 @@ export async function PUT(
       }
 
       // tempIdまたはoldIdをマッピング
-      statusMap[s.id || s.temp_id || `s_${i}`] = (newStatus as any).id;
+      const realStatusId = (newStatus as any).id;
+      statusMap[s.id || s.temp_id || `s_${i}`] = realStatusId;
+
+      // 作業者候補を保存
+      if (s.assignees && Array.isArray(s.assignees) && s.assignees.length > 0) {
+        for (const assignee of s.assignees) {
+          await (supabase.from('process_status_assignees') as any)
+            .insert({
+              process_status_id: realStatusId,
+              entity_type: assignee.type,
+              entity_code: assignee.target_id,
+            });
+        }
+      }
     }
   }
 
@@ -159,7 +210,7 @@ export async function PUT(
   }
 
   // 5. 最新データを返却
-  const [statusesRes, actionsRes] = await Promise.all([
+  const [statusesRes2, actionsRes2] = await Promise.all([
     (supabase.from('process_statuses') as any)
       .select('*')
       .eq('process_definition_id', defId)
@@ -170,9 +221,32 @@ export async function PUT(
       .order('display_order'),
   ]);
 
+  // 作業者候補も返却
+  const savedStatusIds = (statusesRes2.data || []).map((s: any) => s.id);
+  let savedAssigneesMap: Record<string, any[]> = {};
+  if (savedStatusIds.length > 0) {
+    const { data: savedAssignees } = await (supabase.from('process_status_assignees') as any)
+      .select('*')
+      .in('process_status_id', savedStatusIds);
+    if (savedAssignees) {
+      for (const a of savedAssignees as any[]) {
+        if (!savedAssigneesMap[a.process_status_id]) savedAssigneesMap[a.process_status_id] = [];
+        savedAssigneesMap[a.process_status_id].push({
+          type: a.entity_type,
+          target_id: a.entity_code,
+        });
+      }
+    }
+  }
+
+  const savedStatusesWithAssignees = (statusesRes2.data || []).map((s: any) => ({
+    ...s,
+    assignees: savedAssigneesMap[s.id] || [],
+  }));
+
   return NextResponse.json({
     definition: defData,
-    statuses: statusesRes.data || [],
-    actions: actionsRes.data || [],
+    statuses: savedStatusesWithAssignees,
+    actions: actionsRes2.data || [],
   });
 }

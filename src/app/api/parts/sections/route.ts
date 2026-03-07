@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { PartSectionCreate, PartSection } from '@/types/parts';
+import { requireAppPermission } from '@/lib/auth/app-permissions';
 
 // Note: 部品表テーブルはマイグレーション適用後に型が生成されます
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -9,6 +10,11 @@ type SupabaseAny = any;
 // GET: セクション一覧取得
 export async function GET(request: NextRequest) {
   try {
+    const permCheck = await requireAppPermission('projects', 'can_view');
+    if (!permCheck.allowed) {
+      return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
+    }
+
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
     const projectCode = searchParams.get('project_code');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { getFieldLabel, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
 import { getStatusColor } from '@/lib/kintone/utils';
 import { tableStyles } from '@/components/ui/TableStyles';
@@ -8,8 +8,27 @@ import { extractCsName } from '@/lib/utils/customer-name';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import MonthlySalesChart from '@/components/charts/MonthlySalesChart';
-import { FileText, ClipboardList, AlertTriangle, Filter, Package, ShoppingCart } from 'lucide-react';
+import { FileText, ClipboardList, AlertTriangle, Filter, Package, ShoppingCart, Folder, Bell, BarChart3, Clock, Megaphone, ExternalLink, CheckCircle2, Info, AlertCircle } from 'lucide-react';
 import type { SupabaseDashboardWorkOrder, SupabaseDashboardInvoice } from './page';
+
+interface AppGroupData {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  color: string;
+  display_order: number;
+  apps: {
+    app_id: string;
+    code: string;
+    name: string;
+    name_en?: string;
+    name_th?: string;
+    icon?: string;
+    color?: string;
+    app_type?: string;
+  }[];
+}
 
 interface DashboardContentProps {
   locale: string;
@@ -18,6 +37,215 @@ interface DashboardContentProps {
   recentWorkNos: SupabaseDashboardWorkOrder[];
   fiscalYearWorkNos: SupabaseDashboardWorkOrder[];
   fiscalYearInvoices: SupabaseDashboardInvoice[];
+}
+
+// ポータルウィジェット型定義
+interface PortalWidget {
+  id: string;
+  title: string;
+  widget_type: 'announcement' | 'notifications' | 'app_summary' | 'recent_records';
+  config: Record<string, unknown>;
+  width: 'half' | 'full';
+  display_order: number;
+  data: {
+    content?: string;
+    notifications?: { id: string; title: string; message: string; type: string; link?: string; is_read: boolean; created_at: string }[];
+    total?: number;
+    groups?: Record<string, number>;
+    records?: { id: string; record_number: string; data: Record<string, unknown>; updated_at: string }[];
+  };
+}
+
+// ウィジェットカードコンポーネント
+function WidgetCard({ widget, locale, language }: { widget: PortalWidget; locale: string; language: Language }) {
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHour = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHour / 24);
+
+    if (language === 'ja') {
+      if (diffMin < 1) return 'たった今';
+      if (diffMin < 60) return `${diffMin}分前`;
+      if (diffHour < 24) return `${diffHour}時間前`;
+      if (diffDay < 7) return `${diffDay}日前`;
+      return date.toLocaleDateString('ja-JP');
+    } else if (language === 'th') {
+      if (diffMin < 1) return 'เมื่อสักครู่';
+      if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+      if (diffHour < 24) return `${diffHour} ชั่วโมงที่แล้ว`;
+      if (diffDay < 7) return `${diffDay} วันที่แล้ว`;
+      return date.toLocaleDateString('th-TH');
+    } else {
+      if (diffMin < 1) return 'Just now';
+      if (diffMin < 60) return `${diffMin}m ago`;
+      if (diffHour < 24) return `${diffHour}h ago`;
+      if (diffDay < 7) return `${diffDay}d ago`;
+      return date.toLocaleDateString('en-US');
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'success': return <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />;
+      case 'warning': return <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />;
+      case 'error': return <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />;
+      default: return <Info className="w-4 h-4 text-blue-500 shrink-0" />;
+    }
+  };
+
+  const getWidgetIcon = () => {
+    switch (widget.widget_type) {
+      case 'announcement': return <Megaphone className="w-4 h-4 text-gray-500 dark:text-gray-400" />;
+      case 'notifications': return <Bell className="w-4 h-4 text-gray-500 dark:text-gray-400" />;
+      case 'app_summary': return <BarChart3 className="w-4 h-4 text-gray-500 dark:text-gray-400" />;
+      case 'recent_records': return <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />;
+    }
+  };
+
+  const renderContent = () => {
+    switch (widget.widget_type) {
+      case 'announcement':
+        return (
+          <div className="px-4 py-3">
+            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+              {widget.data.content || ''}
+            </p>
+          </div>
+        );
+
+      case 'notifications': {
+        const notifications = widget.data.notifications || [];
+        if (notifications.length === 0) {
+          return (
+            <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+              {language === 'ja' ? '通知はありません' : language === 'th' ? 'ไม่มีการแจ้งเตือน' : 'No notifications'}
+            </div>
+          );
+        }
+        return (
+          <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            {notifications.map((n) => {
+              const inner = (
+                <div className="flex items-start gap-3">
+                  {getNotificationIcon(n.type)}
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm font-medium ${n.is_read ? 'text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-white'}`}>
+                      {n.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                      {n.message}
+                    </p>
+                  </div>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap">
+                    {formatRelativeTime(n.created_at)}
+                  </span>
+                  {n.link && <ExternalLink className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                </div>
+              );
+              return (
+                <li key={n.id}>
+                  {n.link ? (
+                    <a href={n.link.startsWith('/') ? `/${locale}${n.link}` : n.link} className="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                      {inner}
+                    </a>
+                  ) : (
+                    <div className="px-4 py-3">{inner}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        );
+      }
+
+      case 'app_summary': {
+        const total = widget.data.total ?? 0;
+        const groups = widget.data.groups || {};
+        const groupEntries = Object.entries(groups);
+        const maxVal = groupEntries.length > 0 ? Math.max(...groupEntries.map(([, v]) => v)) : 0;
+        return (
+          <div className="px-4 py-4">
+            <div className="text-center mb-4">
+              <span className="text-3xl font-bold text-gray-800 dark:text-white">{total.toLocaleString()}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {language === 'ja' ? '合計' : language === 'th' ? 'ทั้งหมด' : 'Total'}
+              </p>
+            </div>
+            {groupEntries.length > 0 && (
+              <div className="space-y-2">
+                {groupEntries.map(([label, value]) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-600 dark:text-gray-400 w-24 truncate shrink-0">{label}</span>
+                    <div className="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-brand-500 rounded-full transition-all"
+                        style={{ width: maxVal > 0 ? `${(value / maxVal) * 100}%` : '0%' }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300 w-10 text-right shrink-0">{value.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      case 'recent_records': {
+        const records = widget.data.records || [];
+        if (records.length === 0) {
+          return (
+            <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+              {language === 'ja' ? 'レコードはありません' : language === 'th' ? 'ไม่มีรายการ' : 'No records'}
+            </div>
+          );
+        }
+        return (
+          <ul className="divide-y divide-gray-100 dark:divide-gray-700/50">
+            {records.map((rec) => {
+              const primaryFields = Object.values(rec.data).filter(v => v != null).slice(0, 2);
+              return (
+                <li key={rec.id} className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0">#{rec.record_number}</span>
+                        {primaryFields.map((val, i) => (
+                          <span key={i} className="text-sm text-gray-800 dark:text-white truncate">
+                            {String(val)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0 whitespace-nowrap">
+                      {formatRelativeTime(rec.updated_at)}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        );
+      }
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800/50 overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center gap-2">
+        {getWidgetIcon()}
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-white">{widget.title}</h3>
+      </div>
+      {renderContent()}
+    </div>
+  );
 }
 
 // ステータスフィルターのタブ
@@ -33,6 +261,26 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
 
   const [activeTab, setActiveTab] = useState('all');
+  const [appGroups, setAppGroups] = useState<AppGroupData[]>([]);
+  const [widgets, setWidgets] = useState<PortalWidget[]>([]);
+
+  useEffect(() => {
+    fetch('/api/app-groups')
+      .then(res => res.ok ? res.json() : { groups: [] })
+      .then(data => setAppGroups(data.groups || []))
+      .catch(() => setAppGroups([]));
+
+    fetch('/api/portal-widgets')
+      .then(res => res.ok ? res.json() : { widgets: [] })
+      .then(data => setWidgets(data.widgets || []))
+      .catch(() => setWidgets([]));
+  }, []);
+
+  const getAppDisplayName = (app: AppGroupData['apps'][0]) => {
+    if (language === 'en' && app.name_en) return app.name_en;
+    if (language === 'th' && app.name_th) return app.name_th;
+    return app.name;
+  };
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '未定';
@@ -142,6 +390,62 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
           </div>
         </div>
       </div>
+
+      {/* App Groups Section */}
+      {appGroups.length > 0 && (
+        <div className="mb-6 space-y-4">
+          {appGroups.map(group => (
+            <div key={group.id}>
+              <div className="flex items-center gap-2 mb-3">
+                <div
+                  className="flex items-center justify-center w-7 h-7 rounded-lg"
+                  style={{ backgroundColor: group.color || '#6366F1' }}
+                >
+                  <Folder className="w-4 h-4 text-white" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-white/90">
+                  {group.name}
+                </h3>
+                {group.description && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">{group.description}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                {group.apps.map(app => (
+                  <a
+                    key={app.app_id}
+                    href={app.app_type === 'dynamic' ? `/${locale}/apps/${app.code}` : `/${locale}/${app.code}`}
+                    className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 hover:shadow-md transition-shadow dark:border-gray-700 dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
+                  >
+                    <div
+                      className="flex items-center justify-center w-9 h-9 rounded-lg shrink-0"
+                      style={{ backgroundColor: (app.color || group.color || '#6366F1') + '20' }}
+                    >
+                      <Folder className="w-4 h-4" style={{ color: app.color || group.color || '#6366F1' }} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
+                      {getAppDisplayName(app)}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Portal Widgets */}
+      {widgets.length > 0 && (
+        <div className="mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {widgets.map(w => (
+              <div key={w.id} className={w.width === 'full' ? 'md:col-span-2' : ''}>
+                <WidgetCard widget={w} locale={locale} language={language} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Work Numbers Table - TailAdmin Style */}
       <div className={tableStyles.tableContainer}>

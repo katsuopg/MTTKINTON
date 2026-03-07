@@ -68,6 +68,10 @@ const labels = {
     subtableAllowDelete: '行削除を許可',
     entityNote: 'ユーザー・組織・グループを選択できるフィールドです',
     allowMultiple: '複数選択を許可',
+    groupNote: '複数のフィールドを枠線で囲んでまとめます。データは保持されません',
+    groupFields: 'グループに含めるフィールド',
+    groupOpenDefault: 'デフォルトで開いた状態にする',
+    groupNoFields: '利用可能なフィールドがありません',
   },
   en: {
     settings: 'Field Settings',
@@ -131,6 +135,10 @@ const labels = {
     subtableAllowDelete: 'Allow delete rows',
     entityNote: 'A field to select users, organizations, or groups',
     allowMultiple: 'Allow multiple selection',
+    groupNote: 'Groups multiple fields together in a bordered section. No data is stored',
+    groupFields: 'Fields to include',
+    groupOpenDefault: 'Open by default',
+    groupNoFields: 'No fields available',
   },
   th: {
     settings: 'การตั้งค่าฟิลด์',
@@ -194,6 +202,10 @@ const labels = {
     subtableAllowDelete: 'อนุญาตลบแถว',
     entityNote: 'ฟิลด์สำหรับเลือกผู้ใช้ องค์กร หรือกลุ่ม',
     allowMultiple: 'อนุญาตเลือกหลายรายการ',
+    groupNote: 'รวมหลายฟิลด์เข้าด้วยกันในกรอบ ไม่มีการจัดเก็บข้อมูล',
+    groupFields: 'ฟิลด์ที่รวมอยู่',
+    groupOpenDefault: 'เปิดตามค่าเริ่มต้น',
+    groupNoFields: 'ไม่มีฟิลด์ที่ใช้ได้',
   },
 };
 
@@ -984,6 +996,70 @@ export default function FieldSettings({ locale, field, allFields, currentAppCode
                 />
                 {t.allowMultiple}
               </label>
+            </div>
+          )}
+
+          {/* グループフィールド設定 */}
+          {field.field_type === 'group' && (
+            <div className="space-y-3">
+              <p className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 rounded-md px-2.5 py-2">
+                {t.groupNote}
+              </p>
+              {/* デフォルト開閉状態 */}
+              <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={field.validation?.group_open_default !== false}
+                  onChange={(e) => onUpdateField(field.id, {
+                    validation: { ...field.validation, group_open_default: e.target.checked },
+                  })}
+                  className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                />
+                {t.groupOpenDefault}
+              </label>
+              {/* 含めるフィールドの選択 */}
+              <div>
+                <label className={labelClass}>{t.groupFields}</label>
+                {(() => {
+                  const availableFields = allFields.filter(
+                    (f) => f.id !== field.id && !DECORATIVE_FIELD_TYPES.has(f.field_type) && !AUTO_FIELD_TYPES.has(f.field_type)
+                  );
+                  if (availableFields.length === 0) {
+                    return <p className="text-xs text-gray-400 italic">{t.groupNoFields}</p>;
+                  }
+                  const selectedCodes = field.validation?.group_fields || [];
+                  return (
+                    <div className="max-h-48 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2 space-y-1">
+                      {availableFields.map((f) => {
+                        const checked = selectedCodes.includes(f.field_code);
+                        return (
+                          <label key={f.id} className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 px-1 py-0.5 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const current = [...selectedCodes];
+                                if (e.target.checked) {
+                                  current.push(f.field_code);
+                                } else {
+                                  const idx = current.indexOf(f.field_code);
+                                  if (idx >= 0) current.splice(idx, 1);
+                                }
+                                onUpdateField(field.id, {
+                                  validation: { ...field.validation, group_fields: current },
+                                });
+                              }}
+                              className="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                            />
+                            <span className="truncate">{f.label[lang] || f.label.ja || f.field_code}</span>
+                            <span className="text-[10px] text-gray-400 font-mono ml-auto flex-shrink-0">{f.field_code}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           )}
 
