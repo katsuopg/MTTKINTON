@@ -1159,6 +1159,7 @@ export default function DynamicListContent({ locale, appCode, appName, fields, e
             totalItems={total}
             pageSize={pageSize}
             onPageChange={setCurrentPage}
+            locale={locale}
           />
         )}
       </div>

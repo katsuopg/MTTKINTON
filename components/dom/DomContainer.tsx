@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Plus, ShoppingCart, X, ArrowRight } from 'lucide-react';
 import DomHeader from './DomHeader';
 import DomTabs from './DomTabs';
+import { detailStyles } from '@/components/ui/DetailStyles';
 import type { DomHeaderWithRelations, DomMasters } from '@/types/dom';
 
 type Language = 'ja' | 'en' | 'th';
@@ -44,7 +46,15 @@ const LABELS: Record<Language, Record<string, string>> = {
   },
 };
 
+const QUOTE_LABELS: Record<string, Record<Language, string>> = {
+  startSelect: { ja: '見積依頼作成', en: 'Quote Request', th: 'ขอราคา' },
+  cancelSelect: { ja: '選択解除', en: 'Cancel', th: 'ยกเลิก' },
+  createQuote: { ja: '見積依頼へ進む', en: 'Proceed to Quote', th: 'ดำเนินการขอราคา' },
+  selectedCount: { ja: '件選択中', en: 'selected', th: 'ที่เลือก' },
+};
+
 export default function DomContainer({ projectId, locale, customerName, machineName, workNo, projectCode }: DomContainerProps) {
+  const router = useRouter();
   const language = (locale === 'ja' || locale === 'en' || locale === 'th' ? locale : 'en') as Language;
 
   const [loading, setLoading] = useState(true);
@@ -53,21 +63,63 @@ export default function DomContainer({ projectId, locale, customerName, machineN
   const [dom, setDom] = useState<DomHeaderWithRelations | null>(null);
   const [masters, setMasters] = useState<DomMasters | null>(null);
 
-  // DOM取得（初回ロード用）
+  // 見積依頼選択 state
+  const [quoteSelecting, setQuoteSelecting] = useState(false);
+  const [selectedMechItems, setSelectedMechItems] = useState<Set<string>>(new Set());
+  const [selectedElecItems, setSelectedElecItems] = useState<Set<string>>(new Set());
+  const totalSelected = selectedMechItems.size + selectedElecItems.size;
+
+  const handleStartQuoteSelect = () => {
+    setQuoteSelecting(true);
+    setSelectedMechItems(new Set());
+    setSelectedElecItems(new Set());
+  };
+
+  const handleCancelQuoteSelect = () => {
+    setQuoteSelecting(false);
+    setSelectedMechItems(new Set());
+    setSelectedElecItems(new Set());
+  };
+
+  const handleToggleMechItem = useCallback((id: string) => {
+    setSelectedMechItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleToggleElecItem = useCallback((id: string) => {
+    setSelectedElecItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleProceedToQuote = () => {
+    if (totalSelected === 0 || !dom) return;
+    const params = new URLSearchParams();
+    params.set('dom_header_id', dom.id);
+    if (selectedMechItems.size > 0) params.set('mech_ids', Array.from(selectedMechItems).join(','));
+    if (selectedElecItems.size > 0) params.set('elec_ids', Array.from(selectedElecItems).join(','));
+    if (workNo) params.set('work_no', workNo);
+    if (projectCode) params.set('project_code', projectCode);
+    router.push(`/${locale}/quote-requests/new?${params.toString()}`);
+  };
+
+  // DOM取得
   const fetchDom = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       setError(false);
-
-      // DOMヘッダー一覧を取得（project_idでフィルタ）
       const ts = Date.now();
       const res = await fetch(`/api/dom?project_id=${projectId}&_t=${ts}`, { cache: 'no-store' });
       if (!res.ok) throw new Error('Failed to fetch');
-
       const headers = await res.json();
-
       if (Array.isArray(headers) && headers.length > 0) {
-        // 最新のDOMを詳細取得
         const detailRes = await fetch(`/api/dom/${headers[0].id}?_t=${ts}`, { cache: 'no-store' });
         if (!detailRes.ok) throw new Error('Failed to fetch detail');
         const detail = await detailRes.json();
@@ -83,7 +135,6 @@ export default function DomContainer({ projectId, locale, customerName, machineN
     }
   }, [projectId]);
 
-  // マスタデータ取得
   const fetchMasters = useCallback(async () => {
     try {
       const res = await fetch('/api/dom/masters');
@@ -100,7 +151,6 @@ export default function DomContainer({ projectId, locale, customerName, machineN
     fetchMasters();
   }, [fetchDom, fetchMasters]);
 
-  // DOM作成
   const handleCreateDom = async () => {
     setCreating(true);
     try {
@@ -113,9 +163,7 @@ export default function DomContainer({ projectId, locale, customerName, machineN
           machine_name: machineName || null,
         }),
       });
-
       if (!res.ok) throw new Error('Failed to create DOM');
-
       await fetchDom();
     } catch (err) {
       console.error('Error creating DOM:', err);
@@ -125,10 +173,7 @@ export default function DomContainer({ projectId, locale, customerName, machineN
     }
   };
 
-  // リフレッシュ（保存後等 — ローディング表示なしでデータ再取得）
-  const handleRefresh = () => {
-    return fetchDom(false);
-  };
+  const handleRefresh = () => fetchDom(false);
 
   if (loading) {
     return (
@@ -147,7 +192,6 @@ export default function DomContainer({ projectId, locale, customerName, machineN
     );
   }
 
-  // DOM未作成時
   if (!dom) {
     return (
       <div className="text-center py-12">
@@ -170,10 +214,43 @@ export default function DomContainer({ projectId, locale, customerName, machineN
     );
   }
 
-  // DOM作成済み
+  // 見積依頼ボタン（DomHeaderのactions propとして渡す）
+  const quoteActions = !quoteSelecting ? (
+    <button
+      onClick={handleStartQuoteSelect}
+      className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
+    >
+      <ShoppingCart size={14} />
+      <span className="ml-1.5">{QUOTE_LABELS.startSelect[language]}</span>
+    </button>
+  ) : (
+    <>
+      <button
+        onClick={handleCancelQuoteSelect}
+        className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
+      >
+        <X size={14} />
+        <span className="ml-1.5">{QUOTE_LABELS.cancelSelect[language]}</span>
+      </button>
+      {totalSelected > 0 && (
+        <span className="text-xs font-medium text-brand-600 dark:text-brand-400">
+          {totalSelected} {QUOTE_LABELS.selectedCount[language]}
+        </span>
+      )}
+      <button
+        onClick={handleProceedToQuote}
+        disabled={totalSelected === 0}
+        className={`${detailStyles.primaryButton} !py-1.5 !px-3 !text-xs disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        <span>{QUOTE_LABELS.createQuote[language]}</span>
+        <ArrowRight size={14} className="ml-1.5" />
+      </button>
+    </>
+  );
+
   return (
     <div>
-      <DomHeader dom={dom} language={language} onRefresh={handleRefresh} />
+      <DomHeader dom={dom} language={language} onRefresh={handleRefresh} actions={quoteActions} />
       {masters && (
         <DomTabs
           dom={dom}
@@ -182,6 +259,11 @@ export default function DomContainer({ projectId, locale, customerName, machineN
           onRefresh={handleRefresh}
           workNo={workNo}
           projectCode={projectCode}
+          quoteSelecting={quoteSelecting}
+          selectedMechItems={selectedMechItems}
+          selectedElecItems={selectedElecItems}
+          onToggleMechItem={handleToggleMechItem}
+          onToggleElecItem={handleToggleElecItem}
         />
       )}
     </div>

@@ -6,6 +6,7 @@ import EditableCell from '../shared/EditableCell';
 import StatusBadge from '../shared/StatusBadge';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { detailStyles } from '@/components/ui/DetailStyles';
 import type {
   DomHeaderWithRelations,
   DomLabor,
@@ -329,12 +330,13 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
           )}
         </div>
 
-        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-          <table className="w-full text-sm min-w-[800px]">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ minWidth: 800 }}>
             <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
               <tr>
                 {COLUMN_HEADERS[language].map((header, i) => (
-                  <th key={i} className="px-1 py-1.5 text-left font-medium text-xs whitespace-nowrap">
+                  <th key={i} className="px-2 py-1.5 text-left font-medium text-xs whitespace-nowrap">
                     {header}
                   </th>
                 ))}
@@ -355,6 +357,7 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     );
@@ -367,18 +370,20 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
         {!editing ? (
           <button
             onClick={() => setEditing(true)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-md"
+            className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
           >
-            <Pencil size={16} /> {UI_LABELS[language].edit}
+            <Pencil size={14} />
+            <span className="ml-1.5">{UI_LABELS[language].edit}</span>
           </button>
         ) : (
           <>
             {selectedItems.size > 0 && (
               <button
                 onClick={handleDelete}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-md"
+                className={`${detailStyles.dangerButton} !py-1.5 !px-3 !text-xs`}
               >
-                <Trash2 size={16} /> {UI_LABELS[language].deleteSelected} ({selectedItems.size})
+                <Trash2 size={14} />
+                <span className="ml-1.5">{UI_LABELS[language].deleteSelected} ({selectedItems.size})</span>
               </button>
             )}
 
@@ -386,16 +391,18 @@ export default function LaborTab({ dom, language, onRefresh }: LaborTabProps) {
 
             <button
               onClick={handleCancel}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
+              className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
             >
-              <X size={16} /> {UI_LABELS[language].cancel}
+              <X size={14} />
+              <span className="ml-1.5">{UI_LABELS[language].cancel}</span>
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md disabled:opacity-50"
+              className={`${detailStyles.primaryButton} !py-1.5 !px-3 !text-xs disabled:opacity-50`}
             >
-              <Save size={16} /> {saving ? UI_LABELS[language].saving : UI_LABELS[language].save}
+              <Save size={14} />
+              <span className="ml-1.5">{saving ? UI_LABELS[language].saving : UI_LABELS[language].save}</span>
             </button>
           </>
         )}

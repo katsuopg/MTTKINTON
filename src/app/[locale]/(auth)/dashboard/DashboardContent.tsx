@@ -8,7 +8,7 @@ import { extractCsName } from '@/lib/utils/customer-name';
 import { Pagination } from '@/components/ui/Pagination';
 import { usePagination } from '@/hooks/usePagination';
 import MonthlySalesChart from '@/components/charts/MonthlySalesChart';
-import { FileText, ClipboardList, AlertTriangle, Filter, Package, ShoppingCart, Folder, Bell, BarChart3, Clock, Megaphone, ExternalLink, CheckCircle2, Info, AlertCircle } from 'lucide-react';
+import { FileText, ClipboardList, AlertTriangle, Filter, Folder, Bell, BarChart3, Clock, Megaphone, ExternalLink, CheckCircle2, Info, AlertCircle, ArrowUp, ArrowDown } from 'lucide-react';
 import type { SupabaseDashboardWorkOrder, SupabaseDashboardInvoice } from './page';
 
 interface AppGroupData {
@@ -263,6 +263,8 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
   const [activeTab, setActiveTab] = useState('all');
   const [appGroups, setAppGroups] = useState<AppGroupData[]>([]);
   const [widgets, setWidgets] = useState<PortalWidget[]>([]);
+  const [sortKey, setSortKey] = useState<'work_no' | 'category' | 'customer' | 'sales_date' | 'status'>('work_no');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     fetch('/api/app-groups')
@@ -301,16 +303,65 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
     return value.toLocaleString();
   };
 
-  // フィルタリングされたデータ
+  // フィルタリング + ソート
   const filteredWorkNos = useMemo(() => {
-    if (activeTab === 'all') return recentWorkNos;
-    return recentWorkNos.filter(record => record.status === activeTab);
-  }, [recentWorkNos, activeTab]);
+    const filtered = activeTab === 'all' ? [...recentWorkNos] : recentWorkNos.filter(record => record.status === activeTab);
+
+    filtered.sort((a, b) => {
+      let aVal: string | number | null = null;
+      let bVal: string | number | null = null;
+
+      switch (sortKey) {
+        case 'work_no':
+          aVal = a.work_no || '';
+          bVal = b.work_no || '';
+          break;
+        case 'category':
+          aVal = a.category || '';
+          bVal = b.category || '';
+          break;
+        case 'customer':
+          aVal = extractCsName(a.customer_id) || a.customer_name || '';
+          bVal = extractCsName(b.customer_id) || b.customer_name || '';
+          break;
+        case 'sales_date':
+          aVal = a.sales_date || '';
+          bVal = b.sales_date || '';
+          break;
+        case 'status':
+          aVal = a.status || '';
+          bVal = b.status || '';
+          break;
+      }
+
+      if (aVal === null || bVal === null) return 0;
+      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+
+    return filtered;
+  }, [recentWorkNos, activeTab, sortKey, sortOrder]);
 
   const { paginatedItems: paginatedWorkNos, currentPage, totalPages, totalItems, pageSize, goToPage } = usePagination(filteredWorkNos);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+  };
+
+  const handleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortOrder(key === 'work_no' ? 'desc' : 'asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: typeof sortKey }) => {
+    if (sortKey !== column) return null;
+    return sortOrder === 'asc'
+      ? <ArrowUp className="inline w-3.5 h-3.5 ml-1" />
+      : <ArrowDown className="inline w-3.5 h-3.5 ml-1" />;
   };
 
   const getTabLabel = (tab: typeof STATUS_TABS[0]) => {
@@ -511,22 +562,29 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
             <table className={tableStyles.table}>
               <thead className={tableStyles.thead}>
                 <tr>
-                  <th className={tableStyles.th}>
+                  <th className={`${tableStyles.th} cursor-pointer select-none hover:text-brand-500`} onClick={() => handleSort('work_no')}>
                     {language === 'ja' ? '工事番号' : language === 'th' ? 'หมายเลขงาน' : 'Order ID'}
+                    <SortIcon column="work_no" />
                   </th>
-                  <th className={tableStyles.th}>Category</th>
-                  <th className={tableStyles.th}>
+                  <th className={`${tableStyles.th} cursor-pointer select-none hover:text-brand-500`} onClick={() => handleSort('category')}>
+                    Category
+                    <SortIcon column="category" />
+                  </th>
+                  <th className={`${tableStyles.th} cursor-pointer select-none hover:text-brand-500`} onClick={() => handleSort('customer')}>
                     {language === 'ja' ? '顧客' : language === 'th' ? 'บริษัท' : 'Company'}
+                    <SortIcon column="customer" />
                   </th>
-                  <th className={tableStyles.th}>
+                  <th className={`${tableStyles.th} cursor-pointer select-none hover:text-brand-500`} onClick={() => handleSort('sales_date')}>
                     {language === 'ja' ? '売上予定日' : language === 'th' ? 'วันที่มาถึง' : 'Arrival'}
+                    <SortIcon column="sales_date" />
                   </th>
                   <th className={tableStyles.th}>Description</th>
                   <th className={`${tableStyles.th} text-right`}>
                     {language === 'ja' ? '合計金額（THB）' : language === 'th' ? 'ราคา (THB)' : 'Price (THB)'}
                   </th>
-                  <th className={tableStyles.th}>
+                  <th className={`${tableStyles.th} cursor-pointer select-none hover:text-brand-500`} onClick={() => handleSort('status')}>
                     {language === 'ja' ? 'ステータス' : language === 'th' ? 'สถานะ' : 'Status'}
+                    <SortIcon column="status" />
                   </th>
                 </tr>
               </thead>
@@ -596,50 +654,6 @@ export default function DashboardContent({ locale, workNoCount, projectCount, re
         />
       </div>
 
-      {/* Quick Access - TailAdmin Style */}
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
-          {language === 'ja' ? 'クイックアクセス' : language === 'th' ? 'การเข้าถึงด่วน' : 'Quick Access'}
-        </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6">
-          <a
-            href={`/${locale}/parts-list`}
-            className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 hover:shadow-lg transition-shadow group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800 shrink-0">
-                <Package className="w-6 h-6 text-gray-800 dark:text-white/90" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800 text-theme-sm dark:text-white/90 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors">
-                  {language === 'ja' ? 'パーツリスト管理' : language === 'th' ? 'การจัดการรายการชิ้นส่วน' : 'Parts List Management'}
-                </h3>
-                <p className="mt-1 text-gray-500 text-theme-xs dark:text-gray-400">
-                  {language === 'ja' ? 'プロジェクト別のパーツリストを管理' : language === 'th' ? 'จัดการรายการชิ้นส่วนตามโปรเจกต์' : 'Manage parts lists by project'}
-                </p>
-              </div>
-            </div>
-          </a>
-          <a
-            href={`/${locale}/purchase-request`}
-            className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 hover:shadow-lg transition-shadow group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800 shrink-0">
-                <ShoppingCart className="w-6 h-6 text-gray-800 dark:text-white/90" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-800 text-theme-sm dark:text-white/90 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors">
-                  {language === 'ja' ? '購買依頼管理' : language === 'th' ? 'การจัดการคำขอซื้อ' : 'Purchase Request Management'}
-                </h3>
-                <p className="mt-1 text-gray-500 text-theme-xs dark:text-gray-400">
-                  {language === 'ja' ? '設計・エンジニアからの購買依頼を処理' : language === 'th' ? 'ดำเนินการตามคำขอซื้อจากวิศวกร' : 'Process purchase requests from engineers'}
-                </p>
-              </div>
-            </div>
-          </a>
-        </div>
-      </div>
     </div>
   );
 }

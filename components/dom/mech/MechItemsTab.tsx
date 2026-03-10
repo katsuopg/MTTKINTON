@@ -13,6 +13,7 @@ import type {
   DomMasters,
   DomItemCategory,
 } from '@/types/dom';
+import { detailStyles } from '@/components/ui/DetailStyles';
 
 type Language = 'ja' | 'en' | 'th';
 
@@ -346,26 +347,29 @@ export default function MechItemsTab({ dom, masters, language, onRefresh, quoteS
           /* 閲覧モード：編集ボタンのみ */
           <button
             onClick={handleStartEdit}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-md"
+            className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
           >
-            <Pencil size={16} /> {UI_LABELS[language].edit}
+            <Pencil size={14} />
+            <span className="ml-1.5">{UI_LABELS[language].edit}</span>
           </button>
         ) : (
           /* 編集モード：操作ボタン */
           <>
             <button
               onClick={handleAddSection}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"
+              className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
             >
-              <FolderPlus size={16} /> {UI_LABELS[language].addSection}
+              <FolderPlus size={14} />
+              <span className="ml-1.5">{UI_LABELS[language].addSection}</span>
             </button>
 
             {selectedItems.size > 0 && (
               <button
                 onClick={handleDelete}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-md"
+                className={`${detailStyles.dangerButton} !py-1.5 !px-3 !text-xs`}
               >
-                <Trash2 size={16} /> {UI_LABELS[language].deleteSelected} ({selectedItems.size})
+                <Trash2 size={14} />
+                <span className="ml-1.5">{UI_LABELS[language].deleteSelected} ({selectedItems.size})</span>
               </button>
             )}
 
@@ -373,16 +377,18 @@ export default function MechItemsTab({ dom, masters, language, onRefresh, quoteS
 
             <button
               onClick={handleCancel}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
+              className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
             >
-              <X size={16} /> {UI_LABELS[language].cancel}
+              <X size={14} />
+              <span className="ml-1.5">{UI_LABELS[language].cancel}</span>
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md disabled:opacity-50"
+              className={`${detailStyles.primaryButton} !py-1.5 !px-3 !text-xs disabled:opacity-50`}
             >
-              <Save size={16} /> {saving ? UI_LABELS[language].saving : UI_LABELS[language].save}
+              <Save size={14} />
+              <span className="ml-1.5">{saving ? UI_LABELS[language].saving : UI_LABELS[language].save}</span>
             </button>
           </>
         )}

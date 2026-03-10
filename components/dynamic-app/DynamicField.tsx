@@ -7,6 +7,7 @@ import { AUTO_FIELD_TYPES, DECORATIVE_FIELD_TYPES } from '@/types/dynamic-app';
 import SubtableField from './SubtableField';
 import EntitySelectField from './EntitySelectField';
 import { evaluateFormula, formatFormulaResult } from '@/lib/dynamic-app/formula-engine';
+import { formStyles } from '@/components/ui/FormStyles';
 
 interface UploadedFile {
   id: string;
@@ -36,13 +37,8 @@ export default function DynamicField({ field, value, onChange, locale, error, re
   const isAuto = AUTO_FIELD_TYPES.has(field.field_type);
   const isDecorative = DECORATIVE_FIELD_TYPES.has(field.field_type);
 
-  const inputClass = `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-white ${
-    error
-      ? 'border-red-300 dark:border-red-600'
-      : 'border-gray-300 dark:border-gray-600'
-  }`;
-
-  const readonlyClass = 'w-full px-3 py-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg';
+  const inputClass = error ? formStyles.inputError : formStyles.input;
+  const readonlyClass = formStyles.inputReadonly;
 
   // 装飾フィールド
   if (field.field_type === 'label') {

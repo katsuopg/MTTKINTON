@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { WorkNoRecord } from '@/types/kintone';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { getFieldLabel, getStatusOptions, getStatusLabel, type Language } from '@/lib/kintone/field-mappings';
+import { detailStyles, getStatusBadgeClass } from '@/components/ui/DetailStyles';
+import { formStyles } from '@/components/ui/FormStyles';
 
 interface WorkNoEditContentProps {
   record: WorkNoRecord;
@@ -77,280 +79,228 @@ export default function WorkNoEditContent({ record, locale, userEmail, userInfo 
 
   return (
     <DashboardLayout locale={locale} userEmail={userEmail} title={pageTitle} userInfo={userInfo}>
-      <div className="py-8 px-4 max-w-full w-full">
+      <div className={detailStyles.pageWrapper}>
         {/* タイトルエリア */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-base font-bold">
-              <span 
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-base font-bold"
-                style={{
-                  backgroundColor: '#dcfce7',
-                  color: '#166534'
-                }}
-              >
-                {getStatusLabel(formData.status, language)}
-              </span>
-              <span className="text-gray-900">{formData.workNo}</span>
-              <span className="text-gray-600">-</span>
-              <span className="text-gray-900">{formData.csId}</span>
-              <span className="text-gray-600">-</span>
-              <span className="text-gray-900">{formData.category}</span>
-              <span className="text-gray-600">-</span>
-              <span className="text-gray-900">{formData.description}</span>
-            </div>
+        <div className={detailStyles.pageHeader}>
+          <div className="flex items-center gap-2">
+            <span className={getStatusBadgeClass(formData.status)}>
+              {getStatusLabel(formData.status, language)}
+            </span>
+            <h1 className={detailStyles.pageTitle}>
+              {formData.workNo} - {formData.csId} - {formData.category} - {formData.description}
+            </h1>
           </div>
         </div>
 
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className={formStyles.errorAlert}>
+            <p className={formStyles.errorAlertText}>{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* カード表示エリア - 詳細画面と同じレイアウト */}
-          <div className="w-full mb-6">
-            <div style={{ display: 'flex', gap: '16px' }}>
-              {/* 1. 工事詳細 */}
-              <div className="bg-white shadow-lg rounded-lg p-4 border" style={{ flex: '1', minWidth: '0' }}>
-                <h3 className="text-base font-semibold text-gray-900 mb-3">
+          {/* カード表示エリア - 4カラムレイアウト */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            {/* 1. 工事詳細 */}
+            <div className={detailStyles.card}>
+              <div className={detailStyles.cardHeaderWithBg}>
+                <h3 className={detailStyles.cardTitle}>
                   {language === 'ja' ? '工事詳細' : 'Work Details'}
                 </h3>
-                <table className="w-full text-sm table-fixed">
+              </div>
+              <div className={detailStyles.cardContent}>
+                <table className={detailStyles.summaryTable}>
                   <tbody>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '開始日' : 'Start Date'}</td>
-                      <td className="py-1 text-right">
-                        <input
-                          type="date"
-                          value={formData.startDate}
-                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                          className="w-full text-right text-sm border-gray-300 rounded"
-                        />
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '開始日' : 'Start Date'}</td>
+                      <td className={detailStyles.summaryRow}>
+                        <input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className={`${formStyles.input} text-right`} />
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '売上予定日' : 'Sales Date'}</td>
-                      <td className="py-1 text-right">
-                        <input
-                          type="date"
-                          value={formData.salesDate}
-                          onChange={(e) => setFormData({ ...formData, salesDate: e.target.value })}
-                          className="w-full text-right text-sm border-gray-300 rounded"
-                        />
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '売上予定日' : 'Sales Date'}</td>
+                      <td className={detailStyles.summaryRow}>
+                        <input type="date" value={formData.salesDate} onChange={(e) => setFormData({ ...formData, salesDate: e.target.value })} className={`${formStyles.input} text-right`} />
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '終了日' : 'Finish Date'}</td>
-                      <td className="py-1 text-right">
-                        <input
-                          type="date"
-                          value={formData.finishDate}
-                          onChange={(e) => setFormData({ ...formData, finishDate: e.target.value })}
-                          className="w-full text-right text-sm border-gray-300 rounded"
-                        />
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '終了日' : 'Finish Date'}</td>
+                      <td className={detailStyles.summaryRow}>
+                        <input type="date" value={formData.finishDate} onChange={(e) => setFormData({ ...formData, finishDate: e.target.value })} className={`${formStyles.input} text-right`} />
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '注文書番号' : 'PO Number'}</td>
-                      <td className="py-1 text-right">
-                        <span className="text-gray-600">{rec.ルックアップ?.value || '-'}</span>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '注文書番号' : 'PO Number'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{rec.ルックアップ?.value || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '注文書受取日' : 'PO Receive Date'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{rec.日付_0?.value?.replace(/-/g, '/') || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '請求書番号' : 'Invoice No'}</td>
+                      <td className={detailStyles.summaryRow}>
+                        <input type="text" value={formData.inv3} onChange={(e) => setFormData({ ...formData, inv3: e.target.value })} className={`${formStyles.input} text-right`} placeholder="INV-XXXX" />
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '注文書受取日' : 'PO Receive Date'}</td>
-                      <td className="py-1 text-right">
-                        <span className="text-gray-600">{rec.日付_0?.value?.replace(/-/g, '/') || '-'}</span>
-                      </td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '請求書発行日' : 'Invoice Date'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>-</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '請求書番号' : 'Invoice No'}</td>
-                      <td className="py-1 text-right">
-                        <input
-                          type="text"
-                          value={formData.inv3}
-                          onChange={(e) => setFormData({ ...formData, inv3: e.target.value })}
-                          className="w-full text-right text-sm border-gray-300 rounded"
-                          placeholder="INV-XXXX"
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '請求書発行日' : 'Invoice Date'}</td>
-                      <td className="py-1 text-right">
-                        <span className="text-gray-600">-</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '担当営業' : 'Sales Staff'}</td>
-                      <td className="py-1 text-right">
-                        <span className="text-gray-600">{record.Salesstaff?.value?.map(s => s.name).join(', ') || 'Anut'}</span>
-                      </td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '担当営業' : 'Sales Staff'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.Salesstaff?.value?.map(s => s.name).join(', ') || 'Anut'}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* 2. 見積もり詳細 */}
-              <div className="bg-white shadow-lg rounded-lg p-4 border" style={{ flex: '1', minWidth: '0' }}>
-                <h3 className="text-base font-semibold text-gray-900 mb-3">
+            {/* 2. 見積もり詳細 */}
+            <div className={detailStyles.card}>
+              <div className={detailStyles.cardHeaderWithBg}>
+                <h3 className={detailStyles.cardTitle}>
                   {language === 'ja' ? '見積もり詳細' : 'Quotation Details'}
                 </h3>
-                <table className="w-full text-sm table-fixed">
+              </div>
+              <div className={detailStyles.cardContent}>
+                <table className={detailStyles.summaryTable}>
                   <tbody>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '見積番号' : 'Quotation No'}</td>
-                      <td className="py-1 text-right">
-                        <span className="text-gray-600">{rec.ルックアップ_0?.value || '-'}</span>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '見積番号' : 'Quotation No'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{rec.ルックアップ_0?.value || '-'}</td>
+                    </tr>
+                    <tr>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '小計' : 'Sub total'}</td>
+                      <td className={detailStyles.summaryRow}>
+                        <input type="number" value={formData.grandTotal} onChange={(e) => setFormData({ ...formData, grandTotal: e.target.value })} className={`${formStyles.input} text-right`} step="0.01" />
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '小計' : 'Sub total'}</td>
-                      <td className="py-1 text-right">
-                        <input
-                          type="number"
-                          value={formData.grandTotal}
-                          onChange={(e) => setFormData({ ...formData, grandTotal: e.target.value })}
-                          className="w-full text-right text-sm border-gray-300 rounded"
-                          step="0.01"
-                        />
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '値引き' : 'Discount'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td>
+                    </tr>
+                    <tr>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel} font-medium`}>{language === 'ja' ? '合計' : 'Grand total'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue} font-medium`}>{Number(formData.grandTotal).toLocaleString()} B</td>
+                    </tr>
+                    <tr>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '予想利益' : 'Expected Profit'}</td>
+                      <td className={detailStyles.summaryRow}>
+                        <input type="number" value={formData.profit} onChange={(e) => setFormData({ ...formData, profit: e.target.value })} className={`${formStyles.input} text-right`} step="0.01" />
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '値引き' : 'Discount'}</td>
-                      <td className="py-1 text-right">
-                        <span className="text-gray-600">0 B</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '合計' : 'Grand total'}</td>
-                      <td className="py-1 font-medium text-right">
-                        <span>{Number(formData.grandTotal).toLocaleString()} B</span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '予想利益' : 'Expected Profit'}</td>
-                      <td className="py-1 text-right">
-                        <input
-                          type="number"
-                          value={formData.profit}
-                          onChange={(e) => setFormData({ ...formData, profit: e.target.value })}
-                          className="w-full text-right text-sm border-gray-300 rounded"
-                          step="0.01"
-                        />
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="py-1 whitespace-nowrap">{language === 'ja' ? '利益率' : 'Profit %'}</td>
-                      <td className="py-1 text-right">
-                        <span className="text-gray-600">
-                          {formData.grandTotal && formData.profit 
-                            ? `${((Number(formData.profit) / Number(formData.grandTotal)) * 100).toFixed(1)}%`
-                            : '0%'
-                          }
-                        </span>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>{language === 'ja' ? '利益率' : 'Profit %'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
+                        {formData.grandTotal && formData.profit
+                          ? `${((Number(formData.profit) / Number(formData.grandTotal)) * 100).toFixed(1)}%`
+                          : '0%'
+                        }
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* 3. 機械情報 */}
-              <div className="bg-white shadow-lg rounded-lg p-4 border" style={{ flex: '1', minWidth: '0' }}>
-                <h3 className="text-base font-semibold text-gray-900 mb-3">
+            {/* 3. 機械情報 */}
+            <div className={detailStyles.card}>
+              <div className={detailStyles.cardHeaderWithBg}>
+                <h3 className={detailStyles.cardTitle}>
                   {language === 'ja' ? '機械情報' : 'Machine Info'}
                 </h3>
-                <table className="w-full text-sm table-fixed">
+              </div>
+              <div className={detailStyles.cardContent}>
+                <table className={detailStyles.summaryTable}>
                   <tbody>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Type</td>
-                      <td className="py-1 text-right">Press</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Type</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>Press</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Vender</td>
-                      <td className="py-1 text-right">AIDA</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Vender</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>AIDA</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Model</td>
-                      <td className="py-1 text-right">
-                        <input
-                          type="text"
-                          value={formData.model}
-                          onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                          className="w-full text-right text-sm border-gray-300 rounded"
-                        />
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Model</td>
+                      <td className={detailStyles.summaryRow}>
+                        <input type="text" value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} className={`${formStyles.input} text-right`} />
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Serial No.</td>
-                      <td className="py-1 text-right">{rec.文字列__1行__15?.value || '-'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Serial No.</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{rec.文字列__1行__15?.value || '-'}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">M/C No.</td>
-                      <td className="py-1 text-right">{rec.文字列__1行__5?.value || '-'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>M/C No.</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{rec.文字列__1行__5?.value || '-'}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">M/C Item</td>
-                      <td className="py-1 text-right">{record.McItem?.value || '-'}</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>M/C Item</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{record.McItem?.value || '-'}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
 
-              {/* 4. Sales Details */}
-              <div className="bg-white shadow-lg rounded-lg p-4 border" style={{ flex: '1', minWidth: '0' }}>
-                <h3 className="text-base font-semibold text-gray-900 mb-3">Sales Details</h3>
-                <table className="w-full text-sm table-fixed">
+            {/* 4. Sales Details */}
+            <div className={detailStyles.card}>
+              <div className={detailStyles.cardHeaderWithBg}>
+                <h3 className={detailStyles.cardTitle}>Sales Details</h3>
+              </div>
+              <div className={detailStyles.cardContent}>
+                <table className={detailStyles.summaryTable}>
                   <tbody>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Sub total</td>
-                      <td className="py-1 text-right">{Number(formData.grandTotal).toLocaleString()} B</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Sub total</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{Number(formData.grandTotal).toLocaleString()} B</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Discount</td>
-                      <td className="py-1 text-right">0 B</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Discount</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td>
                     </tr>
-                    <tr className="border-t border-gray-200">
-                      <td className="py-1 whitespace-nowrap font-medium">Grand total</td>
-                      <td className="py-1 font-medium text-right">{Number(formData.grandTotal).toLocaleString()} B</td>
-                    </tr>
-                    <tr>
-                      <td className="py-1 whitespace-nowrap">Purchase cost</td>
-                      <td className="py-1 text-right">0 B</td>
+                    <tr className="border-t border-gray-200 dark:border-gray-700">
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel} font-medium`}>Grand total</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue} font-medium`}>{Number(formData.grandTotal).toLocaleString()} B</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Labor cost</td>
-                      <td className="py-1 text-right">0 B</td>
-                    </tr>
-                    <tr className="border-t border-gray-200">
-                      <td className="py-1 whitespace-nowrap font-medium">Cost Total</td>
-                      <td className="py-1 font-medium text-right">0 B</td>
-                    </tr>
-                    <tr className="border-t border-gray-200">
-                      <td className="py-1 whitespace-nowrap font-medium">Gross Profit</td>
-                      <td className="py-1 font-medium text-right">{Number(formData.profit).toLocaleString()} B</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Purchase cost</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">profit %</td>
-                      <td className="py-1 text-right">
-                        {formData.grandTotal && formData.profit 
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Labor cost</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>0 B</td>
+                    </tr>
+                    <tr className="border-t border-gray-200 dark:border-gray-700">
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel} font-medium`}>Cost Total</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue} font-medium`}>0 B</td>
+                    </tr>
+                    <tr className="border-t border-gray-200 dark:border-gray-700">
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel} font-medium`}>Gross Profit</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue} font-medium`}>{Number(formData.profit).toLocaleString()} B</td>
+                    </tr>
+                    <tr>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>profit %</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>
+                        {formData.grandTotal && formData.profit
                           ? `${((Number(formData.profit) / Number(formData.grandTotal)) * 100).toFixed(1)}%`
                           : '0%'
                         }
                       </td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Over Head Fee</td>
-                      <td className="py-1 text-right">390 B</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Over Head Fee</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>390 B</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Operation Profit</td>
-                      <td className="py-1 text-right">{Math.max(0, Number(formData.profit) - 390).toLocaleString()} B</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Operation Profit</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>{Math.max(0, Number(formData.profit) - 390).toLocaleString()} B</td>
                     </tr>
                     <tr>
-                      <td className="py-1 whitespace-nowrap">Commition (3%)</td>
-                      <td className="py-1 text-right">222 B</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryLabel}`}>Commition (3%)</td>
+                      <td className={`${detailStyles.summaryRow} ${detailStyles.summaryValue}`}>222 B</td>
                     </tr>
                   </tbody>
                 </table>
@@ -359,160 +309,128 @@ export default function WorkNoEditContent({ record, locale, userEmail, userInfo 
           </div>
 
           {/* 追加のフィールド */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white shadow-lg rounded-lg p-4 border">
-              <h3 className="text-base font-semibold text-gray-900 mb-3">
-                {language === 'ja' ? 'ステータス' : 'Status'}
-              </h3>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">選択してください</option>
-                {getStatusOptions().map((option) => (
-                  <option key={option} value={option}>
-                    {getStatusLabel(option, language)}
-                  </option>
-                ))}
-              </select>
+          <div className={`mt-6 ${detailStyles.grid2}`}>
+            <div className={detailStyles.card}>
+              <div className={detailStyles.cardHeaderWithBg}>
+                <h3 className={detailStyles.cardTitle}>
+                  {language === 'ja' ? 'ステータス' : 'Status'}
+                </h3>
+              </div>
+              <div className={detailStyles.cardContent}>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className={formStyles.select}
+                >
+                  <option value="">選択してください</option>
+                  {getStatusOptions().map((option) => (
+                    <option key={option} value={option}>
+                      {getStatusLabel(option, language)}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div className="bg-white shadow-lg rounded-lg p-4 border">
-              <h3 className="text-base font-semibold text-gray-900 mb-3">
-                {language === 'ja' ? '基本情報' : 'Basic Information'}
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">CS ID</label>
-                  <input
-                    type="text"
-                    value={formData.csId}
-                    onChange={(e) => setFormData({ ...formData, csId: e.target.value })}
-                    className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'ja' ? 'カテゴリ' : 'Category'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'ja' ? '説明' : 'Description'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    {language === 'ja' ? '担当者' : 'Person in Charge'}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.personInCharge}
-                    onChange={(e) => setFormData({ ...formData, personInCharge: e.target.value })}
-                    className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                  />
+            <div className={detailStyles.card}>
+              <div className={detailStyles.cardHeaderWithBg}>
+                <h3 className={detailStyles.cardTitle}>
+                  {language === 'ja' ? '基本情報' : 'Basic Information'}
+                </h3>
+              </div>
+              <div className={detailStyles.cardContent}>
+                <div className={formStyles.formGroup}>
+                  <div>
+                    <label className={formStyles.label}>CS ID</label>
+                    <input type="text" value={formData.csId} onChange={(e) => setFormData({ ...formData, csId: e.target.value })} className={formStyles.input} />
+                  </div>
+                  <div>
+                    <label className={formStyles.label}>
+                      {language === 'ja' ? 'カテゴリ' : 'Category'}
+                    </label>
+                    <input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className={formStyles.input} />
+                  </div>
+                  <div>
+                    <label className={formStyles.label}>
+                      {language === 'ja' ? '説明' : 'Description'}
+                    </label>
+                    <input type="text" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={formStyles.input} />
+                  </div>
+                  <div>
+                    <label className={formStyles.label}>
+                      {language === 'ja' ? '担当者' : 'Person in Charge'}
+                    </label>
+                    <input type="text" value={formData.personInCharge} onChange={(e) => setFormData({ ...formData, personInCharge: e.target.value })} className={formStyles.input} />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* 備考 */}
-          <div className="mt-6 bg-white shadow-lg rounded-lg p-4 border">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">
-              {language === 'ja' ? '備考' : 'Remarks'}
-            </h3>
-            <textarea
-              rows={4}
-              value={formData.remarks}
-              onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-              className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder={language === 'ja' ? '備考を入力してください' : 'Enter remarks'}
-            />
+          <div className={`mt-6 ${detailStyles.card}`}>
+            <div className={detailStyles.cardHeaderWithBg}>
+              <h3 className={detailStyles.cardTitle}>
+                {language === 'ja' ? '備考' : 'Remarks'}
+              </h3>
+            </div>
+            <div className={detailStyles.cardContent}>
+              <textarea
+                rows={4}
+                value={formData.remarks}
+                onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                className={formStyles.textarea}
+                placeholder={language === 'ja' ? '備考を入力してください' : 'Enter remarks'}
+              />
+            </div>
           </div>
 
           {/* 請求書情報 */}
-          <div className="mt-6 bg-white shadow-lg rounded-lg p-4 border">
-            <h3 className="text-base font-semibold text-gray-900 mb-3">
-              {language === 'ja' ? '請求書情報' : 'Invoice Information'}
-            </h3>
-            <p className="text-sm text-gray-500 mb-3">
-              {language === 'ja' ? '請求書番号を入力してください' : 'Enter invoice numbers'}
-            </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {language === 'ja' ? '請求書1' : 'Invoice 1'}
-                </label>
-                <input
-                  type="text"
-                  value={formData.inv3}
-                  onChange={(e) => setFormData({ ...formData, inv3: e.target.value })}
-                  className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {language === 'ja' ? '請求書2' : 'Invoice 2'}
-                </label>
-                <input
-                  type="text"
-                  value={formData.inv4}
-                  onChange={(e) => setFormData({ ...formData, inv4: e.target.value })}
-                  className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {language === 'ja' ? '請求書3' : 'Invoice 3'}
-                </label>
-                <input
-                  type="text"
-                  value={formData.inv6}
-                  onChange={(e) => setFormData({ ...formData, inv6: e.target.value })}
-                  className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  {language === 'ja' ? '請求書4' : 'Invoice 4'}
-                </label>
-                <input
-                  type="text"
-                  value={formData.inv7}
-                  onChange={(e) => setFormData({ ...formData, inv7: e.target.value })}
-                  className="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                />
+          <div className={`mt-6 ${detailStyles.card}`}>
+            <div className={detailStyles.cardHeaderWithBg}>
+              <h3 className={detailStyles.cardTitle}>
+                {language === 'ja' ? '請求書情報' : 'Invoice Information'}
+              </h3>
+            </div>
+            <div className={detailStyles.cardContent}>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                {language === 'ja' ? '請求書番号を入力してください' : 'Enter invoice numbers'}
+              </p>
+              <div className={detailStyles.grid2}>
+                <div>
+                  <label className={formStyles.label}>
+                    {language === 'ja' ? '請求書1' : 'Invoice 1'}
+                  </label>
+                  <input type="text" value={formData.inv3} onChange={(e) => setFormData({ ...formData, inv3: e.target.value })} className={formStyles.input} />
+                </div>
+                <div>
+                  <label className={formStyles.label}>
+                    {language === 'ja' ? '請求書2' : 'Invoice 2'}
+                  </label>
+                  <input type="text" value={formData.inv4} onChange={(e) => setFormData({ ...formData, inv4: e.target.value })} className={formStyles.input} />
+                </div>
+                <div>
+                  <label className={formStyles.label}>
+                    {language === 'ja' ? '請求書3' : 'Invoice 3'}
+                  </label>
+                  <input type="text" value={formData.inv6} onChange={(e) => setFormData({ ...formData, inv6: e.target.value })} className={formStyles.input} />
+                </div>
+                <div>
+                  <label className={formStyles.label}>
+                    {language === 'ja' ? '請求書4' : 'Invoice 4'}
+                  </label>
+                  <input type="text" value={formData.inv7} onChange={(e) => setFormData({ ...formData, inv7: e.target.value })} className={formStyles.input} />
+                </div>
               </div>
             </div>
           </div>
 
           {/* ボタンエリア */}
-          <div className="mt-8 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
+          <div className="mt-8 flex justify-end gap-3">
+            <button type="button" onClick={handleCancel} className={detailStyles.secondaryButton}>
               {language === 'ja' ? 'キャンセル' : 'Cancel'}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={isSubmitting} className={`${detailStyles.primaryButton} disabled:opacity-50 disabled:cursor-not-allowed`}>
               {isSubmitting ? (language === 'ja' ? '更新中...' : 'Updating...') : (language === 'ja' ? '更新' : 'Update')}
             </button>
           </div>

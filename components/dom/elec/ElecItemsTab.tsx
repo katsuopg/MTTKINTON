@@ -6,6 +6,7 @@ import ElecItemRow from './ElecItemRow';
 import type { DomHeaderWithRelations, DomElecItem, DomItemCategory } from '@/types/dom';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { detailStyles } from '@/components/ui/DetailStyles';
 
 type Language = 'ja' | 'en' | 'th';
 
@@ -179,25 +180,28 @@ export default function ElecItemsTab({ dom, language, onRefresh, quoteSelecting,
         {!editing ? (
           <button
             onClick={() => setEditing(true)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 rounded-md"
+            className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
           >
-            <Pencil size={16} /> {UI_LABELS[language].edit}
+            <Pencil size={14} />
+            <span className="ml-1.5">{UI_LABELS[language].edit}</span>
           </button>
         ) : (
           <>
             <button
               onClick={handleAddRow}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"
+              className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
             >
-              <Plus size={16} /> {UI_LABELS[language].addRow}
+              <Plus size={14} />
+              <span className="ml-1.5">{UI_LABELS[language].addRow}</span>
             </button>
 
             {selectedItems.size > 0 && (
               <button
                 onClick={handleDelete}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-md"
+                className={`${detailStyles.dangerButton} !py-1.5 !px-3 !text-xs`}
               >
-                <Trash2 size={16} /> {UI_LABELS[language].deleteSelected} ({selectedItems.size})
+                <Trash2 size={14} />
+                <span className="ml-1.5">{UI_LABELS[language].deleteSelected} ({selectedItems.size})</span>
               </button>
             )}
 
@@ -205,68 +209,72 @@ export default function ElecItemsTab({ dom, language, onRefresh, quoteSelecting,
 
             <button
               onClick={handleCancel}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800"
+              className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
             >
-              <X size={16} /> {UI_LABELS[language].cancel}
+              <X size={14} />
+              <span className="ml-1.5">{UI_LABELS[language].cancel}</span>
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md disabled:opacity-50"
+              className={`${detailStyles.primaryButton} !py-1.5 !px-3 !text-xs disabled:opacity-50`}
             >
-              <Save size={16} /> {saving ? UI_LABELS[language].saving : UI_LABELS[language].save}
+              <Save size={14} />
+              <span className="ml-1.5">{saving ? UI_LABELS[language].saving : UI_LABELS[language].save}</span>
             </button>
           </>
         )}
       </div>
 
-      {/* テーブル */}
-      <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-        <table className="w-full text-sm min-w-[1100px]">
-          <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-            <tr>
-              {COLUMN_HEADERS[language].map((header, i) => (
-                <th key={i} className={`px-2 py-1.5 font-medium text-xs whitespace-nowrap ${COLUMN_ALIGNS[i] || 'text-left'}`}>
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {mergedItems.map((item, idx) => (
-              <ElecItemRow
-                key={item.id}
-                item={item}
-                index={idx}
-                language={language}
-                readOnly={!editing}
-                selected={selectedItems.has(item.id)}
-                onToggleSelect={() => handleToggleSelect(item.id)}
-                onChange={(field, value) => handleItemChange(item.id, field, value)}
-                quoteSelecting={quoteSelecting}
-                quoteSelected={selectedQuoteItems?.has(item.id)}
-                onToggleQuoteSelect={() => onToggleQuoteItem?.(item.id)}
-              />
-            ))}
-            {newItems.map((item, idx) => (
-              <ElecItemRow
-                key={`new-${idx}`}
-                item={item}
-                index={mergedItems.length + idx}
-                isNew
-                language={language}
-                onChange={(field, value) => handleNewItemChange(idx, field, value)}
-              />
-            ))}
-            {mergedItems.length === 0 && newItems.length === 0 && (
+      {/* テーブル（セクション風カード） */}
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" style={{ minWidth: 1100 }}>
+            <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
               <tr>
-                <td colSpan={14} className="px-4 py-8 text-center text-gray-400 text-sm">
-                  {editing ? UI_LABELS[language].noDataEdit : UI_LABELS[language].noData}
-                </td>
+                {COLUMN_HEADERS[language].map((header, i) => (
+                  <th key={i} className={`px-2 py-1.5 font-medium text-xs whitespace-nowrap ${COLUMN_ALIGNS[i] || 'text-left'}`}>
+                    {header}
+                  </th>
+                ))}
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {mergedItems.map((item, idx) => (
+                <ElecItemRow
+                  key={item.id}
+                  item={item}
+                  index={idx}
+                  language={language}
+                  readOnly={!editing}
+                  selected={selectedItems.has(item.id)}
+                  onToggleSelect={() => handleToggleSelect(item.id)}
+                  onChange={(field, value) => handleItemChange(item.id, field, value)}
+                  quoteSelecting={quoteSelecting}
+                  quoteSelected={selectedQuoteItems?.has(item.id)}
+                  onToggleQuoteSelect={() => onToggleQuoteItem?.(item.id)}
+                />
+              ))}
+              {newItems.map((item, idx) => (
+                <ElecItemRow
+                  key={`new-${idx}`}
+                  item={item}
+                  index={mergedItems.length + idx}
+                  isNew
+                  language={language}
+                  onChange={(field, value) => handleNewItemChange(idx, field, value)}
+                />
+              ))}
+              {mergedItems.length === 0 && newItems.length === 0 && (
+                <tr>
+                  <td colSpan={14} className="px-4 py-8 text-center text-gray-400 text-sm">
+                    {editing ? UI_LABELS[language].noDataEdit : UI_LABELS[language].noData}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

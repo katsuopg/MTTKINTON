@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Building2, Users, ShieldCheck, LayoutGrid, Table2, Menu, FolderOpen, ClipboardList, KeyRound, LayoutDashboard, Lock } from 'lucide-react';
+import { detailStyles } from '@/components/ui/DetailStyles';
 import OrganizationManagement from './OrganizationManagement';
 import UserManagement from './UserManagement';
 import PermissionManagement from './PermissionManagement';
@@ -83,12 +84,12 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
   // ロード中はスケルトン表示
   if (loading) {
     return (
-      <div className="p-4 md:p-6">
-        <div className="mb-6">
+      <div className={detailStyles.pageWrapper}>
+        <div className={detailStyles.pageHeader}>
           <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
           <div className="mt-2 h-4 w-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-12">
+        <div className={`${detailStyles.card} p-12`}>
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500" />
           </div>
@@ -100,8 +101,8 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
   // アクセス拒否
   if (!hasAccess) {
     return (
-      <div className="p-4 md:p-6">
-        <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-12">
+      <div className={detailStyles.pageWrapper}>
+        <div className={`${detailStyles.card} p-12`}>
           <div className="text-center">
             <Lock className="mx-auto w-16 h-16 text-gray-300 dark:text-gray-600" />
             <h2 className="mt-4 text-xl font-semibold text-gray-800 dark:text-white/90">
@@ -121,13 +122,13 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
   }
 
   return (
-    <div className="p-4 md:p-6">
+    <div className={detailStyles.pageWrapper}>
       {/* Page Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
+      <div className={detailStyles.pageHeader}>
+        <h1 className={detailStyles.pageTitle}>
           {locale === 'ja' ? 'システム管理' : locale === 'th' ? 'การจัดการระบบ' : 'System Management'}
         </h1>
-        <p className="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
+        <p className={detailStyles.pageSubtitle}>
           {locale === 'ja'
             ? '組織、ユーザー、権限などのシステム設定を管理します。'
             : locale === 'th'
@@ -137,21 +138,18 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
       </div>
 
       {/* Tab Navigation */}
-      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="border-b border-gray-200 dark:border-gray-800">
+      <div className={detailStyles.card}>
+        <div className={detailStyles.tabList}>
           <nav className="flex overflow-x-auto" aria-label="Tabs">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`
-                  flex items-center gap-2 whitespace-nowrap px-5 py-4 text-theme-sm font-medium transition-colors border-b-2 -mb-px
-                  ${
-                    activeTab === tab.id
-                      ? 'border-brand-500 text-brand-500 dark:text-brand-400'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                  }
-                `}
+                className={`${detailStyles.tabButton} -mb-px ${
+                  activeTab === tab.id
+                    ? 'border-brand-500 text-brand-500 dark:text-brand-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
               >
                 <span className={activeTab === tab.id ? 'text-brand-500 dark:text-brand-400' : 'text-gray-400'}>{tab.icon}</span>
                 {tab.label}
@@ -161,7 +159,7 @@ export default function SettingsClient({ locale }: SettingsClientProps) {
         </div>
 
         {/* Tab Content */}
-        <div className="p-5 lg:p-6">
+        <div className={detailStyles.cardContent}>
           {activeTab === 'organizations' && <OrganizationManagement locale={locale} />}
           {activeTab === 'users' && <UserManagement locale={locale} />}
           {activeTab === 'permissions' && <PermissionManagement locale={locale} />}

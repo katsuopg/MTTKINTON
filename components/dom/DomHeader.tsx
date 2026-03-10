@@ -6,6 +6,7 @@ import type { DomHeader as DomHeaderType, DomHeaderStatus } from '@/types/dom';
 import { Send, CheckCircle, ArrowLeft, BookOpen } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
+import { detailStyles } from '@/components/ui/DetailStyles';
 
 type Language = 'ja' | 'en' | 'th';
 
@@ -13,6 +14,7 @@ interface DomHeaderProps {
   dom: DomHeaderType;
   language: Language;
   onRefresh: () => void | Promise<void>;
+  actions?: React.ReactNode;
 }
 
 const STATUS_COLORS: Record<DomHeaderStatus, string> = {
@@ -22,7 +24,6 @@ const STATUS_COLORS: Record<DomHeaderStatus, string> = {
   released: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
 };
 
-// ステータス遷移ルール
 const STATUS_TRANSITIONS: Record<DomHeaderStatus, DomHeaderStatus[]> = {
   draft: ['in_review'],
   in_review: ['approved', 'draft'],
@@ -31,14 +32,11 @@ const STATUS_TRANSITIONS: Record<DomHeaderStatus, DomHeaderStatus[]> = {
 };
 
 const LABELS: Record<string, Record<Language, string>> = {
-  version: { ja: 'Ver.', en: 'Ver.', th: 'เวอร์ชัน' },
   totalCost: { ja: '合計', en: 'Total', th: 'รวม' },
-  // 遷移ボタンラベル
   toInReview: { ja: '確認依頼', en: 'Request Review', th: 'ขอตรวจสอบ' },
   toApproved: { ja: '承認', en: 'Approve', th: 'อนุมัติ' },
   toDraft: { ja: '差し戻し', en: 'Return to Draft', th: 'ส่งกลับ' },
   toReleased: { ja: '発行', en: 'Release', th: 'เผยแพร่' },
-  // 確認ダイアログ
   confirmTitle: { ja: 'ステータス変更', en: 'Change Status', th: 'เปลี่ยนสถานะ' },
   confirmToInReview: { ja: 'ステータスを「確認中」に変更しますか？', en: 'Change status to "In Review"?', th: 'เปลี่ยนสถานะเป็น "กำลังตรวจสอบ"?' },
   confirmToApproved: { ja: 'ステータスを「承認済」に変更しますか？', en: 'Change status to "Approved"?', th: 'เปลี่ยนสถานะเป็น "อนุมัติแล้ว"?' },
@@ -51,11 +49,11 @@ const LABELS: Record<string, Record<Language, string>> = {
   error: { ja: 'ステータス変更に失敗しました', en: 'Failed to update status', th: 'อัปเดตสถานะไม่สำเร็จ' },
 };
 
-const TRANSITION_BUTTON_CONFIG: Record<DomHeaderStatus, { label: string; icon: React.ReactNode; style: string; variant: 'info' | 'warning' | 'danger' }> = {
-  in_review: { label: 'toInReview', icon: <Send size={14} />, style: 'text-yellow-700 bg-yellow-50 border-yellow-300 hover:bg-yellow-100 dark:text-yellow-300 dark:bg-yellow-900/30 dark:border-yellow-700 dark:hover:bg-yellow-900/50', variant: 'warning' },
-  approved: { label: 'toApproved', icon: <CheckCircle size={14} />, style: 'text-green-700 bg-green-50 border-green-300 hover:bg-green-100 dark:text-green-300 dark:bg-green-900/30 dark:border-green-700 dark:hover:bg-green-900/50', variant: 'info' },
-  draft: { label: 'toDraft', icon: <ArrowLeft size={14} />, style: 'text-gray-700 bg-gray-50 border-gray-300 hover:bg-gray-100 dark:text-gray-300 dark:bg-gray-700/30 dark:border-gray-600 dark:hover:bg-gray-700/50', variant: 'warning' },
-  released: { label: 'toReleased', icon: <BookOpen size={14} />, style: 'text-blue-700 bg-blue-50 border-blue-300 hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/30 dark:border-blue-700 dark:hover:bg-blue-900/50', variant: 'danger' },
+const TRANSITION_BUTTON_CONFIG: Record<DomHeaderStatus, { label: string; icon: React.ReactNode; variant: 'info' | 'warning' | 'danger' }> = {
+  in_review: { label: 'toInReview', icon: <Send size={14} />, variant: 'warning' },
+  approved: { label: 'toApproved', icon: <CheckCircle size={14} />, variant: 'info' },
+  draft: { label: 'toDraft', icon: <ArrowLeft size={14} />, variant: 'warning' },
+  released: { label: 'toReleased', icon: <BookOpen size={14} />, variant: 'danger' },
 };
 
 const CONFIRM_MESSAGES: Record<DomHeaderStatus, string> = {
@@ -65,7 +63,7 @@ const CONFIRM_MESSAGES: Record<DomHeaderStatus, string> = {
   released: 'confirmToReleased',
 };
 
-export default function DomHeader({ dom, language, onRefresh }: DomHeaderProps) {
+export default function DomHeader({ dom, language, onRefresh, actions }: DomHeaderProps) {
   const { confirmDialog } = useConfirmDialog();
   const { toast } = useToast();
   const [updating, setUpdating] = useState(false);
@@ -112,38 +110,35 @@ export default function DomHeader({ dom, language, onRefresh }: DomHeaderProps) 
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-4">
-      <div className="flex items-center gap-1.5">
-        <span className="font-medium">{LABELS.version[language]}</span>
-        <span className="text-gray-800 dark:text-white">{dom.version}</span>
-      </div>
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+    <div className="flex flex-wrap items-center gap-2 mb-4 px-1">
+      {/* ステータスバッジ */}
+      <span className={`${detailStyles.badge} ${statusColor}`}>
         {statusLabel}
       </span>
 
       {/* ステータス遷移ボタン */}
-      {transitions.length > 0 && (
-        <div className="flex items-center gap-2">
-          {transitions.map((target) => {
-            const config = TRANSITION_BUTTON_CONFIG[target];
-            return (
-              <button
-                key={target}
-                onClick={() => handleStatusChange(target)}
-                disabled={updating}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium border rounded-lg transition-colors disabled:opacity-50 ${config.style}`}
-              >
-                {config.icon}
-                {updating ? LABELS.updating[language] : LABELS[config.label][language]}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {transitions.map((target) => {
+        const config = TRANSITION_BUTTON_CONFIG[target];
+        return (
+          <button
+            key={target}
+            onClick={() => handleStatusChange(target)}
+            disabled={updating}
+            className={`${detailStyles.secondaryButton} !py-1.5 !px-3 !text-xs`}
+          >
+            {config.icon}
+            <span className="ml-1.5">{updating ? LABELS.updating[language] : LABELS[config.label][language]}</span>
+          </button>
+        );
+      })}
 
+      {/* 追加アクション（見積依頼作成など） */}
+      {actions}
+
+      {/* 合計金額（右寄せ） */}
       <div className="flex items-center gap-1.5 ml-auto">
-        <span className="font-medium">{LABELS.totalCost[language]}:</span>
-        <span className="text-gray-800 dark:text-white font-semibold">
+        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{LABELS.totalCost[language]}:</span>
+        <span className="text-base font-semibold text-gray-800 dark:text-white">
           {formatCurrency(dom.total_cost || 0)}
         </span>
       </div>

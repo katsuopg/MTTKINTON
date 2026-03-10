@@ -244,15 +244,15 @@ export default function MechSectionGroup({
           </div>
 
           {/* テーブル */}
-          <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded">
-            <table className="text-sm table-fixed" style={{ width: widths.reduce((a, b) => a + b, 0) }}>
-              <thead className="bg-gray-50/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300">
+          <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+            <table className="w-full text-sm" style={{ minWidth: widths.reduce((a, b) => a + b, 0) }}>
+              <thead className="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                 <tr>
                   {columns[language].map((header, i) => (
                     <th
                       key={i}
                       style={{ width: widths[i] }}
-                      className={`px-1 py-1.5 font-medium text-xs whitespace-nowrap ${aligns[i] || 'text-left'}`}
+                      className={`px-2 py-1.5 font-medium text-xs whitespace-nowrap ${aligns[i] || 'text-left'}`}
                     >
                       {header}
                     </th>
@@ -306,7 +306,7 @@ export default function MechSectionGroup({
                 })}
                 {currentItems.length === 0 && currentNewItems.length === 0 && (
                   <tr>
-                    <td colSpan={colCount} className="px-4 py-6 text-center text-gray-400 text-xs">
+                    <td colSpan={colCount} className="px-4 py-8 text-center text-gray-400 text-sm">
                       {GROUP_LABELS[language].noData}
                     </td>
                   </tr>
